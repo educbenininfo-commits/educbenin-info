@@ -46,13 +46,14 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   ]);
 
   const counts: Record<string, number> = { all: 0, '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 };
+  let allTotal = 0;
   for (const row of grouped) {
     if (row.stage >= 1 && row.stage <= 5) {
       counts[String(row.stage)] = row._count._all;
-      // @ts-expect-error — counts.all is initialized above
-      counts.all += row._count._all;
+      allTotal += row._count._all;
     }
   }
+  counts.all = allTotal;
 
   return NextResponse.json({ items, counts });
 }
