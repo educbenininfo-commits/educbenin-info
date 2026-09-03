@@ -7,11 +7,23 @@ vi.mock('@/lib/server/middleware', () => ({ requireAdmin: vi.fn() }));
 vi.mock('@/lib/server/middleware/rate-limit-by-userid', () => ({
   enforceAdminRateLimit: vi.fn(),
 }));
+vi.mock('@/lib/server/auth', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/server/auth')>('@/lib/server/auth');
+  return { ...actual, verifyCsrf: vi.fn() };
+});
+vi.mock('@/lib/server/admin/audit', () => ({
+  logAdminAction: vi.fn().mockResolvedValue(undefined),
+}));
 
 import { requireAdmin } from '@/lib/server/middleware';
 import { enforceAdminRateLimit } from '@/lib/server/middleware/rate-limit-by-userid';
-import { GET } from './route';
+import { verifyCsrf } from '@/lib/server/auth';
+import { logAdminAction } from '@/lib/server/admin/audit';
+import { GET, PATCH } from './route';
 import { seedAdmin } from '@/test-utils/admin-fixtures';
+
+const mockVerifyCsrf = vi.mocked(verifyCsrf);
+const mockLogAdminAction = vi.mocked(logAdminAction);
 
 const mockRequireAdmin = vi.mocked(requireAdmin);
 const mockRateLimit = vi.mocked(enforceAdminRateLimit);
@@ -32,6 +44,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockRequireAdmin.mockResolvedValue(adminCtx);
   mockRateLimit.mockResolvedValue(null);
+  mockVerifyCsrf.mockReturnValue(null);
 });
 
 describe('GET /api/admin/dossiers/[id]', () => {
@@ -66,6 +79,104 @@ describe('GET /api/admin/dossiers/[id]', () => {
     );
     const res = await GET(makeReq('d1'), paramsOf('d1'));
     expect(res.status).toBe(403);
+    expect(prismaMock.dossier.findUnique).not.toHaveBeenCalled();
+  });
+});
+
+function makePatchReq(id: string, body: unknown): NextRequest {
+  return new NextRequest(`http://test/api/admin/dossiers/${id}`, {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
+describe('PATCH /api/admin/dossiers/[id]', () => {
+  it('updates paye and moyen, clamping paye to montant when montant is unchanged', async () => {
+    prismaMock.dossier.findUnique.mockResolvedValueOnce({
+      id: 'd1',
+      montant: 50000,
+      montantSupplement: null,
+    } as never);
+    prismaMock.dossier.update.mockResolvedValueOnce({ id: 'd1', paye: 50000 } as never);
+
+    const res = await PATCH(
+      makePatchReq('d1', { paye: 999999, moyen: 'Mobile Money' }),
+      paramsOf('d1'),
+    );
+
+    expect(res.status).toBe(200);
+    expect(prismaMock.dossier.update).toHaveBeenCalledWith({
+      where: { id: 'd1' },
+      data: { paye: 50000, moyen: 'Mobile Money' },
+      include: { comments: { orderBy: { createdAt: 'asc' } } },
+    });
+    expect(mockLogAdminAction).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        action: 'dossier.payment_update',
+        targetType: 'Dossier',
+        targetId: 'd1',
+      }),
+    );
+  });
+
+  it('clamps paye against montant + montantSupplement when both are set in the same request', async () => {
+    prismaMock.dossier.findUnique.mockResolvedValueOnce({
+      id: 'd1',
+      montant: 50000,
+      montantSupplement: null,
+    } as never);
+    prismaMock.dossier.update.mockResolvedValueOnce({} as never);
+
+    await PATCH(
+      makePatchReq('d1', { montant: 50000, montantSupplement: 50000, paye: 80000 }),
+      paramsOf('d1'),
+    );
+
+    expect(prismaMock.dossier.update).toHaveBeenCalledWith({
+      where: { id: 'd1' },
+      data: { montant: 50000, montantSupplement: 50000, paye: 80000 },
+      include: { comments: { orderBy: { createdAt: 'asc' } } },
+    });
+  });
+
+  it('clamps a negative paye to 0', async () => {
+    prismaMock.dossier.findUnique.mockResolvedValueOnce({
+      id: 'd1',
+      montant: 50000,
+      montantSupplement: null,
+    } as never);
+    prismaMock.dossier.update.mockResolvedValueOnce({} as never);
+
+    await PATCH(makePatchReq('d1', { paye: -100 }), paramsOf('d1'));
+
+    expect(prismaMock.dossier.update).toHaveBeenCalledWith({
+      where: { id: 'd1' },
+      data: { paye: 0 },
+      include: { comments: { orderBy: { createdAt: 'asc' } } },
+    });
+  });
+
+  it('returns 404 DOSSIER_NOT_FOUND when the id does not exist', async () => {
+    prismaMock.dossier.findUnique.mockResolvedValueOnce(null);
+    const res = await PATCH(makePatchReq('missing', { paye: 1000 }), paramsOf('missing'));
+    expect(res.status).toBe(404);
+    expect(prismaMock.dossier.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects when CSRF fails — short-circuits before requireAdmin', async () => {
+    mockVerifyCsrf.mockReturnValueOnce(
+      NextResponse.json({ error: 'Invalid CSRF token' }, { status: 403 }),
+    );
+    const res = await PATCH(makePatchReq('d1', { paye: 1000 }), paramsOf('d1'));
+    expect(res.status).toBe(403);
+    expect(mockRequireAdmin).not.toHaveBeenCalled();
+  });
+
+  it('rejects an unknown moyen value with 400 VALIDATION_FAILED', async () => {
+    const res = await PATCH(makePatchReq('d1', { moyen: 'Chèque' }), paramsOf('d1'));
+    expect(res.status).toBe(400);
     expect(prismaMock.dossier.findUnique).not.toHaveBeenCalled();
   });
 });
