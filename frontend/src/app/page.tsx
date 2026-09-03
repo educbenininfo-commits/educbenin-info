@@ -5,6 +5,7 @@
 import Link from 'next/link';
 import { PublicNav } from '@/components/public/PublicNav';
 import { PublicBottomNav } from '@/components/public/PublicBottomNav';
+import { SPECIALTIES } from '@/lib/specialties';
 
 const HERO_TRACK: { label: string; done: boolean; num: string }[] = [
   { label: 'Dossier en cours de traitement', done: true, num: '✓' },
@@ -40,14 +41,7 @@ const STEPS: { n: string; title: string; desc: string }[] = [
 
 // 6 premières spécialités du tableau SPECIALTIES (ordre exact du prototype —
 // c'est aussi cet ordre qui détermine les 6 tuiles affichées sur l'accueil).
-const HOME_SPECIALTIES: { code: string; name: string }[] = [
-  { code: 'ANR', name: 'Anesthésie-Réanimation' },
-  { code: 'BCL', name: 'Biologie Clinique' },
-  { code: 'BIO', name: 'Biologie Médicale et Sciences Fondamentales' },
-  { code: 'CAR', name: 'Cardiologie' },
-  { code: 'CHG', name: 'Chirurgie Générale' },
-  { code: 'CHP', name: 'Chirurgie Pédiatrique' },
-];
+const HOME_SPECIALTIES = SPECIALTIES.slice(0, 6);
 
 export default function Home() {
   return (
