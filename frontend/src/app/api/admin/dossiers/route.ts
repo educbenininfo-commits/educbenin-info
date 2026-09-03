@@ -49,8 +49,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   for (const row of grouped) {
     if (row.stage >= 1 && row.stage <= 5) {
       counts[String(row.stage)] = row._count._all;
-      const allCount = counts.all as number;
-      counts.all = allCount + row._count._all;
+      // @ts-expect-error — counts.all is initialized above
+      counts.all += row._count._all;
     }
   }
 

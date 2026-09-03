@@ -44,12 +44,12 @@ describe('GET /api/admin/dossiers', () => {
         stageChangedAt: new Date('2026-09-01T00:00:00Z'),
       },
     ] as never);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (prismaMock.dossier.groupBy as any).mockResolvedValueOnce([
+    // @ts-expect-error — deepMock proxies have runtime mock methods TypeScript doesn't recognize
+    prismaMock.dossier.groupBy.mockResolvedValueOnce([
       { stage: 0, _count: { _all: 2 } },
       { stage: 1, _count: { _all: 3 } },
       { stage: 2, _count: { _all: 1 } },
-    ]);
+    ] as never);
 
     const res = await GET(makeReq());
     expect(res.status).toBe(200);
@@ -63,8 +63,8 @@ describe('GET /api/admin/dossiers', () => {
 
   it('filters by an explicit stage, including stage=0 for rejected dossiers', async () => {
     prismaMock.dossier.findMany.mockResolvedValueOnce([] as never);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (prismaMock.dossier.groupBy as any).mockResolvedValueOnce([]);
+    // @ts-expect-error — deepMock proxies have runtime mock methods TypeScript doesn't recognize
+    prismaMock.dossier.groupBy.mockResolvedValueOnce([] as never);
 
     await GET(makeReq('stage=0'));
     const args = prismaMock.dossier.findMany.mock.calls[0]?.[0];
