@@ -527,7 +527,8 @@ button {
   color: var(--prod-ink-faint);
   padding: 0 12px 8px;
 }
-.p-moresheet a {
+.p-moresheet a,
+.p-moresheet button {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -1070,6 +1071,315 @@ button {
   margin-top: 8px;
 }
 
+/* ---- login screen ---- */
+.login-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 560px;
+}
+.g-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  border: 1px solid var(--prod-border);
+  background: var(--prod-surface);
+  border-radius: 9px;
+  padding: 11px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  color: var(--prod-ink);
+}
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--prod-ink-faint);
+  font-size: 11.5px;
+  margin: 16px 0;
+}
+.divider::before,
+.divider::after {
+  content: '';
+  height: 1px;
+  background: var(--prod-border);
+  flex: 1;
+}
+
+/* ---- back-office shell (Tableau de bord and every future admin screen) ---- */
+.bo {
+  display: flex;
+  min-height: 100vh;
+}
+.bo-side {
+  width: 220px;
+  flex: none;
+  background: var(--prod-primary-dark);
+  color: #edebfa;
+  padding: 18px 12px;
+}
+.bo-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 8px 20px;
+  font-family: var(--font-serif), serif;
+  font-weight: 700;
+  font-size: 15px;
+}
+.bo-brand .mark {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.16);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+.bo-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 2px;
+  cursor: pointer;
+  color: #cfc9f0;
+  border: 0;
+  background: none;
+  width: 100%;
+  text-align: left;
+  text-decoration: none;
+}
+.bo-item.on {
+  background: rgba(255, 255, 255, 0.13);
+  color: #fff;
+  font-weight: 600;
+}
+.bo-item .ic {
+  width: 16px;
+  text-align: center;
+  opacity: 0.9;
+  flex: none;
+}
+.bo-item .lbl {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bo-main {
+  flex: 1;
+  background: var(--prod-page);
+  min-width: 0;
+}
+.bo-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--prod-border);
+  background: var(--prod-surface);
+  gap: 12px;
+}
+.bo-search {
+  border: 1px solid var(--prod-border);
+  border-radius: 9px;
+  padding: 8px 13px;
+  font-size: 13px;
+  color: var(--prod-ink-faint);
+  width: 260px;
+}
+.bo-user {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--prod-primary-tint);
+  color: var(--prod-primary-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 11.5px;
+  flex: none;
+}
+.bo-content {
+  padding: 22px 24px;
+}
+.bo-h1 {
+  font-size: 17px;
+  margin-bottom: 4px;
+}
+.bo-sub {
+  font-size: 12px;
+  color: var(--prod-ink-muted);
+  margin-bottom: 18px;
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+  margin-bottom: 22px;
+}
+.kpi {
+  border: 1px solid var(--prod-border);
+  border-radius: 12px;
+  padding: 14px 15px;
+  background: var(--prod-surface);
+}
+.kpi .n {
+  font-family: var(--font-mono), monospace;
+  font-size: 22px;
+  font-weight: 600;
+}
+.kpi .l {
+  font-size: 11.5px;
+  color: var(--prod-ink-muted);
+  margin-top: 4px;
+  line-height: 1.4;
+}
+.kpi.accent {
+  border-top: 3px solid var(--prod-primary);
+}
+.kpi.warn {
+  border-top: 3px solid var(--prod-warning);
+}
+.kpi.ok {
+  border-top: 3px solid var(--prod-success);
+}
+.kpi.danger {
+  border-top: 3px solid var(--prod-danger);
+}
+.fin-kpi {
+  grid-template-columns: repeat(3, 1fr);
+}
+.dash-kpis {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.dash-kpis .kpi-grid {
+  margin-bottom: 0;
+}
+
+.panel {
+  border: 1px solid var(--prod-border);
+  border-radius: 13px;
+  background: var(--prod-surface);
+  padding: 18px 20px;
+}
+.panel h3 {
+  font-size: 14.5px;
+  margin-bottom: 4px;
+  font-family: var(--font-sans);
+  font-weight: 600;
+}
+.panel .sub {
+  font-size: 12px;
+  color: var(--prod-ink-muted);
+  margin-bottom: 14px;
+}
+.section-lbl {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--prod-ink-faint);
+  margin: 26px 0 12px;
+}
+.paybar-row {
+  margin-bottom: 14px;
+}
+.paybar-row:last-child {
+  margin-bottom: 0;
+}
+.paybar-top {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12.5px;
+  margin-bottom: 6px;
+}
+.paybar-top .lbl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+.paybar-top .sw {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  flex: none;
+}
+.paybar-top .val {
+  font-family: var(--font-mono), monospace;
+  color: var(--prod-ink-muted);
+}
+.paybar-track {
+  height: 7px;
+  border-radius: 99px;
+  background: var(--prod-surface-2);
+  overflow: hidden;
+}
+.paybar-fill {
+  height: 100%;
+  border-radius: 99px;
+}
+.alert-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--prod-border);
+  font-size: 13px;
+  gap: 10px;
+}
+.alert-row:last-child {
+  border-bottom: 0;
+}
+.pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.pill.warn {
+  background: var(--prod-warning-tint);
+  color: var(--prod-warning);
+}
+.pill.ok {
+  background: var(--prod-success-tint);
+  color: var(--prod-success);
+}
+.pill.danger {
+  background: var(--prod-danger-tint);
+  color: var(--prod-danger);
+}
+.pill.neutral {
+  background: var(--prod-surface-2);
+  color: var(--prod-ink-muted);
+  border: 1px solid var(--prod-border);
+}
+
+/* ---- back-office mobile bottom nav (own bg color per Fondations, otherwise
+   identical mechanics to .p-bottomnav) ---- */
+.bo-bottomnav {
+  display: none;
+}
+
 /* ---- responsive: 760px mirrors the design spec's container-query threshold
    (`@container frame (max-width:760px)`) used by the prototype's simulated
    device — the real product has no frame, so a standard viewport media query
@@ -1167,5 +1477,49 @@ button {
   .legal {
     padding: 26px 18px 50px;
     margin-bottom: 66px;
+  }
+
+  .login-grid {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .bo {
+    flex-direction: column;
+    min-height: 0;
+  }
+  .bo-side {
+    display: none;
+  }
+  .bo-bottomnav {
+    display: flex;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+    background: var(--prod-surface);
+    border-top: 1px solid var(--prod-border);
+    padding: 2px 4px calc(2px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -10px 26px -18px rgba(20, 15, 60, 0.4);
+  }
+  .bo-top {
+    padding: 12px 16px;
+    flex-wrap: wrap;
+  }
+  .bo-search {
+    width: 100%;
+    order: 3;
+  }
+  .bo-content {
+    padding: 16px;
+    padding-bottom: 74px;
+  }
+  .kpi-grid {
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+  }
+  #kpiBlockFinance {
+    order: -1;
   }
 }
