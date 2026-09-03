@@ -332,3 +332,61 @@ model Withdrawal {
   @@index([status, requestedAt])
   @@index([provider, providerPayoutId])
 }
+
+model Dossier {
+  id        String @id @default(cuid())
+  reference String @unique // "EB-202609-001" — see frontend/src/lib/server/dossiers/reference.ts
+
+  nom      String
+  prenom   String
+  whatsapp String // "+229 XX XX XX XX", as typed by the candidate
+
+  specialtyCodes String[] // codes from frontend/src/lib/specialties.ts, e.g. ["ANR","CAR"]
+  stage          Int      @default(1) // 0=rejeté, 1..5 — see STAGE_NAMES in frontend/src/lib/dossiers-data.ts
+
+  pieceJointeUrl String? // initial dossier PDF (Cloudinary secure_url)
+
+  authToken          String?   @unique // random, generated on "Envoyer" — never the reference itself
+  authTokenExpiresAt DateTime?
+  authSentAt         DateTime?
+  authSubmittedAt    DateTime? // set for real when the candidate submits /authentification-diplome/[token]
+  authFormData       Json? // same shape as the existing frontend `AuthForm` type
+  diplomaBacUrl      String?
+  diplomaDoctoratUrl String?
+
+  ficheUploaded Boolean @default(false)
+  ficheUrl      String?
+
+  recepisseUploaded Boolean @default(false)
+  recepisseUrl      String?
+
+  montant           Int     @default(50000)
+  montantSupplement Int? // multi-spécialités, staff-editable, may stay empty
+  paye              Int     @default(0)
+  moyen             String  @default("Non renseigné") // Non renseigné | Mobile Money | Espèces | Virement
+
+  motifRejet String?
+
+  stageChangedAt DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  comments DossierComment[]
+
+  @@index([stage])
+  @@index([whatsapp])
+}
+
+model DossierComment {
+  id        String  @id @default(cuid())
+  dossierId String
+  dossier   Dossier @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+
+  type       String // "public" | "internal"
+  text       String
+  authorName String // admin's email, from requireAdmin's session
+
+  createdAt DateTime @default(now())
+
+  @@index([dossierId])
+}
