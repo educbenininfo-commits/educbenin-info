@@ -1,0 +1,1592 @@
+<title>Educ Bénin Prototype</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+  :root{
+    --tool-bg:#F4F3F8; --tool-panel:#FFFFFF; --tool-rail-bg:#1E1B33; --tool-rail-text:#EDEBFA;
+    --tool-rail-muted:#9C97BE; --tool-text:#1E1B33; --tool-muted:#655F80; --tool-border:#DFDCEC; --tool-accent:#4F46E5;
+    --prod-ink:#1E1B33; --prod-ink-muted:#655F80; --prod-ink-faint:#9490AC;
+    --prod-surface:#FFFFFF; --prod-surface-2:#F7F6FC; --prod-page:#FBFAFE; --prod-border:#E4E1F0;
+    --prod-primary:#4F46E5; --prod-primary-dark:#3730A3; --prod-primary-tint:#EEF0FE;
+    --prod-gold:#9C6F17; --prod-gold-tint:#F6EEDA;
+    --prod-success:#0E9F6E; --prod-success-tint:#D8F6EA;
+    --prod-warning:#B45309; --prod-warning-tint:#FDF0DA;
+    --prod-danger:#C0362C; --prod-danger-tint:#FBE7E5;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --tool-bg:#131120; --tool-panel:#1A1730; --tool-rail-bg:#0D0B1A; --tool-rail-text:#EDEBFA;
+      --tool-rail-muted:#847FA6; --tool-text:#EEECF9; --tool-muted:#A8A3C6; --tool-border:#2E2A4C; --tool-accent:#8B84F5;
+    }
+  }
+  :root[data-theme="dark"]{
+    --tool-bg:#131120; --tool-panel:#1A1730; --tool-rail-bg:#0D0B1A; --tool-rail-text:#EDEBFA;
+    --tool-rail-muted:#847FA6; --tool-text:#EEECF9; --tool-muted:#A8A3C6; --tool-border:#2E2A4C; --tool-accent:#8B84F5;
+  }
+  *,*::before,*::after{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--tool-bg); color:var(--tool-text); font-family:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,sans-serif; -webkit-font-smoothing:antialiased;}
+  h1,h2,h3,h4{font-family:"Source Serif 4",Georgia,serif; text-wrap:balance; margin:0;}
+  p{margin:0;}
+  button{font-family:inherit;}
+  .mono{font-family:"IBM Plex Mono",ui-monospace,monospace; font-variant-numeric:tabular-nums;}
+  a{color:inherit;}
+  :focus-visible{outline:2px solid var(--tool-accent); outline-offset:2px;}
+
+  .tool{min-height:100vh; display:flex; flex-direction:column;}
+  .toolbar{display:flex; align-items:center; gap:16px; justify-content:space-between; padding:12px 20px; border-bottom:1px solid var(--tool-border); background:var(--tool-panel);}
+  .toolbar-id{display:flex; align-items:center; gap:10px; min-width:0;}
+  .toolbar-mark{width:30px;height:30px;border-radius:8px;flex:none; background:linear-gradient(155deg,var(--prod-primary),var(--prod-primary-dark)); display:flex;align-items:center;justify-content:center; color:#fff;font-family:"Source Serif 4",serif;font-weight:700;font-size:15px;}
+  .toolbar-titles{min-width:0;}
+  .toolbar-titles .t1{font-weight:600; font-size:14px; line-height:1.3;}
+  .toolbar-titles .t2{font-size:12px; color:var(--tool-muted); line-height:1.3;}
+  .toolbar-actions{display:flex; align-items:center; gap:8px;}
+  .seg{display:flex; border:1px solid var(--tool-border); border-radius:8px; overflow:hidden;}
+  .seg button{border:0; background:transparent; color:var(--tool-muted); font-size:12px; font-weight:600; padding:7px 12px; cursor:pointer;}
+  .seg button.active{background:var(--tool-accent); color:#fff;}
+  .tag-example{font-size:11px; font-weight:600; color:var(--prod-gold); background:var(--prod-gold-tint); border:1px solid #E4CE9A; padding:4px 9px; border-radius:999px; white-space:nowrap;}
+
+  .tool-body{flex:1; display:flex; min-height:0;}
+  .rail{width:236px; flex:none; background:var(--tool-rail-bg); color:var(--tool-rail-text); padding:18px 12px; overflow-y:auto;}
+  .rail-group{margin-bottom:20px;}
+  .rail-group h4{font-family:"IBM Plex Sans",sans-serif; font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:var(--tool-rail-muted); font-weight:600; padding:0 10px; margin-bottom:8px;}
+  .rail-btn{width:100%; text-align:left; background:transparent; border:0; color:var(--tool-rail-text); padding:9px 10px; border-radius:8px; font-size:13.5px; cursor:pointer; display:flex; align-items:center; gap:9px; margin-bottom:2px;}
+  .rail-btn .dot{width:6px;height:6px;border-radius:50%;background:var(--tool-rail-muted); flex:none;}
+  .rail-btn:hover{background:rgba(255,255,255,.06);}
+  .rail-btn.active{background:rgba(255,255,255,.12); font-weight:600;}
+  .rail-btn.active .dot{background:#8B84F5;}
+  .rail-note{margin-top:8px; padding:12px; border-radius:10px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); font-size:12px; line-height:1.5; color:var(--tool-rail-muted);}
+
+  .canvas{flex:1; overflow:auto; padding:28px; display:flex; justify-content:center; align-items:flex-start;}
+  .frame{position:relative; width:100%; max-width:1180px; background:var(--prod-surface); border-radius:14px; border:1px solid var(--tool-border); box-shadow:0 20px 50px -25px rgba(20,15,60,.35); overflow:hidden; transition:max-width .25s ease; container-type:inline-size; container-name:frame;}
+  .frame.mobile{max-width:390px;}
+  /* simule un écran de téléphone à hauteur bornée avec défilement interne, pour que la barre de menu du bas et la modale dossier restent bien ancrées au cadre plutôt qu'au bas de toute la page */
+  .frame.mobile .frame-scroll{max-height:min(74vh,760px); overflow-y:auto; -webkit-overflow-scrolling:touch;}
+  .framebar{display:flex; align-items:center; gap:10px; padding:10px 14px; background:var(--prod-surface-2); border-bottom:1px solid var(--prod-border);}
+  .framebar .lights{display:flex; gap:6px;}
+  .framebar .lights span{width:9px;height:9px;border-radius:50%; background:var(--prod-border);}
+  .framebar .url{flex:1; text-align:center; font-size:12px; color:var(--prod-ink-muted); background:var(--prod-surface); border:1px solid var(--prod-border); border-radius:999px; padding:5px 12px; font-family:"IBM Plex Mono",monospace;}
+  .screen{display:none;}
+  .screen.active{display:block;}
+
+  .prod{color:var(--prod-ink); font-size:15px; line-height:1.6;}
+  .container{max-width:1040px; margin:0 auto; padding:0 32px;}
+  .p-nav{display:flex; align-items:center; justify-content:space-between; gap:20px; padding:16px 32px; border-bottom:1px solid var(--prod-border);}
+  .p-logo{display:flex; align-items:center; gap:9px; font-family:"Source Serif 4",serif; font-weight:700; font-size:17px; flex:none;}
+  .p-logo .mark{width:28px;height:28px;border-radius:7px; background:linear-gradient(155deg,var(--prod-primary),var(--prod-primary-dark)); color:#fff; display:flex; align-items:center; justify-content:center; font-size:14px;}
+  .p-links{display:flex; gap:26px; font-size:14px; font-weight:500; color:var(--prod-ink-muted);}
+  .p-links a{cursor:pointer; white-space:nowrap;}
+  .p-links a.on{color:var(--prod-primary-dark); font-weight:600;}
+  .p-burger{display:none; width:34px;height:34px; border:1px solid var(--prod-border); border-radius:8px; align-items:center; justify-content:center; font-size:15px; color:var(--prod-ink-muted);}
+  .btn{display:inline-flex; align-items:center; justify-content:center; gap:8px; border-radius:9px; font-weight:600; font-size:14px; padding:11px 18px; cursor:pointer; border:1px solid transparent; white-space:nowrap;}
+  .btn-primary{background:var(--prod-primary); color:#fff;}
+  .btn-primary:hover{background:var(--prod-primary-dark);}
+  .btn-outline{background:transparent; border-color:var(--prod-border); color:var(--prod-ink);}
+  .btn-outline:hover{border-color:var(--prod-primary);}
+  .btn-ghost{background:transparent; color:var(--prod-primary-dark);}
+  .btn-sm{padding:7px 13px; font-size:12.5px; border-radius:7px;}
+  .btn-block{width:100%;}
+  .btn-danger-outline{background:transparent; border-color:#EAC3BF; color:var(--prod-danger);}
+  .btn[disabled], .btn.is-disabled{opacity:.42; cursor:not-allowed; background:var(--prod-surface-2)!important; color:var(--prod-ink-faint)!important; border-color:var(--prod-border)!important;}
+
+  .disclaimer-bar{background:var(--prod-primary-tint); border-bottom:1px solid var(--prod-border); padding:10px 32px; font-size:12.5px; color:var(--prod-primary-dark); display:flex; gap:8px; align-items:center;}
+  .hero{padding:64px 32px 52px; display:grid; grid-template-columns:1.1fr .9fr; grid-template-areas:"text art" "cta art"; gap:14px 44px; align-items:center;}
+  .hero-text{grid-area:text; align-self:end;}
+  .hero-art{grid-area:art;}
+  .hero-actions{grid-area:cta; align-self:start;}
+  .eyebrow{font-size:11.5px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--prod-gold); display:flex; align-items:center; gap:8px; margin-bottom:14px;}
+  .eyebrow::before{content:"";width:16px;height:1px;background:var(--prod-gold);}
+  .hero h1{font-size:38px; line-height:1.14; font-weight:700; letter-spacing:-.01em;}
+  .hero p.lead{margin-top:16px; font-size:16px; color:var(--prod-ink-muted); max-width:46ch;}
+  .hero-actions{display:flex; gap:12px; flex-wrap:wrap;}
+  .hero-art{background:linear-gradient(160deg,var(--prod-primary-dark),var(--prod-primary)); border-radius:16px; padding:26px; color:#fff; position:relative; overflow:hidden;}
+  .hero-art .seal{position:absolute; right:-30px; top:-30px; width:150px; height:150px; border-radius:50%; border:1.5px dashed rgba(255,255,255,.28);}
+  .hero-track{display:flex; flex-direction:column; gap:0;}
+  .hero-track .row{display:flex; gap:12px; padding:10px 0; position:relative;}
+  .hero-track .row:not(:last-child)::after{content:""; position:absolute; left:11px; top:30px; bottom:-2px; width:1px; background:rgba(255,255,255,.25);}
+  .hero-track .num{width:24px;height:24px;border-radius:50%; background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.35); display:flex; align-items:center; justify-content:center; font-size:11.5px; font-weight:700; flex:none;}
+  .hero-track .row.done .num{background:var(--prod-gold); border-color:var(--prod-gold); color:#241B03;}
+  .hero-track .label{font-size:13px; padding-top:2px;}
+  .hero-track .row.done .label{opacity:.7; text-decoration:line-through;}
+
+  .section{padding:46px 32px; border-top:1px solid var(--prod-border);}
+  .section h2{font-size:23px; margin-bottom:6px;}
+  .section .sub{color:var(--prod-ink-muted); font-size:14px; max-width:56ch; margin-bottom:26px;}
+  .steps-grid{display:grid; grid-template-columns:repeat(5,1fr); gap:14px;}
+  .step-card{border:1px solid var(--prod-border); border-radius:12px; padding:16px 14px; background:var(--prod-surface-2);}
+  .step-card .n{font-family:"IBM Plex Mono",monospace; color:var(--prod-gold); font-size:12px; font-weight:600;}
+  .step-card h5{font-size:13.5px; font-weight:600; margin-top:8px; font-family:"IBM Plex Sans";}
+  .step-card p{font-size:12px; color:var(--prod-ink-muted); margin-top:5px; line-height:1.5;}
+
+  .spec-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:12px;}
+  .spec-tile{border:1px solid var(--prod-border); border-radius:11px; padding:14px 15px; cursor:pointer; background:var(--prod-surface);}
+  .spec-tile:hover{border-color:var(--prod-primary);}
+  .spec-tile.sel{border-color:var(--prod-primary); background:var(--prod-primary-tint);}
+  .spec-tile .name{font-weight:600; font-size:13.5px;}
+  .spec-tile .code{font-size:11px; color:var(--prod-ink-faint); font-family:"IBM Plex Mono",monospace; margin-top:3px;}
+
+  .footer{background:var(--prod-surface-2); border-top:1px solid var(--prod-border); padding:40px 32px 26px;}
+  .footer-grid{display:grid; grid-template-columns:1.4fr 1fr 1fr 1fr; gap:28px;}
+  .footer h6{font-size:12px; text-transform:uppercase; letter-spacing:.07em; color:var(--prod-ink-faint); margin-bottom:12px; font-weight:600; font-family:"IBM Plex Sans";}
+  .footer a{display:block; font-size:13px; color:var(--prod-ink-muted); margin-bottom:9px; cursor:pointer;}
+  .footer .legal-line{margin-top:24px; padding-top:18px; border-top:1px solid var(--prod-border); font-size:12px; color:var(--prod-ink-faint); display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;}
+
+  .page-head{padding:36px 32px 8px;}
+  .page-head .k{font-size:12px; font-weight:700; color:var(--prod-gold); text-transform:uppercase; letter-spacing:.08em;}
+  .page-head h1{font-size:27px; margin-top:8px;}
+  .page-head p{color:var(--prod-ink-muted); margin-top:8px; max-width:60ch;}
+
+  .callout{border-radius:11px; padding:16px 18px; font-size:13.5px; line-height:1.6; display:flex; gap:12px;}
+  .callout.warn{background:var(--prod-warning-tint); color:#7A3E05; border:1px solid #EBCE9C;}
+  .callout.info{background:var(--prod-primary-tint); color:var(--prod-primary-dark); border:1px solid #D2D3FA;}
+  .callout .icn{flex:none; margin-top:1px;}
+
+  .doc-card{border:1px solid var(--prod-border); border-radius:14px; padding:26px 28px; background:var(--prod-surface); position:relative;}
+  .doc-card::before{content:""; position:absolute; left:0; top:18px; bottom:18px; width:3px; background:var(--prod-gold); border-radius:2px;}
+  .doc-card ol{margin:14px 0 0; padding-left:20px; display:flex; flex-direction:column; gap:9px; font-size:13.5px;}
+  .doc-card ol li::marker{font-family:"IBM Plex Mono",monospace; font-weight:600; color:var(--prod-gold);}
+
+  .price-box{display:flex; align-items:center; justify-content:space-between; gap:16px; border:1px solid var(--prod-border); border-radius:14px; padding:20px 22px; background:var(--prod-surface); flex-wrap:wrap;}
+  .price-box .amt{font-family:"Source Serif 4",serif; font-size:26px; font-weight:700;}
+  .price-box .amt .cur{font-size:14px; font-weight:600; color:var(--prod-ink-muted); font-family:"IBM Plex Sans";}
+
+  .field{display:flex; flex-direction:column; gap:6px; margin-bottom:16px;}
+  .field label{font-size:12.5px; font-weight:600; color:var(--prod-ink);}
+  .field input, .field select, .field textarea{border:1px solid var(--prod-border); border-radius:9px; padding:11px 13px; font-size:14px; font-family:inherit; color:var(--prod-ink); background:var(--prod-surface); width:100%;}
+  .field input:focus, .field select:focus, .field textarea:focus{border-color:var(--prod-primary);}
+  .field .hint{font-size:11.5px; color:var(--prod-ink-faint);}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+
+  .chip{border:1px solid var(--prod-border); border-radius:999px; padding:8px 15px; font-size:13px; cursor:pointer; background:var(--prod-surface); font-weight:500;}
+  .chip.sel{background:var(--prod-primary); border-color:var(--prod-primary); color:#fff; font-weight:600;}
+  .chipwrap{display:flex; flex-wrap:wrap; gap:9px;}
+
+  .stepper{display:flex; align-items:center; gap:0; margin-bottom:28px;}
+  .stepper .sp{display:flex; align-items:center; gap:9px;}
+  .stepper .c{width:26px;height:26px;border-radius:50%; background:var(--prod-surface-2); border:1px solid var(--prod-border); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:var(--prod-ink-faint);}
+  .stepper .sp.on .c{background:var(--prod-primary); border-color:var(--prod-primary); color:#fff;}
+  .stepper .sp.done .c{background:var(--prod-success); border-color:var(--prod-success); color:#fff;}
+  .stepper .lbl{font-size:12.5px; font-weight:600; color:var(--prod-ink-faint);}
+  .stepper .sp.on .lbl{color:var(--prod-ink);}
+  .stepper .bar{flex:1; height:1px; background:var(--prod-border); margin:0 12px;}
+
+  .form-step{display:none;}
+  .form-step.active{display:block;}
+  .dropzone{border:1.5px dashed var(--prod-border); border-radius:12px; padding:26px; text-align:center; color:var(--prod-ink-muted); font-size:13px; background:var(--prod-surface-2); cursor:pointer;}
+  .check-row{display:flex; gap:10px; align-items:flex-start; margin-bottom:12px; font-size:12.5px; color:var(--prod-ink-muted); line-height:1.5;}
+  .check-row input{margin-top:3px; flex:none;}
+  .confirm-panel{text-align:center; padding:44px 20px; border:1px solid var(--prod-border); border-radius:14px; background:var(--prod-surface-2);}
+  .confirm-panel .ref{display:inline-block; margin-top:14px; font-family:"IBM Plex Mono",monospace; font-size:18px; font-weight:600; background:var(--prod-surface); border:1px solid var(--prod-border); padding:9px 18px; border-radius:9px; letter-spacing:.03em;}
+  .ok-badge{width:52px;height:52px;border-radius:50%; background:var(--prod-success-tint); color:var(--prod-success); display:flex; align-items:center; justify-content:center; margin:0 auto 16px;}
+
+  .track-pick{display:flex; flex-wrap:wrap; gap:8px; margin:20px 0 30px;}
+  .track-pick button{border:1px solid var(--prod-border); background:var(--prod-surface); border-radius:8px; padding:8px 12px; font-size:12px; cursor:pointer; color:var(--prod-ink-muted); font-weight:600;}
+  .track-pick button.on{background:var(--prod-primary-dark); border-color:var(--prod-primary-dark); color:#fff;}
+  .search-card{border:1px solid var(--prod-border); border-radius:14px; padding:22px; background:var(--prod-surface-2); margin-top:18px;}
+  .timeline{display:flex; flex-direction:column; gap:0; margin-top:22px;}
+  .tl-row{display:flex; gap:16px;}
+  .tl-node{display:flex; flex-direction:column; align-items:center; flex:none;}
+  .tl-dot{width:15px;height:15px;border-radius:50%; border:2px solid var(--prod-border); background:var(--prod-surface); flex:none;}
+  .tl-dot.done{background:var(--prod-success); border-color:var(--prod-success);}
+  .tl-dot.now{background:var(--prod-primary); border-color:var(--prod-primary); box-shadow:0 0 0 4px var(--prod-primary-tint);}
+  .tl-line{width:2px; flex:1; background:var(--prod-border); min-height:26px;}
+  .tl-line.done{background:var(--prod-success);}
+  .tl-body{padding-bottom:26px; flex:1; min-width:0;}
+  .tl-title{font-weight:600; font-size:14px; display:flex; flex-wrap:wrap; gap:9px; align-items:center;}
+  .st{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; padding:2px 8px; border-radius:999px;}
+  .st.done{background:var(--prod-success-tint); color:var(--prod-success);}
+  .st.now{background:var(--prod-primary-tint); color:var(--prod-primary-dark);}
+  .st.next{background:var(--prod-surface-2); color:var(--prod-ink-faint); border:1px solid var(--prod-border);}
+  .st.danger{background:var(--prod-danger-tint); color:var(--prod-danger);}
+  .tl-desc{font-size:13px; color:var(--prod-ink-muted); margin-top:5px; max-width:52ch;}
+  .comment-note{margin-top:10px; font-size:12.5px; background:var(--prod-warning-tint); color:#7A3E05; border:1px solid #EBCE9C; padding:9px 12px; border-radius:9px; display:inline-flex; gap:8px; max-width:52ch;}
+  .cuo-note{margin-top:10px; font-size:12.5px; background:var(--prod-primary-tint); color:var(--prod-primary-dark); border:1px solid #D2D3FA; padding:9px 12px; border-radius:9px; max-width:52ch;}
+
+  .spec-detail{grid-column:1 / -1; border:1px solid var(--prod-border); border-radius:14px; padding:22px; background:var(--prod-surface-2); margin:2px 0 4px;}
+  .spec-detail .badge-year{font-size:11px; font-weight:700; color:var(--prod-gold); background:var(--prod-gold-tint); padding:3px 9px; border-radius:999px;}
+  .spec-detail h3{font-size:19px; margin-top:10px;}
+  .kv{display:grid; grid-template-columns:auto 1fr; gap:8px 14px; margin-top:16px; font-size:13px;}
+  .kv dt{color:var(--prod-ink-faint);}
+  .kv dd{margin:0; font-weight:600;}
+  .wa-btn{display:flex; align-items:center; gap:10px; border:1px solid var(--prod-border); border-radius:10px; padding:11px 13px; background:var(--prod-surface); margin-top:10px; cursor:pointer; font-size:13px; font-weight:600;}
+  .wa-btn .ic{width:26px;height:26px;border-radius:7px; background:#25D366; color:#fff; display:flex; align-items:center; justify-content:center; flex:none;}
+  .wa-btn small{display:block; font-weight:400; color:var(--prod-ink-muted); font-size:11px;}
+
+  .legal{max-width:720px; margin:0 auto; padding:40px 32px 70px;}
+  .legal h2{font-size:16.5px; margin:28px 0 8px;}
+  .legal p{color:var(--prod-ink-muted); font-size:13.5px; margin-bottom:10px;}
+  .legal .fill{color:var(--prod-gold); font-weight:700;}
+  .legal .updated{font-size:12px; color:var(--prod-ink-faint); margin-bottom:6px;}
+
+  .bo{display:flex; min-height:600px;}
+  .bo-side{width:220px; flex:none; background:var(--prod-primary-dark); color:#EDEBFA; padding:18px 12px;}
+  .bo-brand{display:flex; align-items:center; gap:9px; padding:6px 8px 20px; font-family:"Source Serif 4",serif; font-weight:700; font-size:15px;}
+  .bo-brand .mark{width:24px;height:24px;border-radius:6px; background:rgba(255,255,255,.16); display:flex; align-items:center; justify-content:center; font-size:12px;}
+  .bo-item{display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:8px; font-size:13px; margin-bottom:2px; cursor:pointer; color:#CFC9F0; border:0; background:none; width:100%; text-align:left;}
+  .bo-item.on{background:rgba(255,255,255,.13); color:#fff; font-weight:600;}
+  .bo-item .ic{width:16px; text-align:center; opacity:.9; flex:none;}
+  .bo-item .lbl{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .bo-main{flex:1; background:var(--prod-page); min-width:0;}
+  .bo-top{display:flex; align-items:center; justify-content:space-between; padding:14px 24px; border-bottom:1px solid var(--prod-border); background:var(--prod-surface); gap:12px;}
+  .bo-search{border:1px solid var(--prod-border); border-radius:9px; padding:8px 13px; font-size:13px; color:var(--prod-ink-faint); width:260px;}
+  .bo-user{display:flex; align-items:center; gap:9px; font-size:13px; white-space:nowrap;}
+  .avatar{width:28px;height:28px;border-radius:50%; background:var(--prod-primary-tint); color:var(--prod-primary-dark); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:11.5px; flex:none;}
+  .bo-content{padding:22px 24px;}
+  .bo-h1{font-size:17px; margin-bottom:4px;}
+  .bo-sub{font-size:12px; color:var(--prod-ink-muted); margin-bottom:18px;}
+
+  .kpi-grid{display:grid; grid-template-columns:repeat(6,1fr); gap:12px; margin-bottom:22px;}
+  .kpi{border:1px solid var(--prod-border); border-radius:12px; padding:14px 15px; background:var(--prod-surface);}
+  .kpi .n{font-family:"IBM Plex Mono",monospace; font-size:22px; font-weight:600;}
+  .kpi .l{font-size:11.5px; color:var(--prod-ink-muted); margin-top:4px; line-height:1.4;}
+  .kpi.accent{border-top:3px solid var(--prod-primary);}
+  .kpi.warn{border-top:3px solid var(--prod-warning);}
+  .kpi.ok{border-top:3px solid var(--prod-success);}
+  .kpi.danger{border-top:3px solid var(--prod-danger);}
+  .fin-kpi{grid-template-columns:repeat(3,1fr);}
+  .dash-kpis{display:flex; flex-direction:column; gap:22px;}
+  .dash-kpis .kpi-grid{margin-bottom:0;}
+
+  .panel{border:1px solid var(--prod-border); border-radius:13px; background:var(--prod-surface); padding:18px 20px;}
+  .panel h3{font-size:14.5px; margin-bottom:4px; font-family:"IBM Plex Sans"; font-weight:600;}
+  .panel .sub{font-size:12px; color:var(--prod-ink-muted); margin-bottom:14px;}
+  .two-col{display:grid; grid-template-columns:1.2fr .8fr; gap:16px;}
+  .section-lbl{font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--prod-ink-faint); margin:26px 0 12px;}
+  .paybar-row{margin-bottom:14px;}
+  .paybar-row:last-child{margin-bottom:0;}
+  .paybar-top{display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:6px;}
+  .paybar-top .lbl{display:flex; align-items:center; gap:8px; font-weight:600;}
+  .paybar-top .sw{width:9px;height:9px;border-radius:2px; flex:none;}
+  .paybar-top .val{font-family:"IBM Plex Mono",monospace; color:var(--prod-ink-muted);}
+  .paybar-track{height:7px; border-radius:99px; background:var(--prod-surface-2); overflow:hidden;}
+  .paybar-fill{height:100%; border-radius:99px;}
+  .pay-field-row{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .pay-summary{display:flex; justify-content:space-between; align-items:center; padding:11px 13px; border-radius:9px; background:var(--prod-surface-2); border:1px solid var(--prod-border); font-size:13px; margin-top:4px;}
+  .pay-summary .v{font-family:"IBM Plex Mono",monospace; font-weight:700;}
+  .pay-summary.due .v{color:var(--prod-warning);}
+  .pay-summary.clear .v{color:var(--prod-success);}
+  .alert-row{display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--prod-border); font-size:13px; gap:10px;}
+  .alert-row:last-child{border-bottom:0;}
+  .pill{font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px; white-space:nowrap;}
+  .pill.warn{background:var(--prod-warning-tint); color:var(--prod-warning);}
+  .pill.ok{background:var(--prod-success-tint); color:var(--prod-success);}
+  .pill.danger{background:var(--prod-danger-tint); color:var(--prod-danger);}
+  .pill.neutral{background:var(--prod-surface-2); color:var(--prod-ink-muted); border:1px solid var(--prod-border);}
+
+  /* Dossiers : filtres par étape (façon onglets), toujours avec le nombre de dossiers, + liste */
+  .dossier-filters{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px;}
+  .df-chip{display:flex; align-items:center; gap:7px; padding:8px 14px; border-radius:999px; border:1px solid var(--prod-border); background:var(--prod-surface); font-family:inherit; font-size:12.5px; font-weight:600; color:var(--prod-ink-muted); cursor:pointer; white-space:nowrap;}
+  .df-chip .cnt{font-family:"IBM Plex Mono",monospace; background:var(--prod-surface-2); color:var(--prod-ink-faint); font-size:11px; font-weight:700; padding:1px 7px; border-radius:999px;}
+  .df-chip.on{background:var(--prod-primary); border-color:var(--prod-primary); color:#fff;}
+  .df-chip.on .cnt{background:rgba(255,255,255,.22); color:#fff;}
+  .dossier-list{display:flex; flex-direction:column; gap:9px;}
+  .d-row{display:flex; flex-wrap:wrap; align-items:center; gap:10px 12px; border:1px solid var(--prod-border); border-radius:11px; padding:12px 14px; background:var(--prod-surface); cursor:pointer;}
+  .d-row:hover{border-color:var(--prod-primary);}
+  .d-row .top{display:flex; gap:9px; align-items:center; flex:1; min-width:180px;}
+  .d-row .name{font-size:13px; font-weight:600;}
+  .d-row .spec{font-size:11px; color:var(--prod-ink-muted); margin-top:2px;}
+  .d-row .meta{display:flex; align-items:center; gap:12px; flex:none; margin-left:auto;}
+  .d-row .days{font-size:10.5px; color:var(--prod-ink-faint); font-family:"IBM Plex Mono",monospace;}
+  .d-row .chev{color:var(--prod-ink-faint);}
+  .dossier-empty{padding:30px 14px; text-align:center; color:var(--prod-ink-faint); font-size:13px; border:1px dashed var(--prod-border); border-radius:11px;}
+
+  .tablewrap{overflow-x:auto; border:1px solid var(--prod-border); border-radius:13px; background:var(--prod-surface);}
+  table.dtable{width:100%; border-collapse:collapse; font-size:12.5px; min-width:640px;}
+  table.dtable th{text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--prod-ink-faint); font-weight:700; padding:12px 14px; border-bottom:1px solid var(--prod-border); background:var(--prod-surface-2); white-space:nowrap;}
+  table.dtable td{padding:12px 14px; border-bottom:1px solid var(--prod-border); vertical-align:middle;}
+  table.dtable tr:last-child td{border-bottom:0;}
+  .perm{font-size:10.5px; font-weight:700; padding:4px 9px; border-radius:999px; display:inline-block; white-space:nowrap;}
+  .perm.manage{background:var(--prod-success-tint); color:var(--prod-success);}
+  .perm.read{background:var(--prod-primary-tint); color:var(--prod-primary-dark);}
+  .perm.none{background:var(--prod-surface-2); color:var(--prod-ink-faint); border:1px solid var(--prod-border);}
+  .rej-reason{font-size:12px; color:var(--prod-danger);}
+
+  .overlay{position:absolute; inset:0; background:rgba(20,15,45,.5); display:none; align-items:center; justify-content:center; padding:24px; z-index:40;}
+  .overlay.show{display:flex;}
+  .modal{background:var(--prod-surface); width:100%; max-width:660px; border-radius:16px; max-height:88%; overflow:auto; box-shadow:0 30px 60px -20px rgba(20,15,60,.4);}
+
+  /* ---- mobile bottom navigation (site public) ---- */
+  .p-bottomnav, .bo-bottomnav{display:none;}
+  .p-bn-item{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; padding:7px 2px 5px; border:none; background:none; cursor:pointer; font-family:inherit; font-size:10.5px; font-weight:600; color:var(--prod-ink-faint); letter-spacing:.01em;}
+  .p-bn-item .ic{width:20px; height:20px; display:flex; align-items:center; justify-content:center; font-size:16px; line-height:1;}
+  .p-bn-item.on{color:var(--prod-primary-dark);}
+  .p-bn-item.more{color:var(--prod-ink-muted);}
+  .p-bn-item.more .ic{width:44px; height:44px; margin-top:-24px; border-radius:50%; background:linear-gradient(155deg,var(--prod-primary),var(--prod-primary-dark)); color:#fff; font-size:18px; box-shadow:0 10px 22px -8px rgba(79,70,229,.6), 0 0 0 4px var(--prod-surface);}
+
+  .p-moresheet-ov{position:absolute; inset:0; background:rgba(20,15,45,.5); display:none; align-items:flex-end; justify-content:center; z-index:41;}
+  .p-moresheet-ov.show{display:flex;}
+  .p-moresheet{background:var(--prod-surface); width:100%; border-radius:18px 18px 0 0; max-height:78%; overflow:auto; box-shadow:0 -20px 50px -20px rgba(20,15,60,.4); padding:8px 8px calc(14px + env(safe-area-inset-bottom,0px));}
+  .p-moresheet .handle{width:36px; height:4px; border-radius:3px; background:var(--prod-border); margin:6px auto 12px;}
+  .p-moresheet .title{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--prod-ink-faint); padding:0 12px 8px;}
+  .p-moresheet button{display:flex; align-items:center; gap:12px; width:100%; text-align:left; padding:12px; border:none; background:none; font-family:inherit; font-size:14px; font-weight:600; color:var(--prod-ink); border-radius:10px; cursor:pointer;}
+  .p-moresheet button .ic{width:22px; text-align:center; color:var(--prod-primary-dark); font-size:15px;}
+  .p-moresheet .sep{height:1px; background:var(--prod-border); margin:6px 4px;}
+  .modal-head{display:flex; justify-content:space-between; align-items:flex-start; padding:20px 22px; border-bottom:1px solid var(--prod-border); gap:10px;}
+  .modal-head h3{font-size:17px;}
+  .modal-head .x{cursor:pointer; color:var(--prod-ink-faint); font-size:20px; line-height:1; background:none; border:0; flex:none;}
+  .modal-body{padding:20px 22px;}
+  .modal-foot{display:flex; justify-content:space-between; gap:10px; padding:16px 22px; border-top:1px solid var(--prod-border); flex-wrap:wrap;}
+  .file-row{display:flex; align-items:center; justify-content:space-between; border:1px solid var(--prod-border); border-radius:9px; padding:10px 12px; font-size:12.5px; margin-bottom:8px; gap:10px;}
+  .file-row .n{display:flex; align-items:center; gap:9px; font-weight:500;}
+  .actions-grid{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;}
+  .tabbtns{display:flex; gap:6px; border-bottom:1px solid var(--prod-border); margin-bottom:14px; flex-wrap:wrap;}
+  .tabbtns button{border:0; background:none; padding:9px 4px; font-size:12.5px; font-weight:600; color:var(--prod-ink-faint); cursor:pointer; border-bottom:2px solid transparent; margin-right:14px;}
+  .tabbtns button.on{color:var(--prod-primary-dark); border-color:var(--prod-primary);}
+  .tabpane{display:none;}
+  .tabpane.on{display:block;}
+  .bubble{border-radius:10px; padding:10px 13px; font-size:12.5px; margin-bottom:9px; line-height:1.5;}
+  .bubble.pub{background:var(--prod-primary-tint); color:var(--prod-primary-dark);}
+  .bubble.int{background:var(--prod-warning-tint); color:#7A3E05; border:1px dashed #E3C079;}
+  .bubble .meta{font-size:10.5px; opacity:.75; margin-top:5px; font-weight:600;}
+  .preview-box{border:1px solid var(--prod-border); border-radius:10px; padding:14px; background:var(--prod-surface-2); margin-top:10px; font-size:12.5px; display:none;}
+  .preview-box.show{display:block;}
+  .preview-box dl{display:grid; grid-template-columns:auto 1fr; gap:6px 14px; margin:0;}
+  .preview-box dt{color:var(--prod-ink-faint);}
+  .preview-box dd{margin:0; font-weight:600;}
+  .preview-box dd.dd-readonly{display:inline-block; background:var(--prod-surface-2); color:var(--prod-ink-faint); font-weight:500; padding:3px 9px; border-radius:6px; border:1px solid var(--prod-border);}
+  .confirm-inline{background:var(--prod-warning-tint); border:1px solid #EBCE9C; border-radius:10px; padding:12px 14px; font-size:12.5px; color:#7A3E05; display:none; margin-top:12px;}
+  .confirm-inline.show{display:block;}
+  .confirm-inline .go{margin-top:9px; display:flex; gap:8px; flex-wrap:wrap;}
+  .confirm-inline textarea{width:100%; margin-top:8px; border:1px solid #E3C079; border-radius:8px; padding:8px 10px; font-size:12.5px; font-family:inherit;}
+
+  .login-grid{display:grid; grid-template-columns:1fr 1fr; min-height:560px;}
+  .g-btn{display:flex; align-items:center; justify-content:center; gap:10px; width:100%; border:1px solid var(--prod-border); background:var(--prod-surface); border-radius:9px; padding:11px; font-size:13.5px; font-weight:600; cursor:pointer;}
+  .divider{display:flex; align-items:center; gap:12px; color:var(--prod-ink-faint); font-size:11.5px; margin:16px 0;}
+  .divider::before,.divider::after{content:""; height:1px; background:var(--prod-border); flex:1;}
+
+  /* ---- real small-viewport: the tool chrome itself ---- */
+  @media (max-width:860px){
+    .tool-body{flex-direction:column;}
+    .rail{width:100%; display:flex; gap:14px; overflow-x:auto; padding:10px 12px;}
+    .rail-group{margin-bottom:0; display:flex; gap:4px; flex:none; align-items:center;}
+    .rail-group h4{display:none;}
+    .rail-note{display:none;}
+    .canvas{padding:14px;}
+    .toolbar{flex-wrap:wrap;}
+  }
+
+  /* ---- simulated device: container queries keyed to the frame's own width ---- */
+  @container frame (max-width:760px){
+    .container{padding:0 18px;}
+    .p-nav{padding:14px 18px;}
+    .p-links{display:none;}
+    .p-burger{display:none;}
+
+    /* menu du site public : bandeau fixe en bas plutôt qu'en haut, 5 items, le central ouvre le menu complet */
+    .p-bottomnav, .bo-bottomnav{display:flex; position:absolute; left:0; right:0; bottom:0; z-index:30; background:var(--prod-surface); border-top:1px solid var(--prod-border); padding:2px 4px calc(2px + env(safe-area-inset-bottom,0px)); box-shadow:0 -10px 26px -18px rgba(20,15,60,.4);}
+    #screen-home .footer,
+    #screen-accompagnement .form-step,
+    #screen-accompagnement .confirm-panel,
+    #screen-suivi .container,
+    #screen-specialites .container,
+    #screen-mentions .legal,
+    #screen-cgv .legal,
+    #screen-confidentialite .legal{margin-bottom:66px;}
+    .disclaimer-bar{padding:9px 18px; font-size:11.5px;}
+    .hero{grid-template-columns:1fr; grid-template-areas:"text" "art" "cta"; padding:34px 18px 30px; gap:22px;}
+    .hero h1{font-size:26px;}
+    /* l'illustration se place entre le sous-titre et les boutons d'action, pas après */
+    .section{padding:30px 18px;}
+    .section h2{font-size:19px;}
+    .steps-grid{grid-template-columns:1fr 1fr; gap:10px;}
+    .spec-grid{grid-template-columns:1fr 1fr; gap:9px;}
+    .footer{padding:28px 18px 20px;}
+    .footer-grid{grid-template-columns:1fr 1fr; gap:22px;}
+    .page-head{padding:26px 18px 6px;}
+    .page-head h1{font-size:21px;}
+    .two-col{grid-template-columns:1fr;}
+    .row2{grid-template-columns:1fr;}
+    .price-box{flex-direction:column; align-items:flex-start;}
+    .stepper .lbl{display:none;}
+    .doc-card{padding:18px 16px;}
+    .legal{padding:26px 18px 50px;}
+    .login-grid{grid-template-columns:1fr; min-height:0;}
+
+    .bo{flex-direction:column; min-height:0;}
+    .bo-side{display:none;}
+    .bo-top{padding:12px 16px; flex-wrap:wrap;}
+    .bo-search{width:100%; order:3;}
+    .bo-content{padding:16px; padding-bottom:74px;}
+    .kpi-grid{grid-template-columns:1fr 1fr 1fr; gap:8px;}
+    #kpiBlockFinance{order:-1;}
+    .pay-field-row{grid-template-columns:1fr;}
+    .d-row .meta{margin-left:0; width:100%; justify-content:space-between;}
+    table.dtable{min-width:520px;}
+
+    .modal{max-width:100%; border-radius:12px;}
+    .modal-body,.modal-head,.modal-foot{padding-left:16px; padding-right:16px;}
+    .modal-foot{flex-direction:column;}
+    .modal-foot .btn{width:100%;}
+  }
+</style>
+
+<div class="tool">
+  <div class="toolbar">
+    <div class="toolbar-id">
+      <div class="toolbar-mark">EB</div>
+      <div class="toolbar-titles">
+        <div class="t1">Educ Bénin — référence de design</div>
+        <div class="t2">Prototype interactif · palette indigo institutionnelle · v3</div>
+      </div>
+    </div>
+    <div class="toolbar-actions">
+      <span class="tag-example">Données d'exemple</span>
+      <div class="seg" id="deviceSeg">
+        <button data-device="desktop" class="active">Bureau</button>
+        <button data-device="mobile">Mobile</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="tool-body">
+    <nav class="rail">
+      <div class="rail-group">
+        <h4>Site public</h4>
+        <button class="rail-btn active" data-screen="home"><span class="dot"></span>Accueil</button>
+        <button class="rail-btn" data-screen="accompagnement"><span class="dot"></span>Accompagnement &amp; demande</button>
+        <button class="rail-btn" data-screen="suivi"><span class="dot"></span>Suivre mon dossier</button>
+        <button class="rail-btn" data-screen="specialites"><span class="dot"></span>Spécialités</button>
+      </div>
+      <div class="rail-group">
+        <h4>Légal</h4>
+        <button class="rail-btn" data-screen="mentions"><span class="dot"></span>Mentions légales</button>
+        <button class="rail-btn" data-screen="cgv"><span class="dot"></span>CGU / CGV</button>
+        <button class="rail-btn" data-screen="confidentialite"><span class="dot"></span>Confidentialité</button>
+      </div>
+      <div class="rail-group">
+        <h4>Back-office</h4>
+        <button class="rail-btn" data-screen="login"><span class="dot"></span>Connexion</button>
+        <button class="rail-btn" data-screen="dashboard"><span class="dot"></span>Tableau de bord</button>
+        <button class="rail-btn" data-screen="dossiers"><span class="dot"></span>Dossiers</button>
+        <button class="rail-btn" data-screen="rejetes"><span class="dot"></span>Dossiers rejetés</button>
+        <button class="rail-btn" data-screen="specialites-admin"><span class="dot"></span>Spécialités &amp; WhatsApp</button>
+        <button class="rail-btn" data-screen="tarifs"><span class="dot"></span>Tarifs</button>
+        <button class="rail-btn" data-screen="comptes"><span class="dot"></span>Comptes admin &amp; rôles</button>
+        <button class="rail-btn" data-screen="parametres"><span class="dot"></span>Paramètres</button>
+      </div>
+      <div class="rail-note">Palette « violet institutionnel affiné » — indigo #4F46E5, accent or réservé à l'authentification officielle.</div>
+    </nav>
+
+    <main class="canvas">
+      <div class="frame" id="frame">
+        <div class="framebar">
+          <div class="lights"><span></span><span></span><span></span></div>
+          <div class="url mono" id="urlbar">educbenin.bj</div>
+          <div style="width:44px"></div>
+        </div>
+        <div class="frame-scroll">
+
+          <!-- ============ HOME ============ -->
+          <section class="screen active prod" id="screen-home">
+            <div class="p-nav">
+              <div class="p-logo"><span class="mark">EB</span>Educ Bénin</div>
+              <div class="p-links"><a class="on">Accueil</a><a data-goto="accompagnement">Accompagnement</a><a data-goto="specialites">Spécialités</a><a data-goto="suivi">Suivre mon dossier</a></div>
+              <button class="p-burger">☰</button>
+              <button class="btn btn-primary btn-sm" data-goto="accompagnement">Faire ma demande</button>
+            </div>
+            <div class="p-bottomnav" data-pbactive="home"></div>
+            <div class="disclaimer-bar">ⓘ&nbsp; Educ Bénin est un service d'accompagnement indépendant — il ne se substitue ni à la FSS ni à l'UAC. <a data-goto="mentions" style="text-decoration:underline; cursor:pointer; margin-left:4px;">En savoir plus</a></div>
+
+            <div class="hero">
+              <div class="hero-text">
+                <div class="eyebrow">Probatoire spécialité · FSS / UAC</div>
+                <h1>Votre dossier de probatoire, sans faux pas administratif.</h1>
+                <p class="lead">Educ Bénin accompagne les médecins candidats aux 27 spécialités de la FSS : rassemblement des pièces, authentification de diplôme, inscription en ligne et dépôt du dossier — avec un suivi clair à chaque étape.</p>
+              </div>
+              <div class="hero-art">
+                <div class="seal"></div>
+                <div style="font-size:12px; opacity:.75; margin-bottom:14px; letter-spacing:.05em; text-transform:uppercase;">État du dossier — Dr. Amoussou K.</div>
+                <div class="hero-track">
+                  <div class="row done"><span class="num">✓</span><span class="label">Dossier en cours de traitement</span></div>
+                  <div class="row done"><span class="num">✓</span><span class="label">Authentification du diplôme</span></div>
+                  <div class="row"><span class="num">3</span><span class="label">Inscription en ligne</span></div>
+                  <div class="row"><span class="num">4</span><span class="label">Dépôt de dossier en cours</span></div>
+                  <div class="row"><span class="num">5</span><span class="label">Dossier déposé avec succès</span></div>
+                </div>
+              </div>
+              <div class="hero-actions">
+                <button class="btn btn-primary" data-goto="accompagnement">Faire ma demande</button>
+                <button class="btn btn-outline" data-goto="suivi">Suivre mon dossier</button>
+              </div>
+            </div>
+
+            <div class="section">
+              <h2>Comment ça marche</h2>
+              <p class="sub">Cinq étapes, du dépôt de votre demande jusqu'au récépissé officiel de la FSS.</p>
+              <div class="steps-grid">
+                <div class="step-card"><div class="n">01</div><h5>Dossier reçu</h5><p>Vous déposez votre demande et vos pièces en un clic.</p></div>
+                <div class="step-card"><div class="n">02</div><h5>Authentification</h5><p>Vous recevez et remplissez le formulaire d'authentification de diplôme.</p></div>
+                <div class="step-card"><div class="n">03</div><h5>Inscription en ligne</h5><p>Vous vous inscrivez sur le portail CUO-SIGAN de l'UAC.</p></div>
+                <div class="step-card"><div class="n">04</div><h5>Dépôt en cours</h5><p>Nous déposons votre dossier complet auprès de la FSS.</p></div>
+                <div class="step-card"><div class="n">05</div><h5>Déposé avec succès</h5><p>Votre récépissé officiel est disponible au téléchargement.</p></div>
+              </div>
+            </div>
+
+            <div class="section">
+              <h2>27 spécialités du D.E.S. de la FSS</h2>
+              <p class="sub">Dates, salles et communautés WhatsApp mises à jour chaque année scolaire.</p>
+              <div class="spec-grid" id="homeSpecGrid"></div>
+              <div style="margin-top:16px;"><button class="btn btn-ghost btn-sm" data-goto="specialites">Voir les 27 spécialités →</button></div>
+            </div>
+
+            <div class="section">
+              <h2>Un accompagnement clair, un tarif clair</h2>
+              <div class="price-box">
+                <div>
+                  <div style="font-size:13px; color:var(--prod-ink-muted); margin-bottom:4px;">Dépôt de dossier — une spécialité</div>
+                  <div class="amt">50 000 <span class="cur">FCFA</span></div>
+                </div>
+                <button class="btn btn-outline btn-sm" data-goto="accompagnement">Voir les pièces à fournir</button>
+              </div>
+            </div>
+
+            <div class="footer">
+              <div class="footer-grid">
+                <div>
+                  <div class="p-logo" style="margin-bottom:10px;"><span class="mark">EB</span>Educ Bénin</div>
+                  <p style="font-size:12.5px; color:var(--prod-ink-muted); max-width:34ch;">Service indépendant d'accompagnement administratif. Educ Bénin n'est ni la FSS, ni l'UAC.</p>
+                </div>
+                <div><h6>Plateforme</h6><a data-goto="accompagnement">Accompagnement</a><a data-goto="specialites">Spécialités</a><a data-goto="suivi">Suivre mon dossier</a></div>
+                <div><h6>Légal</h6><a data-goto="mentions">Mentions légales</a><a data-goto="cgv">CGU / CGV</a><a data-goto="confidentialite">Politique de confidentialité</a></div>
+                <div><h6>Contact</h6><a>WhatsApp Educ Bénin</a><a>contact@educbenin.bj</a></div>
+              </div>
+              <div class="legal-line"><span>© 2026 Educ Bénin — Cotonou, Bénin</span><span>Aucune affiliation avec la FSS ou l'UAC</span></div>
+            </div>
+          </section>
+
+          <!-- ============ ACCOMPAGNEMENT ============ -->
+          <section class="screen prod" id="screen-accompagnement">
+            <div class="p-nav">
+              <div class="p-logo"><span class="mark">EB</span>Educ Bénin</div>
+              <div class="p-links"><a data-goto="home">Accueil</a><a class="on">Accompagnement</a><a data-goto="specialites">Spécialités</a><a data-goto="suivi">Suivre mon dossier</a></div>
+              <button class="p-burger">☰</button>
+              <button class="btn btn-outline btn-sm" data-goto="suivi">Suivre mon dossier</button>
+            </div>
+            <div class="p-bottomnav" data-pbactive="accompagnement"></div>
+            <div class="page-head">
+              <div class="k">Accompagnement</div>
+              <h1>Dépôt du dossier de probatoire spécialité</h1>
+              <p>Nous rassemblons, vérifions et déposons votre dossier auprès de la FSS, et accompagnons l'authentification de vos diplômes.</p>
+            </div>
+            <div class="section" style="border-top:0;">
+              <div class="two-col" style="align-items:start;">
+                <div class="doc-card">
+                  <h3 style="font-size:16px;">Pièces à fournir — un seul document PDF</h3>
+                  <ol>
+                    <li>Demande manuscrite ou saisie adressée au Doyen de la FSS (spécialité, année, e-mail)</li>
+                    <li>Lettre manuscrite ou saisie adressée au Vice-Recteur des Affaires Académiques de l'UAC</li>
+                    <li>Copie légalisée ou certifiée de l'extrait / certificat de naissance</li>
+                    <li>Copie légalisée ou certifiée du certificat de nationalité</li>
+                    <li>Copie légalisée ou certifiée du diplôme de Baccalauréat</li>
+                    <li>Copie légalisée ou certifiée du diplôme de Doctorat en Médecine</li>
+                    <li>Curriculum vitae détaillé</li>
+                    <li>Relevés de notes de la 1<sup>re</sup> à la 7<sup>e</sup> année, légalisés ou certifiés</li>
+                    <li>Relevé de notes du Baccalauréat, légalisé ou certifié</li>
+                  </ol>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:16px;">
+                  <div class="callout warn"><span class="icn">⚠</span><span><strong>Plusieurs spécialités ?</strong> Les pièces 1 et 2 doivent être établies pour chaque spécialité demandée, sous peine de rejet du dossier.</span></div>
+                  <div class="price-box" style="flex-direction:column; align-items:flex-start; gap:6px;">
+                    <div style="font-size:12.5px; color:var(--prod-ink-muted);">À partir de</div>
+                    <div class="amt">50 000 <span class="cur">FCFA / spécialité</span></div>
+                    <div style="font-size:11.5px; color:var(--prod-ink-faint);">Tarif multi-spécialités communiqué avant confirmation.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="section">
+              <h2>Faire ma demande</h2>
+              <p class="sub">3 étapes, environ 5 minutes.</p>
+              <div class="stepper" id="stepper">
+                <div class="sp on" data-step="1"><span class="c">1</span><span class="lbl">Spécialité(s)</span></div>
+                <div class="bar"></div>
+                <div class="sp" data-step="2"><span class="c">2</span><span class="lbl">Vos informations</span></div>
+                <div class="bar"></div>
+                <div class="sp" data-step="3"><span class="c">3</span><span class="lbl">Pièces &amp; envoi</span></div>
+              </div>
+
+              <div class="form-step active" data-formstep="1">
+                <div class="field"><label>Choisissez une ou plusieurs spécialités</label></div>
+                <div class="chipwrap" id="formSpecChips"></div>
+                <div class="callout warn" id="multiSpecWarn" style="display:none; margin-top:16px;"><span class="icn">⚠</span><span>Vous avez sélectionné plusieurs spécialités : préparez une demande au Doyen et une lettre au Vice-Recteur <strong>pour chacune</strong>.</span></div>
+                <div style="margin-top:22px; display:flex; justify-content:flex-end;"><button class="btn btn-primary" data-next="2">Continuer</button></div>
+              </div>
+
+              <div class="form-step" data-formstep="2">
+                <div class="row2">
+                  <div class="field"><label>Nom</label><input placeholder="AMOUSSOU"></div>
+                  <div class="field"><label>Prénom</label><input placeholder="Koffi"></div>
+                </div>
+                <div class="field"><label>Numéro WhatsApp</label><input placeholder="+229 97 00 00 00"><span class="hint">Canal utilisé pour tout le suivi de votre dossier.</span></div>
+                <div style="display:flex; justify-content:space-between;"><button class="btn btn-outline" data-next="1">Retour</button><button class="btn btn-primary" data-next="3">Continuer</button></div>
+              </div>
+
+              <div class="form-step" data-formstep="3">
+                <div class="field"><label>Pièces à fournir (PDF unique)</label><div class="dropzone">Glissez votre fichier PDF ici, ou cliquez pour parcourir<br><span style="font-size:11px;">dossier-amoussou-koffi.pdf · 4,2 Mo</span></div></div>
+                <div style="margin-top:18px;">
+                  <label class="check-row"><input type="checkbox" checked><span>J'ai pris connaissance des Conditions Générales d'Utilisation et de Vente et je les accepte.</span></label>
+                  <label class="check-row"><input type="checkbox" checked><span>Je consens au traitement de mes données personnelles selon la Politique de confidentialité.</span></label>
+                  <label class="check-row"><input type="checkbox" checked><span>Je certifie l'exactitude des informations fournies et l'authenticité des pièces jointes.</span></label>
+                  <label class="check-row"><input type="checkbox" checked><span>J'ai compris qu'Educ Bénin est indépendant de la FSS et de l'UAC.</span></label>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-top:6px;"><button class="btn btn-outline" data-next="2">Retour</button><button class="btn btn-primary" id="submitDemand">Envoyer ma demande</button></div>
+              </div>
+
+              <div class="confirm-panel" id="confirmPanel" style="display:none;">
+                <div class="ok-badge">✓</div>
+                <h3 style="font-size:19px;">Demande bien reçue</h3>
+                <p style="color:var(--prod-ink-muted); margin-top:8px; font-size:13.5px;">Conservez votre référence de dossier et surveillez votre WhatsApp.</p>
+                <div class="ref">EB-2026-000482</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============ SUIVI ============ -->
+          <section class="screen prod" id="screen-suivi">
+            <div class="p-nav">
+              <div class="p-logo"><span class="mark">EB</span>Educ Bénin</div>
+              <div class="p-links"><a data-goto="home">Accueil</a><a data-goto="accompagnement">Accompagnement</a><a data-goto="specialites">Spécialités</a><a class="on">Suivre mon dossier</a></div>
+              <button class="p-burger">☰</button>
+              <button class="btn btn-primary btn-sm" data-goto="accompagnement">Faire ma demande</button>
+            </div>
+            <div class="p-bottomnav" data-pbactive="suivi"></div>
+            <div class="page-head"><div class="k">Suivi</div><h1>Suivre mon dossier</h1><p>Sans compte : saisissez votre référence de dossier et votre numéro WhatsApp.</p></div>
+            <div class="container" style="padding-top:8px; padding-bottom:44px;">
+              <div class="search-card">
+                <div class="row2">
+                  <div class="field" style="margin-bottom:0;"><label>Référence de dossier</label><input value="EB-2026-000482"></div>
+                  <div class="field" style="margin-bottom:0;"><label>Numéro WhatsApp</label><input value="+229 97 00 00 00"></div>
+                </div>
+                <button class="btn btn-primary" style="margin-top:14px;">Afficher mon dossier</button>
+              </div>
+              <div style="margin-top:10px; font-size:12px; color:var(--prod-ink-faint);">Aperçu des différentes étapes possibles :</div>
+              <div class="track-pick" id="trackPick">
+                <button class="on" data-track="1">1 · En cours</button>
+                <button data-track="2">2 · Authentification</button>
+                <button data-track="3">3 · Inscription en ligne</button>
+                <button data-track="4">4 · Dépôt en cours</button>
+                <button data-track="5">5 · Déposé</button>
+                <button data-track="0">Rejeté</button>
+              </div>
+              <div class="timeline" id="timeline"></div>
+            </div>
+          </section>
+
+          <!-- ============ SPECIALITES ============ -->
+          <section class="screen prod" id="screen-specialites">
+            <div class="p-nav">
+              <div class="p-logo"><span class="mark">EB</span>Educ Bénin</div>
+              <div class="p-links"><a data-goto="home">Accueil</a><a data-goto="accompagnement">Accompagnement</a><a class="on">Spécialités</a><a data-goto="suivi">Suivre mon dossier</a></div>
+              <button class="p-burger">☰</button>
+              <button class="btn btn-primary btn-sm" data-goto="accompagnement">Faire ma demande</button>
+            </div>
+            <div class="p-bottomnav" data-pbactive="specialites"></div>
+            <div class="page-head"><div class="k">Année scolaire 2026-2027</div><h1>Les 27 spécialités du D.E.S. — FSS</h1><p>Sélectionnez une spécialité pour voir la date, le lieu de composition et rejoindre les communautés WhatsApp.</p></div>
+            <div class="container" style="padding-top:8px; padding-bottom:44px;">
+              <div class="spec-grid" id="specGridFull"></div>
+              <div style="margin-top:16px; font-size:11.5px; color:var(--prod-ink-faint); line-height:1.6;">GAM/FSS = Grand Amphi Médecine (FSS) · A2/FSS = Amphi 2 Médecine (FSS) · A5/FSS = Amphi 5 ESAS · CNHU-HKM et LAZARET = sites hors campus FSS.</div>
+            </div>
+          </section>
+
+          <!-- ============ MENTIONS LEGALES ============ -->
+          <section class="screen prod" id="screen-mentions">
+            <div class="p-nav"><div class="p-logo"><span class="mark">EB</span>Educ Bénin</div><div class="p-links"><a data-goto="home">Accueil</a><a data-goto="accompagnement">Accompagnement</a><a data-goto="specialites">Spécialités</a><a data-goto="suivi">Suivre mon dossier</a></div><button class="p-burger">☰</button></div>
+            <div class="p-bottomnav" data-pbactive="mentions"></div>
+            <div class="legal">
+              <div class="k" style="color:var(--prod-gold); font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:.08em;">Légal</div>
+              <h1 style="font-size:25px; margin-top:8px;">Mentions légales</h1>
+              <div class="updated">Dernière mise à jour : à définir à l'immatriculation</div>
+              <h2>Éditeur du site</h2>
+              <p>Raison sociale : <span class="fill">[À COMPLÉTER]</span> · Forme juridique : <span class="fill">[À COMPLÉTER]</span> · RCCM : <span class="fill">[À COMPLÉTER]</span> · IFU : <span class="fill">[À COMPLÉTER]</span> · Siège : <span class="fill">[À COMPLÉTER]</span> · Contact : <span class="fill">[À COMPLÉTER]</span></p>
+              <h2>Hébergeur</h2>
+              <p>Raison sociale, adresse et contact de l'hébergeur : <span class="fill">[À COMPLÉTER selon le prestataire retenu]</span></p>
+              <h2>Propriété intellectuelle</h2>
+              <p>L'ensemble des éléments du site Educ Bénin (textes, graphismes, logo, structure) est protégé au titre de la propriété intellectuelle. Toute reproduction non autorisée est interdite, sous réserve des exceptions légales.</p>
+              <h2>Non-affiliation</h2>
+              <p>Educ Bénin est un site indépendant, sans lien capitalistique ni mandat officiel avec la Faculté des Sciences de la Santé (FSS) ni avec l'Université d'Abomey-Calavi (UAC). Les noms « FSS » et « UAC » ainsi que le portail cuo.sigan-uac.bj sont mentionnés à seule fin d'information et d'orientation du candidat vers les démarches officielles.</p>
+            </div>
+          </section>
+
+          <!-- ============ CGU/CGV ============ -->
+          <section class="screen prod" id="screen-cgv">
+            <div class="p-nav"><div class="p-logo"><span class="mark">EB</span>Educ Bénin</div><div class="p-links"><a data-goto="home">Accueil</a><a data-goto="accompagnement">Accompagnement</a><a data-goto="specialites">Spécialités</a><a data-goto="suivi">Suivre mon dossier</a></div><button class="p-burger">☰</button></div>
+            <div class="p-bottomnav" data-pbactive="cgv"></div>
+            <div class="legal">
+              <div class="k" style="color:var(--prod-gold); font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:.08em;">Légal</div>
+              <h1 style="font-size:25px; margin-top:8px;">Conditions Générales d'Utilisation et de Vente</h1>
+              <div class="updated">Version applicable à toute demande soumise depuis le site</div>
+              <h2>Article 1 — Objet</h2>
+              <p>Les présentes conditions régissent l'utilisation du site Educ Bénin et la fourniture d'un service payant d'accompagnement administratif au médecin candidat pour la constitution et le suivi de son dossier de probatoire spécialité auprès de la FSS.</p>
+              <h2>Article 2 — Obligation de moyens</h2>
+              <p>Educ Bénin met en œuvre les moyens raisonnables pour accompagner l'utilisateur. Educ Bénin ne garantit ni l'acceptation du dossier par la FSS, ni le succès de l'authentification des diplômes, ces décisions relevant exclusivement des autorités compétentes.</p>
+              <h2>Article 3 — Non-affiliation</h2>
+              <p>Educ Bénin n'est ni la FSS, ni l'UAC. Il appartient à l'utilisateur de vérifier auprès des sources officielles l'exactitude et l'actualité des informations et procédures.</p>
+              <h2>Article 5 — Obligations de l'utilisateur</h2>
+              <p>Fournir des informations exactes, garantir l'authenticité des pièces transmises, et — en cas de demande multi-spécialités — produire une demande et une lettre distinctes pour chaque spécialité.</p>
+              <h2>Article 6 — Tarifs et paiement</h2>
+              <p>50 000 FCFA pour un dossier portant sur une seule spécialité (voir grille tarifaire en vigueur). Aucun paiement en ligne : règlement hors plateforme, modalités communiquées par WhatsApp.</p>
+              <h2>Article 8 — Responsabilité</h2>
+              <p>La responsabilité d'Educ Bénin ne saurait être engagée en cas de décision défavorable d'un tiers, de retard imputable à des tiers, ou d'inexactitude d'une information fournie par l'utilisateur.</p>
+              <h2>Article 10 — Droit applicable</h2>
+              <p>Les présentes conditions sont soumises au droit béninois. Tout litige relève, à défaut de résolution amiable, des juridictions compétentes de la République du Bénin.</p>
+            </div>
+          </section>
+
+          <!-- ============ CONFIDENTIALITE ============ -->
+          <section class="screen prod" id="screen-confidentialite">
+            <div class="p-nav"><div class="p-logo"><span class="mark">EB</span>Educ Bénin</div><div class="p-links"><a data-goto="home">Accueil</a><a data-goto="accompagnement">Accompagnement</a><a data-goto="specialites">Spécialités</a><a data-goto="suivi">Suivre mon dossier</a></div><button class="p-burger">☰</button></div>
+            <div class="p-bottomnav" data-pbactive="confidentialite"></div>
+            <div class="legal">
+              <div class="k" style="color:var(--prod-gold); font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:.08em;">Légal</div>
+              <h1 style="font-size:25px; margin-top:8px;">Politique de confidentialité</h1>
+              <div class="updated">Conforme à la loi n° 2017-20 portant Code du numérique du Bénin (Livre V)</div>
+              <h2>Responsable de traitement</h2>
+              <p><span class="fill">[À COMPLÉTER]</span>, joignable à <span class="fill">[À COMPLÉTER]</span>.</p>
+              <h2>Données collectées</h2>
+              <p>Identité, contact (WhatsApp, e-mail), parcours académique, pièces d'identité et diplômes, fiche d'inscription, récépissé de dépôt.</p>
+              <h2>Finalités</h2>
+              <p>Constitution et suivi du dossier de probatoire, accompagnement à l'authentification des diplômes, communication sur l'avancement du dossier.</p>
+              <h2>Destinataires</h2>
+              <p>FSS, UAC (portail CUO-SIGAN), institutions compétentes pour l'authentification des diplômes. Aucune donnée vendue, louée ou communiquée à des fins commerciales.</p>
+              <h2>Durée de conservation</h2>
+              <p>Durée du traitement du dossier, puis 24 mois après clôture (proposition à valider), avant suppression ou anonymisation.</p>
+              <h2>Vos droits</h2>
+              <p>Accès, rectification, opposition, effacement, portabilité et réparation, exercés auprès de <span class="fill">[À COMPLÉTER]</span>. Réclamation possible auprès de l'Autorité de Protection des Données Personnelles (APDP) du Bénin.</p>
+            </div>
+          </section>
+
+          <!-- ============ LOGIN ============ -->
+          <section class="screen prod" id="screen-login">
+            <div class="login-grid">
+              <div style="background:linear-gradient(165deg,var(--prod-primary-dark),var(--prod-primary)); color:#fff; padding:44px; display:flex; flex-direction:column; justify-content:space-between;">
+                <div class="p-logo" style="color:#fff;"><span class="mark" style="background:rgba(255,255,255,.18);">EB</span>Educ Bénin</div>
+                <div>
+                  <div class="eyebrow" style="color:#F4D98A;">Espace back-office</div>
+                  <h2 style="font-size:24px; color:#fff; line-height:1.3;">Le poste de pilotage des dossiers de probatoire.</h2>
+                  <p style="color:rgba(255,255,255,.75); margin-top:10px; font-size:13.5px; max-width:36ch;">Réservé aux membres de l'équipe Educ Bénin.</p>
+                </div>
+                <div style="font-size:11.5px; color:rgba(255,255,255,.55);">Accès nominatif · permissions par module</div>
+              </div>
+              <div style="padding:52px; display:flex; align-items:center;">
+                <div style="width:100%; max-width:320px; margin:0 auto;">
+                  <h3 style="font-size:20px; margin-bottom:22px;">Connexion</h3>
+                  <div class="field"><label>Adresse e-mail</label><input value="agent@educbenin.bj"></div>
+                  <div class="field"><label>Mot de passe</label><input type="password" value="••••••••••"></div>
+                  <button class="btn btn-primary btn-block" data-goto="dashboard">Se connecter</button>
+                  <div class="divider">ou</div>
+                  <button class="g-btn" data-goto="dashboard">
+                    <svg width="17" height="17" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.87 2.7-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.98v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.98A9 9 0 0 0 0 9c0 1.45.35 2.83.98 4.03l2.97-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.42 0 9 0A9 9 0 0 0 .98 4.97l2.97 2.33C4.66 5.17 6.65 3.58 9 3.58z"/></svg>
+                    Se connecter avec Google
+                  </button>
+                  <p style="font-size:11.5px; color:var(--prod-ink-faint); margin-top:18px; text-align:center;">Mot de passe oublié ? Contactez un administrateur.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============ DASHBOARD ============ -->
+          <section class="screen prod" id="screen-dashboard">
+            <div class="bo">
+              <aside class="bo-side" data-boactive="dashboard"></aside>
+              <div class="bo-bottomnav" data-pbactive="dashboard"></div>
+              <div class="bo-main">
+                <div class="bo-top"><div class="bo-search">Rechercher un dossier…</div><div class="bo-user"><div class="avatar">CA</div>Chimène A. · Agent de traitement</div></div>
+                <div class="bo-content">
+                  <h3 class="bo-h1">Tableau de bord</h3>
+                  <div class="dash-kpis">
+                    <div id="kpiBlockGeneral">
+                      <div class="bo-sub">Vue d'ensemble de tous les dossiers</div>
+                      <div class="kpi-grid" id="kpiGrid"></div>
+                    </div>
+                    <div id="kpiBlockFinance">
+                      <div class="section-lbl" style="margin-top:0;">Suivi financier — interne, non visible du candidat</div>
+                      <div class="kpi-grid fin-kpi" id="finKpiGrid"></div>
+                    </div>
+                  </div>
+                  <div class="two-col" style="margin-top:22px;">
+                    <div class="panel">
+                      <h3>Dossiers en attente depuis plus de 5 jours</h3>
+                      <div class="sub">Nécessitent une action de l'équipe</div>
+                      <div class="alert-row"><span>EB-2026-000401 · Dr. Sossou T.</span><span class="pill warn">Authentification</span></div>
+                      <div class="alert-row"><span>EB-2026-000388 · Dr. Houngbo E.</span><span class="pill warn">En cours de traitement</span></div>
+                      <div class="alert-row"><span>EB-2026-000377 · Dr. Adjovi R.</span><span class="pill danger">Inscription en ligne</span></div>
+                    </div>
+                    <div class="panel">
+                      <h3>Activité récente</h3>
+                      <div class="sub">Dernières actions du back-office</div>
+                      <div class="alert-row"><span>Statut modifié</span><span class="pill neutral">Il y a 12 min</span></div>
+                      <div class="alert-row"><span>Formulaire d'authentification reçu</span><span class="pill neutral">Il y a 40 min</span></div>
+                      <div class="alert-row"><span>Nouveau dossier reçu</span><span class="pill neutral">Il y a 1 h</span></div>
+                    </div>
+                  </div>
+
+                  <div class="two-col" style="margin-top:22px;">
+                    <div class="panel">
+                      <h3>Évolution des encaissements</h3>
+                      <div class="sub">Facturé vs. encaissé, 6 derniers mois — survolez pour le détail</div>
+                      <div style="height:210px; position:relative;"><canvas id="financeChart" role="img" aria-label="Graphique d'évolution des montants facturés et encaissés sur 6 mois"></canvas></div>
+                    </div>
+                    <div class="panel">
+                      <h3>Répartition par moyen de paiement</h3>
+                      <div class="sub">Part de l'encaissé, 6 derniers mois</div>
+                      <div id="payBreakdown"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============ DOSSIERS ============ -->
+          <section class="screen prod" id="screen-dossiers">
+            <div class="bo">
+              <aside class="bo-side" data-boactive="dossiers"></aside>
+              <div class="bo-bottomnav" data-pbactive="dossiers"></div>
+              <div class="bo-main">
+                <div class="bo-top"><div class="bo-search">Rechercher un dossier…</div><div class="bo-user"><div class="avatar">CA</div>Chimène A. · Agent de traitement</div></div>
+                <div class="bo-content">
+                  <h3 class="bo-h1">Dossiers</h3>
+                  <div class="bo-sub">Filtrez par étape, puis cliquez sur un dossier pour l'ouvrir — les actions disponibles dépendent de son étape.</div>
+                  <div class="dossier-filters" id="dossierFilters"></div>
+                  <div class="dossier-list" id="dossierList"></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============ DOSSIERS REJETES ============ -->
+          <section class="screen prod" id="screen-rejetes">
+            <div class="bo">
+              <aside class="bo-side" data-boactive="rejetes"></aside>
+              <div class="bo-bottomnav" data-pbactive="rejetes"></div>
+              <div class="bo-main">
+                <div class="bo-top"><div class="bo-search">Rechercher un dossier rejeté…</div><div class="bo-user"><div class="avatar">CA</div>Chimène A. · Agent de traitement</div></div>
+                <div class="bo-content">
+                  <h3 class="bo-h1">Dossiers rejetés</h3>
+                  <div class="bo-sub">Restaurables à tout moment vers « Dossiers reçus ».</div>
+                  <div class="tablewrap"><table class="dtable">
+                    <thead><tr><th>Dossier</th><th>Spécialité</th><th>Motif</th><th>Rejeté le</th><th></th></tr></thead>
+                    <tbody>
+                      <tr><td>Dr. Kpadonou F. · EB-2026-000355</td><td>Chirurgie Générale, Pédiatrie</td><td class="rej-reason">Pièces 1 et 2 non dupliquées par spécialité</td><td class="mono">28/08/2026</td><td><button class="btn btn-outline btn-sm">Restaurer</button></td></tr>
+                      <tr><td>Dr. Tchibozo H. · EB-2026-000341</td><td>Imagerie Médicale</td><td class="rej-reason">Diplôme de Doctorat manquant</td><td class="mono">24/08/2026</td><td><button class="btn btn-outline btn-sm">Restaurer</button></td></tr>
+                      <tr><td>Dr. Gbaguidi N. · EB-2026-000298</td><td>Anesthésie-Réanimation</td><td class="rej-reason">Relevé de notes du Baccalauréat non certifié</td><td class="mono">19/08/2026</td><td><button class="btn btn-outline btn-sm">Restaurer</button></td></tr>
+                    </tbody>
+                  </table></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============ SPECIALITES ADMIN ============ -->
+          <section class="screen prod" id="screen-specialites-admin">
+            <div class="bo">
+              <aside class="bo-side" data-boactive="specialites-admin"></aside>
+              <div class="bo-bottomnav" data-pbactive="specialites-admin"></div>
+              <div class="bo-main">
+                <div class="bo-top"><div class="bo-search">Rechercher une spécialité…</div><div class="bo-user"><div class="avatar">CA</div>Chimène A. · Agent de traitement</div></div>
+                <div class="bo-content">
+                  <h3 class="bo-h1">Spécialités &amp; WhatsApp</h3>
+                  <div class="bo-sub">Année scolaire 2026-2027</div>
+                  <div class="panel" style="margin-bottom:18px;">
+                    <h3>Communauté WhatsApp FSS (toutes spécialités)</h3>
+                    <div class="sub">Un seul lien, mis à jour ici, propagé automatiquement sur les 27 fiches spécialité.</div>
+                    <div class="row2" style="align-items:flex-end;">
+                      <div class="field" style="margin-bottom:0;"><label>Lien du groupe WhatsApp FSS</label><input value="https://chat.whatsapp.com/fss-communaute-generale"></div>
+                      <button class="btn btn-primary" style="height:44px;">Enregistrer et propager</button>
+                    </div>
+                  </div>
+                  <div class="tablewrap"><table class="dtable">
+                    <thead><tr><th>Spécialité</th><th>Date</th><th>Heure</th><th>Salle</th><th>WhatsApp spécialité</th><th></th></tr></thead>
+                    <tbody id="specAdminBody"></tbody>
+                  </table></div>
+                  <div style="margin-top:12px; font-size:11.5px; color:var(--prod-ink-faint); line-height:1.6;">GAM/FSS = Grand Amphi Médecine (FSS) · A2/FSS = Amphi 2 Médecine (FSS) · A5/FSS = Amphi 5 ESAS · CNHU-HKM et LAZARET = sites hors campus FSS.</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============ TARIFS ============ -->
+          <section class="screen prod" id="screen-tarifs">
+            <div class="bo">
+              <aside class="bo-side" data-boactive="tarifs"></aside>
+              <div class="bo-bottomnav" data-pbactive="tarifs"></div>
+              <div class="bo-main">
+                <div class="bo-top"><div class="bo-search">Rechercher…</div><div class="bo-user"><div class="avatar">CA</div>Chimène A. · Agent de traitement</div></div>
+                <div class="bo-content">
+                  <h3 class="bo-h1">Tarifs</h3>
+                  <div class="bo-sub">Barème propagé automatiquement sur le site vitrine, le formulaire et les devis.</div>
+                  <div class="panel" style="margin-bottom:18px;">
+                    <h3>Barème actif</h3>
+                    <div class="sub">En vigueur depuis le 01/09/2026</div>
+                    <div class="row2">
+                      <div class="field" style="margin-bottom:0;"><label>Prix de base (1 spécialité)</label><input value="50 000 FCFA"></div>
+                      <div class="field" style="margin-bottom:0;"><label>Règle spécialités additionnelles</label><input placeholder="ex. + 25 000 FCFA / spécialité supplémentaire" value="À définir"></div>
+                    </div>
+                    <button class="btn btn-primary btn-sm">Modifier le barème</button>
+                  </div>
+                  <div class="tablewrap"><table class="dtable">
+                    <thead><tr><th>En vigueur depuis</th><th>Prix de base</th><th>Règle multi-spécialités</th><th>Statut</th></tr></thead>
+                    <tbody>
+                      <tr><td class="mono">01/09/2026</td><td>50 000 FCFA</td><td>À définir</td><td><span class="pill ok">Actif</span></td></tr>
+                      <tr><td class="mono">01/01/2026</td><td>45 000 FCFA</td><td>—</td><td><span class="pill neutral">Archivé</span></td></tr>
+                    </tbody>
+                  </table></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============ COMPTES ADMIN ============ -->
+          <section class="screen prod" id="screen-comptes">
+            <div class="bo">
+              <aside class="bo-side" data-boactive="comptes"></aside>
+              <div class="bo-bottomnav" data-pbactive="comptes"></div>
+              <div class="bo-main">
+                <div class="bo-top"><div class="bo-search">Rechercher un membre…</div><div class="bo-user"><div class="avatar">CA</div>Chimène A. · Agent de traitement</div></div>
+                <div class="bo-content">
+                  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <div><h3 class="bo-h1" style="margin-bottom:2px;">Comptes admin &amp; rôles</h3><div class="bo-sub" style="margin-bottom:0;">Permissions par module, membre par membre.</div></div>
+                    <button class="btn btn-primary btn-sm">+ Inviter un membre</button>
+                  </div>
+                  <div class="tablewrap" style="margin-top:16px;"><table class="dtable">
+                    <thead><tr><th>Membre</th><th>Dossiers</th><th>Rejetés</th><th>Spéc. &amp; WhatsApp</th><th>Tarifs</th><th>Comptes admin</th></tr></thead>
+                    <tbody id="comptesBody"></tbody>
+                  </table></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============ PARAMETRES ============ -->
+          <section class="screen prod" id="screen-parametres">
+            <div class="bo">
+              <aside class="bo-side" data-boactive="parametres"></aside>
+              <div class="bo-bottomnav" data-pbactive="parametres"></div>
+              <div class="bo-main">
+                <div class="bo-top"><div class="bo-search">—</div><div class="bo-user"><div class="avatar">CA</div>Chimène A. · Agent de traitement</div></div>
+                <div class="bo-content">
+                  <h3 class="bo-h1">Paramètres</h3>
+                  <div class="bo-sub">Profil et session</div>
+                  <div class="panel" style="max-width:420px;">
+                    <div class="field"><label>Nom complet</label><input value="Chimène Adjahoui"></div>
+                    <div class="field"><label>E-mail</label><input value="chimene@educbenin.bj"></div>
+                    <div class="field"><label>Nouveau mot de passe</label><input type="password" placeholder="••••••••"></div>
+                    <button class="btn btn-outline btn-block" style="margin-bottom:10px;">Enregistrer les modifications</button>
+                    <button class="btn btn-danger-outline btn-block" data-goto="login">Se déconnecter</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+        </div>
+
+        <!-- ============ MODAL DOSSIER ============ -->
+        <div class="overlay" id="dossierOverlay">
+          <div class="modal">
+            <div class="modal-head">
+              <div><h3 id="mName">—</h3><div style="font-size:12px; color:var(--prod-ink-faint); margin-top:3px;" class="mono" id="mRef">—</div></div>
+              <button class="x" id="closeModal">×</button>
+            </div>
+            <div class="modal-body">
+              <div class="row2">
+                <div><div class="hint" style="margin-bottom:3px;">Numéro WhatsApp</div><div style="font-weight:600; font-size:13.5px;" id="mWhatsapp">—</div></div>
+                <div><div class="hint" style="margin-bottom:3px;">Étape actuelle</div><span class="pill" id="mStagePill">—</span></div>
+              </div>
+
+              <div style="margin-top:18px;">
+                <div class="hint" style="margin-bottom:8px;">Pièces jointes</div>
+                <div class="file-row"><span class="n" id="mFile">📎 dossier.pdf</span><span class="hint">4,8 Mo</span></div>
+                <div class="actions-grid">
+                  <button class="btn btn-outline btn-sm" data-btn="modifier">Modifier</button>
+                  <button class="btn btn-outline btn-sm" data-btn="auth">Envoyer le formulaire d'authentification</button>
+                  <button class="btn btn-outline btn-sm" data-btn="fiche">Voir la fiche d'inscription</button>
+                  <button class="btn btn-outline btn-sm" data-btn="recepisse">Voir le récépissé</button>
+                </div>
+                <div class="preview-box" id="authPreview">
+                  <div style="font-weight:700; font-size:12.5px; margin-bottom:2px;">Formulaire d'authentification de diplôme — réponses soumises</div>
+                  <dl><dt>N° de dossier (pré-rempli)</dt><dd class="dd-readonly" id="mAuthRef">—</dd></dl>
+                  <div class="hint" style="margin:12px 0 4px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; font-size:10.5px;">Informations personnelles</div>
+                  <dl id="mAuthPersonal"></dl>
+                  <div class="hint" style="margin:12px 0 4px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; font-size:10.5px;">Diplôme du Baccalauréat</div>
+                  <dl id="mAuthBac"></dl>
+                  <div class="hint" style="margin:12px 0 4px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; font-size:10.5px;">Diplôme du Doctorat</div>
+                  <dl id="mAuthDoctorat"></dl>
+                </div>
+                <div class="preview-box" id="fichePreview">
+                  <div class="file-row" style="margin-bottom:0;"><span class="n">📎 fiche-inscription-cuo.pdf</span><span class="hint">1,1 Mo</span></div>
+                </div>
+              </div>
+
+              <div style="margin-top:20px;">
+                <div class="tabbtns">
+                  <button class="on" data-tab="pay">Paiement</button>
+                  <button data-tab="pub">Commentaires publics</button>
+                  <button data-tab="int">Commentaires internes</button>
+                </div>
+                <div class="tabpane on" data-pane="pay">
+                  <div class="hint" style="margin-bottom:10px;">Champs internes — jamais visibles par le candidat.</div>
+                  <div class="pay-field-row">
+                    <div class="field" style="margin-bottom:0;"><label>Montant du dossier</label><input id="payMontant" class="mono" readonly></div>
+                    <div class="field" style="margin-bottom:0;"><label>Payé</label><input id="payPaye" class="mono" type="number" step="1000"></div>
+                  </div>
+                  <div class="field" style="margin-top:14px;"><label>Moyen de paiement</label>
+                    <select id="payMoyen"><option>Non renseigné</option><option>Mobile Money</option><option>Espèces</option><option>Virement</option></select>
+                  </div>
+                  <div class="pay-summary" id="payReste"><span>Reste à payer</span><span class="v" id="payResteVal">—</span></div>
+                </div>
+                <div class="tabpane" data-pane="pub">
+                  <div class="bubble pub">Merci de vérifier l'orthographe de votre nom sur la pièce n°5.<div class="meta">Chimène A. · il y a 2 j</div></div>
+                  <textarea placeholder="Ajouter un commentaire visible par le candidat…" style="width:100%; border:1px solid var(--prod-border); border-radius:9px; padding:10px; font-size:13px; font-family:inherit; min-height:60px;"></textarea>
+                </div>
+                <div class="tabpane" data-pane="int">
+                  <div class="bubble int">🔒 Interne — diplôme de Doctorat difficile à lire, à confirmer avec le candidat avant envoi APDP.<div class="meta">Chimène A. · il y a 1 j</div></div>
+                  <textarea placeholder="Ajouter une note interne (non visible du candidat)…" style="width:100%; border:1px solid var(--prod-border); border-radius:9px; padding:10px; font-size:13px; font-family:inherit; min-height:60px;"></textarea>
+                </div>
+              </div>
+
+              <div class="confirm-inline" id="statusConfirm"></div>
+            </div>
+            <div class="modal-foot">
+              <button class="btn btn-danger-outline btn-sm" data-btn="rejeter">Rejeter le dossier</button>
+              <button class="btn btn-outline btn-sm" data-btn="restaurer">Restaurer vers Dossiers reçus</button>
+              <button class="btn btn-primary btn-sm" data-btn="avancer">Faire passer à l'étape suivante →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ MENU MOBILE — feuille "plus" (site public ET back-office) ============ -->
+        <div class="p-moresheet-ov" id="moreSheetOverlay">
+          <div class="p-moresheet">
+            <div class="handle"></div>
+            <div class="title" id="moreSheetTitle">Menu Educ Bénin</div>
+            <div id="moreSheetItems"></div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script>
+(function(){
+  var SPECIALTIES = [
+    {code:"ANR", name:"Anesthésie-Réanimation", date:"21-24/07/2026", heure:"08H", salle:"GAM/FSS"},
+    {code:"BCL", name:"Biologie Clinique", date:"22/07/2026", heure:"09H", salle:"A2/FSS"},
+    {code:"BIO", name:"Biologie Médicale et Sciences Fondamentales", date:"À confirmer", heure:"À confirmer", salle:"A2/FSS"},
+    {code:"CAR", name:"Cardiologie", date:"27-28/07/2026", heure:"À confirmer", salle:"GAM/FSS"},
+    {code:"CHG", name:"Chirurgie Générale", date:"21-23/07/2026", heure:"09H", salle:"A2/FSS"},
+    {code:"CHP", name:"Chirurgie Pédiatrique", date:"21-22/07/2026", heure:"À confirmer", salle:"A2/FSS"},
+    {code:"DER", name:"Dermatologie-Vénérologie", date:"22-27/07/2026", heure:"09H", salle:"A2/FSS"},
+    {code:"GOB", name:"Gynécologie-Obstétrique", date:"27-28/07/2026", heure:"10H", salle:"GAM/FSS"},
+    {code:"HGE", name:"Hépatologie-Gastroentérologie", date:"22-23/07/2026", heure:"08H", salle:"A2/FSS"},
+    {code:"RIM", name:"Imagerie Médicale", date:"27-29/07/2026", heure:"09H", salle:"CNHU-HKM"},
+    {code:"MUR", name:"Médecine d'Urgence", date:"27-28/07/2026", heure:"08H", salle:"GAM/FSS"},
+    {code:"MIN", name:"Médecine Interne", date:"21-22/07/2026", heure:"À confirmer", salle:"A2/FSS"},
+    {code:"MPR", name:"Médecine Physique et Réadaptation", date:"23/07/2026", heure:"08H", salle:"A2/FSS"},
+    {code:"NEP", name:"Néphrologie", date:"27-29/07/2026", heure:"À confirmer", salle:"A2/FSS"},
+    {code:"NCH", name:"Neurochirurgie", date:"20-23/07/2026", heure:"08H", salle:"A5/FSS"},
+    {code:"NEU", name:"Neurologie", date:"23/07/2026", heure:"À confirmer", salle:"A5/FSS"},
+    {code:"OPH", name:"Ophtalmologie", date:"27/07/2026", heure:"09H", salle:"A2/FSS"},
+    {code:"ORL", name:"Oto-Rhino-Laryngologie", date:"20/07/2026", heure:"09H", salle:"CNHU-HKM"},
+    {code:"PED", name:"Pédiatrie", date:"21-24/07/2026", heure:"08H", salle:"A2/FSS"},
+    {code:"PPS", name:"Pédopsychiatrie", date:"27-28/07/2026", heure:"08H", salle:"CNHU-HKM"},
+    {code:"PNE", name:"Pneumologie", date:"27/07/2026", heure:"09H", salle:"LAZARET"},
+    {code:"PSY", name:"Psychiatrie d'Adultes", date:"27-28/07/2026", heure:"09H", salle:"CNHU-HKM"},
+    {code:"RHU", name:"Rhumatologie", date:"23-24/07/2026", heure:"08H", salle:"GAM/FSS"},
+    {code:"SAT", name:"Santé au Travail", date:"22/07/2026", heure:"09H", salle:"GAM/FSS"},
+    {code:"SPU", name:"Santé Publique", date:"À confirmer", heure:"À confirmer", salle:"À confirmer"},
+    {code:"ORT", name:"Traumatologie-Orthopédie", date:"21-23/07/2026", heure:"09H", salle:"A5/FSS"},
+    {code:"URO", name:"Urologie-Andrologie", date:"21-23/07/2026", heure:"09H", salle:"A2/FSS"}
+  ];
+  var STAGE_NAMES = {0:"Dossier rejeté",1:"Dossier en cours de traitement",2:"Authentification du diplôme en cours",3:"Inscription en ligne",4:"Dépôt de dossier en cours",5:"Dossier déposé avec succès"};
+
+  function specTile(s, sel){ return '<div class="spec-tile'+(sel?' sel':'')+'" data-code="'+s.code+'"><div class="name">'+s.name+'</div><div class="code">D.E.S. · '+s.code+'</div></div>'; }
+  document.getElementById('homeSpecGrid').innerHTML = SPECIALTIES.slice(0,6).map(function(s){ return specTile(s,false); }).join('');
+
+  function specDetailCard(s){
+    return '<div class="spec-detail"><span class="badge-year">Année 2026–2027</span><h3>'+s.name+'</h3>'+
+      '<dl class="kv"><dt>Date</dt><dd>'+s.date+'</dd><dt>Heure</dt><dd>'+s.heure+'</dd><dt>Salle</dt><dd>'+s.salle+'</dd></dl>'+
+      '<div class="wa-btn"><span class="ic">✆</span><span>Communauté '+s.name+'<small>Groupe WhatsApp de la spécialité</small></span></div>'+
+      '<div class="wa-btn"><span class="ic">✆</span><span>Communauté FSS<small>Tous candidats, toutes spécialités</small></span></div></div>';
+  }
+  // ---- grille "spécialités" en accordéon : la fiche détail s'ouvre en place, juste après la vignette cliquée ----
+  var selectedSpecCode = null;
+  function renderSpecGridFull(){
+    document.getElementById('specGridFull').innerHTML = SPECIALTIES.map(function(s){
+      var tile = specTile(s, s.code===selectedSpecCode);
+      return s.code===selectedSpecCode ? tile + specDetailCard(s) : tile;
+    }).join('');
+  }
+  renderSpecGridFull();
+  document.getElementById('specGridFull').addEventListener('click', function(e){
+    var t = e.target.closest('.spec-tile'); if(!t || !t.dataset.code) return;
+    selectedSpecCode = (selectedSpecCode===t.dataset.code) ? null : t.dataset.code;
+    renderSpecGridFull();
+  });
+
+  document.getElementById('specAdminBody').innerHTML = SPECIALTIES.map(function(s){
+    return '<tr><td>'+s.name+'</td><td class="mono">'+s.date+'</td><td class="mono">'+s.heure+'</td><td>'+s.salle+'</td><td class="mono">wa.me/'+s.code.toLowerCase()+'…</td><td><button class="btn btn-outline btn-sm">Modifier</button></td></tr>';
+  }).join('');
+
+  var MEMBERS = [
+    {n:"Horace L. — Fondateur", p:["manage","manage","manage","manage","manage"]},
+    {n:"Chimène A. — Agent de traitement", p:["manage","manage","read","none","none"]},
+    {n:"Roméo K. — Agent authentification", p:["manage","read","none","none","none"]},
+    {n:"Estelle D. — Supervision", p:["manage","manage","manage","read","none"]}
+  ];
+  var permLabel = {manage:"Gérer", read:"Lecture seule", none:"Aucun accès"};
+  document.getElementById('comptesBody').innerHTML = MEMBERS.map(function(m){
+    return '<tr><td>'+m.n+'</td>'+m.p.map(function(p){return '<td><span class="perm '+p+'">'+permLabel[p]+'</span></td>';}).join('')+'</tr>';
+  }).join('');
+
+  document.getElementById('formSpecChips').innerHTML = SPECIALTIES.map(function(s){return '<div class="chip" data-code="'+s.code+'">'+s.name+'</div>';}).join('');
+  document.getElementById('formSpecChips').addEventListener('click', function(e){
+    var c = e.target.closest('.chip'); if(!c) return;
+    c.classList.toggle('sel');
+    var n = document.querySelectorAll('#formSpecChips .chip.sel').length;
+    document.getElementById('multiSpecWarn').style.display = n>1 ? 'flex' : 'none';
+  });
+  document.querySelector('#formSpecChips .chip') && document.querySelector('#formSpecChips .chip').classList.add('sel');
+
+  function goStep(n){
+    document.querySelectorAll('.form-step').forEach(function(s){s.classList.toggle('active', s.dataset.formstep===String(n));});
+    document.querySelectorAll('#stepper .sp').forEach(function(s){
+      var v = parseInt(s.dataset.step,10);
+      s.classList.toggle('on', v===n); s.classList.toggle('done', v<n);
+    });
+  }
+  document.querySelectorAll('[data-next]').forEach(function(b){ b.addEventListener('click', function(){ goStep(parseInt(b.dataset.next,10)); }); });
+  document.getElementById('submitDemand').addEventListener('click', function(){
+    document.querySelectorAll('.form-step').forEach(function(s){s.classList.remove('active');});
+    document.getElementById('stepper').style.display='none';
+    document.getElementById('confirmPanel').style.display='block';
+  });
+
+  var STAGES = [
+    {t:"Dossier en cours de traitement", d:"Vos pièces sont en cours de vérification par notre équipe."},
+    {t:"Authentification du diplôme en cours", d:"Un lien vous a été envoyé par WhatsApp pour remplir le formulaire d'authentification."},
+    {t:"Inscription en ligne", d:"Inscrivez-vous sur cuo.sigan-uac.bj puis transmettez votre fiche d'inscription ci-dessous."},
+    {t:"Dépôt de dossier en cours", d:"Votre dossier complet est en cours de dépôt auprès de la FSS."},
+    {t:"Dossier déposé avec succès", d:"Votre récépissé officiel est disponible au téléchargement."}
+  ];
+  function renderTimeline(active){
+    if(active===0){
+      document.getElementById('timeline').innerHTML =
+        '<div class="tl-row"><div class="tl-node"><div class="tl-dot" style="background:var(--prod-danger);border-color:var(--prod-danger)"></div></div>'+
+        '<div class="tl-body"><div class="tl-title">Dossier rejeté <span class="st danger">À corriger</span></div>'+
+        '<div class="tl-desc">Motif : les pièces 1 et 2 n\'ont pas été fournies pour chacune des 2 spécialités demandées.</div>'+
+        '<div class="comment-note">💬 Merci de renvoyer une demande et une lettre distinctes pour chaque spécialité, puis de nous les transmettre via WhatsApp.</div></div></div>';
+      return;
+    }
+    document.getElementById('timeline').innerHTML = STAGES.map(function(s,i){
+      var n=i+1, state = n<active?'done':(n===active?'now':'next');
+      var extra='';
+      if(n===2 && state==='now') extra='<div class="comment-note">💬 Consultez votre WhatsApp : le formulaire d\'authentification de diplôme vous attend.</div>';
+      if(n===3 && state==='now') extra='<div class="cuo-note">Inscrivez-vous sur <strong>cuo.sigan-uac.bj</strong>, puis transmettez votre fiche d\'inscription ci-dessous.</div>'+
+        '<div class="dropzone" style="margin-top:10px;">Glissez votre fiche d\'inscription ici, ou cliquez pour parcourir</div>'+
+        '<button class="btn btn-primary btn-sm" style="margin-top:8px;">Transmettre ma fiche d\'inscription</button>';
+      if(n===5 && state==='done') extra='<div class="cuo-note">📄 Récépissé de dépôt FSS disponible — <strong>télécharger le PDF</strong></div>';
+      return '<div class="tl-row">'+
+        '<div class="tl-node"><div class="tl-dot '+(state==='done'?'done':state==='now'?'now':'')+'"></div>'+(i<STAGES.length-1?'<div class="tl-line '+(state==='done'?'done':'')+'"></div>':'')+'</div>'+
+        '<div class="tl-body"><div class="tl-title">'+s.t+'<span class="st '+state+'">'+(state==='done'?'Terminé':state==='now'?'En cours':'À venir')+'</span></div>'+
+        '<div class="tl-desc">'+s.d+'</div>'+extra+'</div></div>';
+    }).join('');
+  }
+  renderTimeline(2);
+  document.getElementById('trackPick').addEventListener('click', function(e){
+    var b=e.target.closest('button'); if(!b) return;
+    document.querySelectorAll('#trackPick button').forEach(function(x){x.classList.remove('on');});
+    b.classList.add('on');
+    renderTimeline(parseInt(b.dataset.track,10));
+  });
+
+  var KPIS = [
+    {n:24,l:"En cours de traitement",cls:"accent"}, {n:9,l:"Authentification du diplôme",cls:"accent"},
+    {n:6,l:"Inscription en ligne",cls:"warn"}, {n:4,l:"Dépôt en cours",cls:"warn"},
+    {n:58,l:"Déposés avec succès",cls:"ok"}, {n:5,l:"Rejetés",cls:"danger"}
+  ];
+  document.getElementById('kpiGrid').innerHTML = KPIS.map(function(k){ return '<div class="kpi '+k.cls+'"><div class="n mono">'+k.n+'</div><div class="l">'+k.l+'</div></div>'; }).join('');
+
+  // ---- finance: 6 derniers mois (FCFA) ----
+  var FIN_MONTHS = ['Avr','Mai','Juin','Juil','Août','Sept'];
+  var FIN_FACTURE  = [1250000,1400000,1600000,1800000,2100000,2450000];
+  var FIN_ENCAISSE = [1100000,1300000,1450000,1600000,1850000,2000000];
+  var FIN_MOYENS = [
+    {label:"Mobile Money", pct:62, color:"#4F46E5"},
+    {label:"Espèces", pct:23, color:"#9C6F17"},
+    {label:"Virement", pct:15, color:"#8B84C7"}
+  ];
+  function fmtF2(n){ return n.toLocaleString('fr-FR').replace(/ /g,' ')+' FCFA'; } // espace normale (sécable) au lieu de l'espace fine insécable de toLocaleString, pour permettre le retour à la ligne dans les vignettes financières étroites (mobile, 3 colonnes)
+  var financeChartInstance = null;
+  function renderFinanceChart(){
+    var cv = document.getElementById('financeChart');
+    if(!cv || !window.Chart) return;
+    var dashScreen = document.getElementById('screen-dashboard');
+    if(!dashScreen || !dashScreen.classList.contains('active')) return; // écran caché (display:none) : ni créer ni redimensionner ici, un canvas à taille nulle fausserait durablement le rendu Chart.js
+    if(financeChartInstance){ financeChartInstance.resize(); return; }
+    financeChartInstance = new Chart(cv.getContext('2d'), {
+      type:'line',
+      data:{
+        labels:FIN_MONTHS,
+        datasets:[
+          {label:'Facturé', data:FIN_FACTURE, borderColor:'#9490AC', borderDash:[4,3], borderWidth:2, pointRadius:3, pointBackgroundColor:'#9490AC', fill:false, tension:.3},
+          {label:'Encaissé', data:FIN_ENCAISSE, borderColor:'#4F46E5', backgroundColor:'rgba(79,70,229,.10)', borderWidth:2.5, pointRadius:4, pointBackgroundColor:'#4F46E5', fill:true, tension:.3}
+        ]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        interaction:{mode:'index', intersect:false},
+        plugins:{
+          legend:{position:'top', align:'end', labels:{boxWidth:9, boxHeight:9, usePointStyle:true, pointStyle:'circle', font:{family:"IBM Plex Sans", size:11.5}, color:'#655F80'}},
+          tooltip:{
+            backgroundColor:'#1E1B33', padding:10, cornerRadius:8, titleFont:{family:"IBM Plex Sans", weight:'600'}, bodyFont:{family:"IBM Plex Mono"},
+            callbacks:{ label:function(ctx){ return ctx.dataset.label+' : '+fmtF2(ctx.parsed.y); } }
+          }
+        },
+        scales:{
+          x:{ grid:{display:false}, ticks:{color:'#9490AC', font:{family:"IBM Plex Sans", size:11.5}} },
+          y:{ grid:{color:'#E4E1F0'}, border:{display:false}, ticks:{color:'#9490AC', font:{family:"IBM Plex Mono", size:10.5}, callback:function(v){ return (v/1000000).toFixed(1)+'M'; }} }
+        }
+      }
+    });
+  }
+  (function renderFinance(){
+    var totalFacture = FIN_FACTURE.reduce(function(a,b){return a+b;},0);
+    var totalEncaisse = FIN_ENCAISSE.reduce(function(a,b){return a+b;},0);
+    var reste = totalFacture - totalEncaisse;
+    var grid = document.getElementById('finKpiGrid');
+    if(grid){
+      grid.innerHTML =
+        '<div class="kpi accent"><div class="n mono" style="font-size:18px;">'+fmtF2(totalFacture)+'</div><div class="l">Total facturé (6 mois)</div></div>'+
+        '<div class="kpi ok"><div class="n mono" style="font-size:18px;">'+fmtF2(totalEncaisse)+'</div><div class="l">Total encaissé</div></div>'+
+        '<div class="kpi warn"><div class="n mono" style="font-size:18px;">'+fmtF2(reste)+'</div><div class="l">Reste à payer (dossiers ouverts)</div></div>';
+    }
+    var brk = document.getElementById('payBreakdown');
+    if(brk){
+      brk.innerHTML = FIN_MOYENS.map(function(m){
+        return '<div class="paybar-row"><div class="paybar-top"><span class="lbl"><span class="sw" style="background:'+m.color+'"></span>'+m.label+'</span><span class="val">'+m.pct+'%</span></div>'+
+          '<div class="paybar-track"><div class="paybar-fill" style="width:'+m.pct+'%; background:'+m.color+'"></div></div></div>';
+      }).join('');
+    }
+  })();
+
+  // ---- dossier data model (stage: 0=rejeté,1..5) ----
+  var DOSSIERS = {
+    d1:{ref:"EB-2026-000388", name:"Dr. Houngbo Estelle", spec:"Pédiatrie", wa:"+229 96 44 12 09", stage:1, authSent:false, authSubmitted:false, ficheUploaded:false, recepisseUploaded:false, days:"1 j", montant:50000, paye:50000, moyen:"Mobile Money"},
+    d2:{ref:"EB-2026-000377", name:"Dr. Adjovi Roméo", spec:"Chirurgie Générale", wa:"+229 97 20 55 31", stage:1, authSent:false, authSubmitted:false, ficheUploaded:false, recepisseUploaded:false, days:"4 j", montant:100000, paye:50000, moyen:"Espèces"},
+    d3:{ref:"EB-2026-000390", name:"Dr. Codjo Sènan", spec:"Gynécologie-Obstétrique", wa:"+229 95 10 44 02", stage:1, authSent:false, authSubmitted:false, ficheUploaded:false, recepisseUploaded:false, days:"2 j", montant:50000, paye:0, moyen:"Non renseigné"},
+    d4:{ref:"EB-2026-000401", name:"Dr. Sossou Théodore", spec:"Cardiologie", wa:"+229 96 12 34 56", stage:2, authSent:true, authSubmitted:true, ficheUploaded:false, recepisseUploaded:false, days:"5 j", montant:50000, paye:50000, moyen:"Mobile Money",
+      authForm:{nom:"SOSSOU", prenom:"Théodore", naissance:"14/03/1988", lieuNaissance:"Cotonou, Bénin", nationalite:"Béninoise", adresse:"Fidjrossè, Cotonou, Bénin", piece:"CNI", pieceRef:"B-04422190", email:"theodore.sossou@gmail.com", tel:"+229 96 12 34 56",
+        bac:{institution:"Office du Baccalauréat du Bénin", email:"contact@obb.bj", annee:"2013", pays:"Bénin", adresse:"Cotonou, Bénin"},
+        doctorat:{institution:"FSS / UAC", email:"scolarite@fss-uac.bj", annee:"2023", pays:"Bénin", adresse:"Campus FSS, Cotonou, Bénin"}}},
+    d5:{ref:"EB-2026-000399", name:"Dr. Zannou Marlène", spec:"Dermatologie-Vénérologie", wa:"+229 94 88 21 03", stage:2, authSent:true, authSubmitted:false, ficheUploaded:false, recepisseUploaded:false, days:"2 j", montant:50000, paye:25000, moyen:"Virement"},
+    d10:{ref:"EB-2026-000415", name:"Dr. Agbodji Firmin", spec:"Neurochirurgie", wa:"+229 93 40 12 88", stage:2, authSent:false, authSubmitted:false, ficheUploaded:false, recepisseUploaded:false, days:"3 h", montant:50000, paye:0, moyen:"Non renseigné"},
+    d6:{ref:"EB-2026-000370", name:"Dr. Dossou Prudence", spec:"Néphrologie", wa:"+229 97 65 43 21", stage:3, authSent:true, authSubmitted:true, ficheUploaded:true, recepisseUploaded:false, days:"3 j", montant:50000, paye:50000, moyen:"Mobile Money"},
+    d7:{ref:"EB-2026-000360", name:"Dr. Aina Landry", spec:"Ophtalmologie", wa:"+229 96 77 88 12", stage:4, authSent:true, authSubmitted:true, ficheUploaded:true, recepisseUploaded:false, days:"1 j", montant:50000, paye:50000, moyen:"Espèces"},
+    d8:{ref:"EB-2026-000312", name:"Dr. Kpossou Jonas", spec:"Urologie-Andrologie", wa:"+229 95 22 11 90", stage:5, authSent:true, authSubmitted:true, ficheUploaded:true, recepisseUploaded:true, days:"—", montant:50000, paye:50000, moyen:"Mobile Money"},
+    d9:{ref:"EB-2026-000305", name:"Dr. Fanou Sandrine", spec:"Psychiatrie d'Adultes", wa:"+229 94 33 66 77", stage:5, authSent:true, authSubmitted:true, ficheUploaded:true, recepisseUploaded:true, days:"—", montant:50000, paye:50000, moyen:"Mobile Money"}
+  };
+  var DOSSIER_FILTERS = [
+    {t:"Tous", stage:"all"},
+    {t:"En cours de traitement", stage:1}, {t:"Authentification diplôme", stage:2},
+    {t:"Inscription en ligne", stage:3}, {t:"Dépôt en cours", stage:4}, {t:"Déposé avec succès", stage:5}
+  ];
+  var currentDossierFilter = "all";
+  function initials(name){ var p=name.replace('Dr. ','').split(' '); return (p[0][0]+(p[1]?p[1][0]:'')).toUpperCase(); }
+  function pillClass(stage){ return stage===0?'danger':stage===5?'ok':stage>=3?'warn':'neutral'; }
+  function renderDossierFilters(){
+    document.getElementById('dossierFilters').innerHTML = DOSSIER_FILTERS.map(function(f){
+      var count = f.stage==="all" ? Object.keys(DOSSIERS).filter(function(id){return DOSSIERS[id].stage>=1;}).length : Object.keys(DOSSIERS).filter(function(id){return DOSSIERS[id].stage===f.stage;}).length;
+      return '<button class="df-chip'+(currentDossierFilter===f.stage?' on':'')+'" data-filter="'+f.stage+'">'+f.t+'<span class="cnt">'+count+'</span></button>';
+    }).join('');
+  }
+  function renderDossierList(){
+    var ids = Object.keys(DOSSIERS).filter(function(id){ return currentDossierFilter==="all" ? DOSSIERS[id].stage>=1 : DOSSIERS[id].stage===currentDossierFilter; });
+    var list = document.getElementById('dossierList');
+    if(!ids.length){ list.innerHTML = '<div class="dossier-empty">Aucun dossier dans cette étape pour le moment.</div>'; return; }
+    list.innerHTML = ids.map(function(id){
+      var d = DOSSIERS[id];
+      return '<div class="d-row" data-id="'+id+'">'+
+        '<div class="top"><div class="avatar" style="width:26px;height:26px;font-size:11px;">'+initials(d.name)+'</div><div><div class="name">'+d.name+'</div><div class="spec">'+d.spec+' · '+d.ref+'</div></div></div>'+
+        '<div class="meta"><span class="pill '+pillClass(d.stage)+'">'+STAGE_NAMES[d.stage]+'</span><span class="days">'+d.days+'</span><span class="chev">›</span></div>'+
+      '</div>';
+    }).join('');
+  }
+  function renderDossiers(){ renderDossierFilters(); renderDossierList(); }
+  renderDossiers();
+  document.getElementById('dossierFilters').addEventListener('click', function(e){
+    var b = e.target.closest('[data-filter]'); if(!b) return;
+    var v = b.dataset.filter; currentDossierFilter = v==="all" ? "all" : parseInt(v,10);
+    renderDossiers();
+  });
+
+  // ---- modal ----
+  var overlay = document.getElementById('dossierOverlay');
+  var currentId = null;
+
+  function authKv(pairs){ return pairs.map(function(p){return '<dt>'+p[0]+'</dt><dd>'+(p[1]||'—')+'</dd>';}).join(''); }
+  function renderAuthPreview(d){
+    var f = d.authForm;
+    if(!f){
+      document.getElementById('mAuthPersonal').innerHTML = '<dt>—</dt><dd>Formulaire non encore soumis par le candidat.</dd>';
+      document.getElementById('mAuthBac').innerHTML = '';
+      document.getElementById('mAuthDoctorat').innerHTML = '';
+      return;
+    }
+    document.getElementById('mAuthPersonal').innerHTML = authKv([
+      ['Nom', f.nom], ["Prénom(s)", f.prenom], ['Date de naissance', f.naissance], ['Lieu de naissance', f.lieuNaissance],
+      ['Nationalité', f.nationalite], ['Adresse actuelle', f.adresse], ["Pièce d'identité", f.piece+' · '+f.pieceRef],
+      ['E-mail', f.email], ['Téléphone', f.tel]
+    ]);
+    document.getElementById('mAuthBac').innerHTML = authKv([
+      ['Institution', f.bac.institution], ['E-mail institution', f.bac.email], ["Année d'obtention", f.bac.annee],
+      ["Pays d'obtention", f.bac.pays], ['Adresse institution', f.bac.adresse]
+    ]);
+    document.getElementById('mAuthDoctorat').innerHTML = authKv([
+      ['Institution', f.doctorat.institution], ['E-mail institution', f.doctorat.email], ["Année d'obtention", f.doctorat.annee],
+      ["Pays d'obtention", f.doctorat.pays], ['Adresse institution', f.doctorat.adresse]
+    ]);
+  }
+  function authButtonState(d){
+    if(d.stage!==2) return {enabled:false, label:d.stage>2?"Authentification déjà traitée":"Formulaire d'authentification", title:d.stage>2?"Cette étape est déjà terminée pour ce dossier.":"Disponible une fois le dossier à l'étape « Authentification du diplôme en cours »."};
+    if(!d.authSent) return {enabled:true, label:"Envoyer le formulaire d'authentification", title:"Envoie le lien du formulaire par WhatsApp au candidat."};
+    if(d.authSent && !d.authSubmitted) return {enabled:false, label:"En attente du candidat", title:"Le formulaire a été envoyé ; en attente de soumission par le candidat."};
+    return {enabled:true, label:"Voir le formulaire d'authentification", title:"Afficher les informations soumises par le candidat."};
+  }
+  function ficheButtonState(d){
+    if(d.stage!==3) return {enabled:false, title: d.stage>3?"Cette étape est déjà terminée pour ce dossier.":"Disponible à l'étape « Inscription en ligne »."};
+    if(!d.ficheUploaded) return {enabled:false, title:"En attente de transmission par le candidat depuis sa page de suivi."};
+    return {enabled:true, title:"Afficher la fiche d'inscription transmise par le candidat."};
+  }
+  function recepisseButtonState(d){
+    if(d.stage===4) return {enabled:true, label:"Ajouter le récépissé (scan FSS)", title:"Uploader le scan du récépissé remis par la FSS au moment du dépôt."};
+    if(d.stage===5 && d.recepisseUploaded) return {enabled:true, label:"Voir le récépissé", title:"Afficher le récépissé transmis au candidat."};
+    return {enabled:false, label:"Récépissé de dépôt", title:"Disponible à partir de l'étape « Dépôt de dossier en cours »."};
+  }
+  function setBtn(el, enabled, label, title){
+    el.disabled = !enabled;
+    el.classList.toggle('is-disabled', !enabled);
+    if(label) el.textContent = label;
+    el.title = title || '';
+  }
+
+  function openModal(id){
+    var d = DOSSIERS[id]; if(!d) return;
+    currentId = id;
+    document.getElementById('mName').textContent = d.name;
+    document.getElementById('mRef').textContent = d.ref+' · '+d.spec;
+    document.getElementById('mWhatsapp').textContent = d.wa;
+    var pill = document.getElementById('mStagePill');
+    pill.textContent = STAGE_NAMES[d.stage];
+    pill.className = 'pill '+(d.stage===0?'danger':d.stage===5?'ok':d.stage>=3?'warn':'neutral');
+    document.getElementById('mFile').textContent = '📎 dossier-'+d.name.split(' ').pop().toLowerCase()+'.pdf';
+    document.getElementById('mAuthRef').textContent = d.ref;
+    renderAuthPreview(d);
+
+    setBtn(document.querySelector('[data-btn="modifier"]'), true, 'Modifier', 'Corriger une information saisie par le candidat.');
+    var a = authButtonState(d); setBtn(document.querySelector('[data-btn="auth"]'), a.enabled, a.label, a.title);
+    var f = ficheButtonState(d); setBtn(document.querySelector('[data-btn="fiche"]'), f.enabled, "Voir la fiche d'inscription", f.title);
+    var r = recepisseButtonState(d); setBtn(document.querySelector('[data-btn="recepisse"]'), r.enabled, r.label, r.title);
+    setBtn(document.querySelector('[data-btn="rejeter"]'), d.stage>=1 && d.stage<=4, 'Rejeter le dossier', d.stage===0?'Ce dossier est déjà rejeté.':(d.stage===5?'Un dossier déposé avec succès ne peut plus être rejeté.':'Rejeter ce dossier vers « Dossiers rejetés ».'));
+    setBtn(document.querySelector('[data-btn="restaurer"]'), d.stage===0, 'Restaurer vers Dossiers reçus', d.stage===0?'Remet ce dossier dans le circuit normal.':'Disponible uniquement pour un dossier rejeté.');
+    var nextLabel = d.stage===5 ? 'Dossier finalisé ✓' : (d.stage===0? 'Faire passer à l\'étape suivante →' : 'Faire passer à l\'étape suivante →');
+    setBtn(document.querySelector('[data-btn="avancer"]'), d.stage>=1 && d.stage<=4, nextLabel, d.stage===5?'Ce dossier est déjà finalisé.':(d.stage===0?'Restaurez le dossier avant de le faire progresser.':'Fait passer le dossier à l\'étape suivante.'));
+
+    document.getElementById('authPreview').classList.remove('show');
+    document.getElementById('fichePreview').classList.remove('show');
+    document.getElementById('statusConfirm').classList.remove('show');
+    document.querySelectorAll('.tabbtns button').forEach(function(x,i){x.classList.toggle('on', i===0);});
+    document.querySelectorAll('.tabpane').forEach(function(x){x.classList.toggle('on', x.dataset.pane==='pay');});
+
+    document.getElementById('payMontant').value = fmtF(d.montant);
+    document.getElementById('payPaye').value = d.paye;
+    document.getElementById('payMoyen').value = d.moyen;
+    updateResteAffichage(d);
+
+    overlay.classList.add('show');
+  }
+
+  function fmtF(n){ return n.toLocaleString('fr-FR')+' FCFA'; }
+  function updateResteAffichage(d){
+    var reste = Math.max(d.montant - d.paye, 0);
+    var box = document.getElementById('payReste');
+    box.querySelector('#payResteVal').textContent = fmtF(reste);
+    box.classList.toggle('due', reste>0);
+    box.classList.toggle('clear', reste===0);
+  }
+  document.getElementById('payPaye').addEventListener('input', function(){
+    var d = DOSSIERS[currentId]; if(!d) return;
+    var clamped = Math.max(0, Math.min(parseInt(this.value||'0',10) || 0, d.montant));
+    d.paye = clamped;
+    if(String(clamped) !== this.value) this.value = clamped; // garde le champ affiché cohérent avec la valeur (bornée) réellement enregistrée
+    updateResteAffichage(d);
+  });
+  document.getElementById('payMoyen').addEventListener('change', function(){
+    var d = DOSSIERS[currentId]; if(d) d.moyen = this.value;
+  });
+
+  document.getElementById('dossierList').addEventListener('click', function(e){ var c=e.target.closest('.d-row'); if(c) openModal(c.dataset.id); });
+  document.getElementById('closeModal').addEventListener('click', function(){ overlay.classList.remove('show'); });
+  overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.classList.remove('show'); });
+
+  document.querySelectorAll('.tabbtns button').forEach(function(b){
+    b.addEventListener('click', function(){
+      document.querySelectorAll('.tabbtns button').forEach(function(x){x.classList.remove('on');});
+      document.querySelectorAll('.tabpane').forEach(function(x){x.classList.remove('on');});
+      b.classList.add('on');
+      document.querySelector('.tabpane[data-pane="'+b.dataset.tab+'"]').classList.add('on');
+    });
+  });
+
+  document.querySelector('[data-btn="auth"]').addEventListener('click', function(){
+    if(this.disabled) return;
+    var d = DOSSIERS[currentId];
+    if(!d.authSent){ d.authSent = true; openModal(currentId); return; }
+    document.getElementById('authPreview').classList.toggle('show');
+  });
+  document.querySelector('[data-btn="fiche"]').addEventListener('click', function(){ if(this.disabled) return; document.getElementById('fichePreview').classList.toggle('show'); });
+
+  function showConfirm(html, onYes){
+    var box = document.getElementById('statusConfirm');
+    box.innerHTML = html + '<div class="go"><button class="btn btn-primary btn-sm" id="cfYes">Confirmer</button><button class="btn btn-outline btn-sm" id="cfNo">Annuler</button></div>';
+    box.classList.add('show');
+    document.getElementById('cfNo').addEventListener('click', function(){ box.classList.remove('show'); });
+    document.getElementById('cfYes').addEventListener('click', function(){ box.classList.remove('show'); onYes(); openModal(currentId); renderDossiers(); });
+  }
+  document.querySelector('[data-btn="avancer"]').addEventListener('click', function(){
+    if(this.disabled) return; var d = DOSSIERS[currentId];
+    showConfirm('Confirmer le passage de <strong>« '+STAGE_NAMES[d.stage]+' »</strong> à <strong>« '+STAGE_NAMES[Math.min(d.stage+1,5)]+' »</strong> ?', function(){ d.stage = Math.min(d.stage+1,5); });
+  });
+  document.querySelector('[data-btn="rejeter"]').addEventListener('click', function(){
+    if(this.disabled) return;
+    var box = document.getElementById('statusConfirm');
+    box.innerHTML = 'Motif du rejet (visible par le candidat) :<textarea placeholder="Ex. pièces 1 et 2 non dupliquées par spécialité…"></textarea>'+
+      '<div class="go"><button class="btn btn-primary btn-sm" id="cfYes">Rejeter le dossier</button><button class="btn btn-outline btn-sm" id="cfNo">Annuler</button></div>';
+    box.classList.add('show');
+    document.getElementById('cfNo').addEventListener('click', function(){ box.classList.remove('show'); });
+    document.getElementById('cfYes').addEventListener('click', function(){ box.classList.remove('show'); DOSSIERS[currentId].stage = 0; openModal(currentId); renderDossiers(); });
+  });
+  document.querySelector('[data-btn="restaurer"]').addEventListener('click', function(){
+    if(this.disabled) return;
+    showConfirm('Restaurer ce dossier vers <strong>« Dossier en cours de traitement »</strong> ?', function(){ DOSSIERS[currentId].stage = 1; });
+  });
+
+  // ---- back-office sidebar (shared, bureau + rail complet) ----
+  var BO_NAV = [
+    {k:"dashboard", ic:"◧", lbl:"Tableau de bord"}, {k:"dossiers", ic:"▤", lbl:"Dossiers"},
+    {k:"rejetes", ic:"⊘", lbl:"Dossiers rejetés"}, {k:"specialites-admin", ic:"☎", lbl:"Spécialités & WhatsApp"},
+    {k:"tarifs", ic:"₣", lbl:"Tarifs"}, {k:"comptes", ic:"◎", lbl:"Comptes admin & rôles"},
+    {k:"parametres", ic:"⚙", lbl:"Paramètres"}
+  ];
+  document.querySelectorAll('.bo-side').forEach(function(side){
+    var active = side.dataset.boactive;
+    side.innerHTML = '<div class="bo-brand"><span class="mark">EB</span>Educ Bénin</div>' + BO_NAV.map(function(item){
+      return '<button class="bo-item'+(item.k===active?' on':'')+'" data-goto="'+item.k+'"><span class="ic">'+item.ic+'</span><span class="lbl">'+item.lbl+'</span></button>';
+    }).join('');
+  });
+
+  // ---- menu mobile du site public (bandeau du bas, 5 zones) ----
+  var PUBLIC_NAV = [
+    {k:"home", ic:"⌂", lbl:"Accueil"},
+    {k:"accompagnement", ic:"✎", lbl:"Demande"},
+    {k:"__more", ic:"☰", lbl:"Menu", more:true},
+    {k:"specialites", ic:"◧", lbl:"Spécialités"},
+    {k:"suivi", ic:"◔", lbl:"Suivi"}
+  ];
+  var PUBLIC_MORE_TITLE = "Menu Educ Bénin";
+  var PUBLIC_MORE_ITEMS = [
+    {k:"home", ic:"⌂", lbl:"Accueil"}, {k:"accompagnement", ic:"✎", lbl:"Accompagnement"},
+    {k:"specialites", ic:"◧", lbl:"Spécialités"}, {k:"suivi", ic:"◔", lbl:"Suivre mon dossier"},
+    {sep:true},
+    {k:"mentions", ic:"§", lbl:"Mentions légales"}, {k:"cgv", ic:"§", lbl:"CGU / CGV"},
+    {k:"confidentialite", ic:"§", lbl:"Politique de confidentialité"},
+    {sep:true},
+    {k:"login", ic:"⇥", lbl:"Accès back-office"}
+  ];
+
+  // ---- menu mobile du back-office (même principe : bandeau du bas, 5 zones) ----
+  var BO_BOTTOM_NAV = [
+    {k:"dashboard", ic:"◧", lbl:"Bord"},
+    {k:"dossiers", ic:"▤", lbl:"Dossiers"},
+    {k:"__more", ic:"☰", lbl:"Menu", more:true},
+    {k:"rejetes", ic:"⊘", lbl:"Rejetés"},
+    {k:"parametres", ic:"⚙", lbl:"Réglages"}
+  ];
+  var BO_MORE_TITLE = "Menu back-office";
+  var BO_MORE_ITEMS = [
+    {k:"dashboard", ic:"◧", lbl:"Tableau de bord"}, {k:"dossiers", ic:"▤", lbl:"Dossiers"},
+    {k:"rejetes", ic:"⊘", lbl:"Dossiers rejetés"}, {k:"parametres", ic:"⚙", lbl:"Paramètres"},
+    {sep:true},
+    {k:"specialites-admin", ic:"☎", lbl:"Spécialités & WhatsApp"}, {k:"tarifs", ic:"₣", lbl:"Tarifs"},
+    {k:"comptes", ic:"◎", lbl:"Comptes admin & rôles"},
+    {sep:true},
+    {k:"login", ic:"⇥", lbl:"Se déconnecter"}
+  ];
+
+  function renderBottomNav(sel, items, ctx){
+    document.querySelectorAll(sel).forEach(function(nav){
+      var active = nav.dataset.pbactive;
+      nav.innerHTML = items.map(function(item){
+        if(item.more) return '<button class="p-bn-item more" data-morebtn="1" data-morectx="'+ctx+'" title="Plus de pages"><span class="ic">'+item.ic+'</span><span>'+item.lbl+'</span></button>';
+        return '<button class="p-bn-item'+(item.k===active?' on':'')+'" data-goto="'+item.k+'"><span class="ic">'+item.ic+'</span><span>'+item.lbl+'</span></button>';
+      }).join('');
+    });
+  }
+  renderBottomNav('.p-bottomnav', PUBLIC_NAV, 'public');
+  renderBottomNav('.bo-bottomnav', BO_BOTTOM_NAV, 'bo');
+
+  var moreSheetOverlay = document.getElementById('moreSheetOverlay');
+  var moreSheetTitle = document.getElementById('moreSheetTitle');
+  var moreSheetItems = document.getElementById('moreSheetItems');
+  function openMoreSheet(ctx){
+    var title = ctx==='bo' ? BO_MORE_TITLE : PUBLIC_MORE_TITLE;
+    var items = ctx==='bo' ? BO_MORE_ITEMS : PUBLIC_MORE_ITEMS;
+    moreSheetTitle.textContent = title;
+    moreSheetItems.innerHTML = items.map(function(item){
+      if(item.sep) return '<div class="sep"></div>';
+      return '<button data-goto="'+item.k+'"><span class="ic">'+item.ic+'</span>'+item.lbl+'</button>';
+    }).join('');
+    moreSheetOverlay.classList.add('show');
+  }
+  document.addEventListener('click', function(e){
+    var mb = e.target.closest('[data-morebtn]');
+    if(mb){ openMoreSheet(mb.dataset.morectx||'public'); return; }
+    if(e.target===moreSheetOverlay){ moreSheetOverlay.classList.remove('show'); return; }
+    if(e.target.closest('.p-moresheet [data-goto]')){ moreSheetOverlay.classList.remove('show'); }
+  });
+
+  // ---- nav rail + goto (delegated, covers dynamically-created buttons too) ----
+  var urlMap = {
+    home:"educbenin.bj", accompagnement:"educbenin.bj/accompagnement", suivi:"educbenin.bj/suivre-mon-dossier",
+    specialites:"educbenin.bj/specialites", mentions:"educbenin.bj/mentions-legales", cgv:"educbenin.bj/cgu-cgv",
+    confidentialite:"educbenin.bj/confidentialite", login:"back.educbenin.bj/connexion",
+    dashboard:"back.educbenin.bj/tableau-de-bord", dossiers:"back.educbenin.bj/dossiers",
+    rejetes:"back.educbenin.bj/dossiers-rejetes", "specialites-admin":"back.educbenin.bj/specialites",
+    tarifs:"back.educbenin.bj/tarifs", comptes:"back.educbenin.bj/comptes-admin", parametres:"back.educbenin.bj/parametres"
+  };
+  function showScreen(id){
+    document.querySelectorAll('.screen').forEach(function(s){s.classList.toggle('active', s.id==='screen-'+id);});
+    document.querySelectorAll('.rail-btn').forEach(function(b){b.classList.toggle('active', b.dataset.screen===id);});
+    document.querySelectorAll('.bo-item').forEach(function(b){b.classList.toggle('on', b.dataset.goto===id);});
+    document.querySelectorAll('.p-bn-item[data-goto]').forEach(function(b){b.classList.toggle('on', b.dataset.goto===id);});
+    document.getElementById('urlbar').textContent = urlMap[id] || 'educbenin.bj';
+    document.querySelector('.frame-scroll').scrollTop = 0;
+    if(id==='dashboard') setTimeout(renderFinanceChart, 0);
+  }
+  document.querySelectorAll('.rail-btn').forEach(function(b){ b.addEventListener('click', function(){ showScreen(b.dataset.screen); }); });
+  document.addEventListener('click', function(e){
+    var g = e.target.closest('[data-goto]'); if(g){ showScreen(g.dataset.goto); }
+  });
+
+  document.getElementById('deviceSeg').addEventListener('click', function(e){
+    var b=e.target.closest('button'); if(!b) return;
+    document.querySelectorAll('#deviceSeg button').forEach(function(x){x.classList.remove('active');});
+    b.classList.add('active');
+    document.getElementById('frame').classList.toggle('mobile', b.dataset.device==='mobile');
+    setTimeout(renderFinanceChart, 260);
+  });
+})();
+</script>

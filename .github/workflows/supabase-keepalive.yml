@@ -1,0 +1,22 @@
+name: Supabase Keep-Alive
+
+# Supabase met en pause un projet gratuit après 7 jours sans activité.
+# Ce job se connecte à la base 2x/semaine (lundi + jeudi) pour qu'elle
+# ne soit jamais inactive assez longtemps pour être mise en pause.
+
+on:
+  schedule:
+    - cron: '0 6 * * 1,4' # lundi et jeudi, 06h00 UTC
+  workflow_dispatch: # déclenchement manuel possible depuis l'onglet Actions
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping Supabase database
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_KEEPALIVE_URL }}
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+          psql "$DATABASE_URL" -c "SELECT 1;"

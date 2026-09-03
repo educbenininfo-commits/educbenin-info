@@ -1,1 +1,627 @@
 @import 'tailwindcss';
+
+/* =============================================================================
+   Educ Bénin design tokens — docs/design-reference/DESIGN-SPEC.md (Fondations
+   de design) + docs/design-reference/educbenin-prototype.html (source of truth
+   for exact values). Values copied verbatim — do not approximate.
+   ========================================================================== */
+:root {
+  --prod-ink: #1e1b33;
+  --prod-ink-muted: #655f80;
+  --prod-ink-faint: #9490ac;
+  --prod-surface: #ffffff;
+  --prod-surface-2: #f7f6fc;
+  --prod-page: #fbfafe;
+  --prod-border: #e4e1f0;
+  --prod-primary: #4f46e5;
+  --prod-primary-dark: #3730a3;
+  --prod-primary-tint: #eef0fe;
+  --prod-gold: #9c6f17;
+  --prod-gold-tint: #f6eeda;
+  --prod-success: #0e9f6e;
+  --prod-success-tint: #d8f6ea;
+  --prod-warning: #b45309;
+  --prod-warning-tint: #fdf0da;
+  --prod-danger: #c0362c;
+  --prod-danger-tint: #fbe7e5;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  color: var(--prod-ink);
+  font-family:
+    var(--font-sans), system-ui, -apple-system, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-serif), Georgia, serif;
+  text-wrap: balance;
+  margin: 0;
+}
+p {
+  margin: 0;
+}
+button {
+  font-family: inherit;
+}
+.mono {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.prod {
+  color: var(--prod-ink);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* Page-width cap for the Accueil screen. The prototype has no `.container` on
+   this screen (it was bounded by the simulator's own 1180px frame instead) —
+   per product decision, Accueil uses the same 1040px cap as the other public
+   pages' `.container` for visual consistency. Applied per-block (not one
+   wrapping div) so each block's own full-bleed background/border still spans
+   the viewport while its content stays centered and capped. */
+.pw {
+  max-width: 1040px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ---- public nav ---- */
+.nav-bleed {
+  border-bottom: 1px solid var(--prod-border);
+}
+.p-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px 32px;
+}
+.p-logo {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--font-serif), serif;
+  font-weight: 700;
+  font-size: 17px;
+  flex: none;
+}
+.p-logo .mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: linear-gradient(155deg, var(--prod-primary), var(--prod-primary-dark));
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+.p-links {
+  display: flex;
+  gap: 26px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--prod-ink-muted);
+}
+.p-links a {
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+  color: inherit;
+}
+.p-links a.on {
+  color: var(--prod-primary-dark);
+  font-weight: 600;
+}
+
+/* ---- buttons ---- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 9px;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 11px 18px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.btn-primary {
+  background: var(--prod-primary);
+  color: #fff;
+}
+.btn-primary:hover {
+  background: var(--prod-primary-dark);
+}
+.btn-outline {
+  background: transparent;
+  border-color: var(--prod-border);
+  color: var(--prod-ink);
+}
+.btn-outline:hover {
+  border-color: var(--prod-primary);
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--prod-primary-dark);
+}
+.btn-sm {
+  padding: 7px 13px;
+  font-size: 12.5px;
+  border-radius: 7px;
+}
+
+/* ---- disclaimer bar (Accueil only, per spec) ---- */
+.disclaimer-bar-bleed {
+  background: var(--prod-primary-tint);
+  border-bottom: 1px solid var(--prod-border);
+}
+.disclaimer-bar {
+  padding: 10px 32px;
+  font-size: 12.5px;
+  color: var(--prod-primary-dark);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.disclaimer-bar a {
+  text-decoration: underline;
+  cursor: pointer;
+  margin-left: 4px;
+  color: inherit;
+}
+
+/* ---- hero ---- */
+.hero {
+  padding: 64px 32px 52px;
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  grid-template-areas: 'text art' 'cta art';
+  gap: 14px 44px;
+  align-items: center;
+}
+.hero-text {
+  grid-area: text;
+  align-self: end;
+}
+.hero-art {
+  grid-area: art;
+}
+.hero-actions {
+  grid-area: cta;
+  align-self: start;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.eyebrow {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--prod-gold);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.eyebrow::before {
+  content: '';
+  width: 16px;
+  height: 1px;
+  background: var(--prod-gold);
+}
+.hero h1 {
+  font-size: 38px;
+  line-height: 1.14;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.hero p.lead {
+  margin-top: 16px;
+  font-size: 16px;
+  color: var(--prod-ink-muted);
+  max-width: 46ch;
+}
+.hero-art {
+  background: linear-gradient(160deg, var(--prod-primary-dark), var(--prod-primary));
+  border-radius: 16px;
+  padding: 26px;
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+}
+.hero-art .seal {
+  position: absolute;
+  right: -30px;
+  top: -30px;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  border: 1.5px dashed rgba(255, 255, 255, 0.28);
+}
+.hero-track {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.hero-track .row {
+  display: flex;
+  gap: 12px;
+  padding: 10px 0;
+  position: relative;
+}
+.hero-track .row:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 11px;
+  top: 30px;
+  bottom: -2px;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.25);
+}
+.hero-track .num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11.5px;
+  font-weight: 700;
+  flex: none;
+}
+.hero-track .row.done .num {
+  background: var(--prod-gold);
+  border-color: var(--prod-gold);
+  color: #241b03;
+}
+.hero-track .label {
+  font-size: 13px;
+  padding-top: 2px;
+}
+.hero-track .row.done .label {
+  opacity: 0.7;
+  text-decoration: line-through;
+}
+
+/* ---- sections ---- */
+.section-bleed {
+  border-top: 1px solid var(--prod-border);
+}
+.section {
+  padding: 46px 32px;
+}
+.section h2 {
+  font-size: 23px;
+  margin-bottom: 6px;
+}
+.section .sub {
+  color: var(--prod-ink-muted);
+  font-size: 14px;
+  max-width: 56ch;
+  margin-bottom: 26px;
+}
+
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+}
+.step-card {
+  border: 1px solid var(--prod-border);
+  border-radius: 12px;
+  padding: 16px 14px;
+  background: var(--prod-surface-2);
+}
+.step-card .n {
+  font-family: var(--font-mono), monospace;
+  color: var(--prod-gold);
+  font-size: 12px;
+  font-weight: 600;
+}
+.step-card h5 {
+  font-size: 13.5px;
+  font-weight: 600;
+  margin-top: 8px;
+  font-family: var(--font-sans);
+}
+.step-card p {
+  font-size: 12px;
+  color: var(--prod-ink-muted);
+  margin-top: 5px;
+  line-height: 1.5;
+}
+
+.spec-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.spec-tile {
+  border: 1px solid var(--prod-border);
+  border-radius: 11px;
+  padding: 14px 15px;
+  background: var(--prod-surface);
+}
+.spec-tile .name {
+  font-weight: 600;
+  font-size: 13.5px;
+}
+.spec-tile .code {
+  font-size: 11px;
+  color: var(--prod-ink-faint);
+  font-family: var(--font-mono), monospace;
+  margin-top: 3px;
+}
+
+.price-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border: 1px solid var(--prod-border);
+  border-radius: 14px;
+  padding: 20px 22px;
+  background: var(--prod-surface);
+  flex-wrap: wrap;
+}
+.price-box .amt {
+  font-family: var(--font-serif), serif;
+  font-size: 26px;
+  font-weight: 700;
+}
+.price-box .amt .cur {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--prod-ink-muted);
+  font-family: var(--font-sans);
+}
+
+/* ---- footer ---- */
+.footer-bleed {
+  background: var(--prod-surface-2);
+  border-top: 1px solid var(--prod-border);
+}
+.footer {
+  padding: 40px 32px 26px;
+}
+.footer-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr 1fr;
+  gap: 28px;
+}
+.footer h6 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--prod-ink-faint);
+  margin-bottom: 12px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+}
+.footer a,
+.footer span.footer-text {
+  display: block;
+  font-size: 13px;
+  color: var(--prod-ink-muted);
+  margin-bottom: 9px;
+  text-decoration: none;
+}
+.footer .legal-line {
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid var(--prod-border);
+  font-size: 12px;
+  color: var(--prod-ink-faint);
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* ---- mobile bottom nav (site public) ----
+   Prototype positions these `absolute` inside its own simulated device
+   frame (`#frame`); the real product has no such frame, so they are `fixed`
+   to the viewport instead — same visual result, no frame to anchor to. */
+.p-bottomnav {
+  display: none;
+}
+.p-bn-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 7px 2px 5px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--prod-ink-faint);
+  letter-spacing: 0.01em;
+  text-decoration: none;
+}
+.p-bn-item .ic {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  line-height: 1;
+}
+.p-bn-item.on {
+  color: var(--prod-primary-dark);
+}
+.p-bn-item.more {
+  color: var(--prod-ink-muted);
+}
+.p-bn-item.more .ic {
+  width: 44px;
+  height: 44px;
+  margin-top: -24px;
+  border-radius: 50%;
+  background: linear-gradient(155deg, var(--prod-primary), var(--prod-primary-dark));
+  color: #fff;
+  font-size: 18px;
+  box-shadow:
+    0 10px 22px -8px rgba(79, 70, 229, 0.6),
+    0 0 0 4px var(--prod-surface);
+}
+
+.p-moresheet-ov {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 15, 45, 0.5);
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 41;
+}
+.p-moresheet-ov.show {
+  display: flex;
+}
+.p-moresheet {
+  background: var(--prod-surface);
+  width: 100%;
+  border-radius: 18px 18px 0 0;
+  max-height: 78%;
+  overflow: auto;
+  box-shadow: 0 -20px 50px -20px rgba(20, 15, 60, 0.4);
+  padding: 8px 8px calc(14px + env(safe-area-inset-bottom, 0px));
+}
+.p-moresheet .handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 3px;
+  background: var(--prod-border);
+  margin: 6px auto 12px;
+}
+.p-moresheet .title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--prod-ink-faint);
+  padding: 0 12px 8px;
+}
+.p-moresheet a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 12px;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--prod-ink);
+  border-radius: 10px;
+  cursor: pointer;
+  text-decoration: none;
+}
+.p-moresheet .ic {
+  width: 22px;
+  text-align: center;
+  color: var(--prod-primary-dark);
+  font-size: 15px;
+}
+.p-moresheet .sep {
+  height: 1px;
+  background: var(--prod-border);
+  margin: 6px 4px;
+}
+
+/* ---- responsive: 760px mirrors the design spec's container-query threshold
+   (`@container frame (max-width:760px)`) used by the prototype's simulated
+   device — the real product has no frame, so a standard viewport media query
+   at the same breakpoint reproduces the same mobile rules. ---- */
+@media (max-width: 760px) {
+  .pw {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+  .p-nav {
+    padding: 14px 18px;
+  }
+  .p-links {
+    display: none;
+  }
+
+  .p-bottomnav {
+    display: flex;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+    background: var(--prod-surface);
+    border-top: 1px solid var(--prod-border);
+    padding: 2px 4px calc(2px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -10px 26px -18px rgba(20, 15, 60, 0.4);
+  }
+  /* Accueil's footer is the last element on the page — clear the fixed bottom nav. */
+  .footer {
+    margin-bottom: 66px;
+  }
+
+  .disclaimer-bar {
+    padding: 9px 18px;
+    font-size: 11.5px;
+  }
+  .hero {
+    grid-template-columns: 1fr;
+    grid-template-areas: 'text' 'art' 'cta';
+    padding: 34px 18px 30px;
+    gap: 22px;
+  }
+  .hero h1 {
+    font-size: 26px;
+  }
+  .section {
+    padding: 30px 18px;
+  }
+  .section h2 {
+    font-size: 19px;
+  }
+  .steps-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .spec-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+  }
+  .footer {
+    padding: 28px 18px 20px;
+  }
+  .footer-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 22px;
+  }
+  .price-box {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
