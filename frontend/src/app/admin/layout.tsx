@@ -7,10 +7,11 @@
 // /admin/* page.
 
 import { useEffect, useState, type ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { api, ApiError } from '@/lib/api';
 import { BackofficeSidebar } from '@/components/backoffice/BackofficeSidebar';
 import { BackofficeBottomNav } from '@/components/backoffice/BackofficeBottomNav';
+import { BackofficeAdminProvider } from '@/contexts/BackofficeAdminContext';
 
 interface AdminMe {
   admin: { id: string; email: string; role: 'ADMIN' | 'SUPERADMIN' };
@@ -18,6 +19,7 @@ interface AdminMe {
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [admin, setAdmin] = useState<AdminMe['admin'] | null>(null);
   const [checked, setChecked] = useState(false);
 
@@ -63,20 +65,25 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="prod bo">
-      <BackofficeSidebar />
-      <BackofficeBottomNav />
-      <div className="bo-main">
-        <div className="bo-top">
-          <div className="bo-search">Rechercher…</div>
-          <div className="bo-user">
-            <div className="avatar">{admin.email.slice(0, 2).toUpperCase()}</div>
-            {admin.email} ·{' '}
-            {admin.role === 'SUPERADMIN' ? 'Super-administrateur' : 'Administrateur'}
+    <BackofficeAdminProvider admin={admin}>
+      <div className="prod bo">
+        <BackofficeSidebar />
+        <BackofficeBottomNav />
+        <div className="bo-main">
+          <div className="bo-top">
+            {/* Paramètres is the one back-office screen where search is irrelevant. */}
+            <div className="bo-search">
+              {pathname === '/admin/parametres' ? '—' : 'Rechercher…'}
+            </div>
+            <div className="bo-user">
+              <div className="avatar">{admin.email.slice(0, 2).toUpperCase()}</div>
+              {admin.email} ·{' '}
+              {admin.role === 'SUPERADMIN' ? 'Super-administrateur' : 'Administrateur'}
+            </div>
           </div>
+          <div className="bo-content">{children}</div>
         </div>
-        <div className="bo-content">{children}</div>
       </div>
-    </div>
+    </BackofficeAdminProvider>
   );
 }
