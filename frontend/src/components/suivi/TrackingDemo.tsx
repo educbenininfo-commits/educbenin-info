@@ -1,16 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { lookupDossier, uploadFiche, type LookupResult } from '@/lib/dossiers-public-api';
 
 // DESIGN-SPEC.md section "3. Suivre mon dossier" + educbenin-prototype.html
-// (#trackPick / #timeline / renderTimeline). The real search (référence +
-// WhatsApp → dossier lookup) has no backend yet — per the prototype itself
-// ("Aucune logique de recherche réelle n'est implémentée ... il faudra
-// remplacer par la vraie logique de recherche"), the "Afficher mon dossier"
-// button stays inert and the demo selector below drives the timeline,
-// exactly as documented. Search fields use placeholders instead of the
-// prototype's pre-filled example values — same "real blank form" principle
-// applied to the Accompagnement form this session.
+// (#trackPick / #timeline / renderTimeline). The prototype's own demo state
+// selector is gone — see Task 20 of
+// docs/superpowers/plans/2026-09-03-dossiers-backend.md for why. Search now
+// calls the real GET /api/dossiers/lookup route; the fiche transmission
+// button (visible at stage 3) calls the real
+// POST /api/dossiers/lookup/fiche route.
 
 const STAGES: { t: string; d: string }[] = [
   {
@@ -35,15 +34,6 @@ const STAGES: { t: string; d: string }[] = [
   },
 ];
 
-const TRACK_OPTIONS: { value: number; label: string }[] = [
-  { value: 1, label: '1 · En cours' },
-  { value: 2, label: '2 · Authentification' },
-  { value: 3, label: '3 · Inscription en ligne' },
-  { value: 4, label: '4 · Dépôt en cours' },
-  { value: 5, label: '5 · Déposé' },
-  { value: 0, label: 'Rejeté' },
-];
-
 function stateOf(stageNum: number, active: number): 'done' | 'now' | 'next' {
   if (stageNum < active) return 'done';
   if (stageNum === active) return 'now';
@@ -57,7 +47,59 @@ const STATE_LABEL: Record<'done' | 'now' | 'next', string> = {
 };
 
 export function TrackingDemo() {
-  const [active, setActive] = useState(2);
+  const [refInput, setRefInput] = useState('');
+  const [waInput, setWaInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [dossier, setDossier] = useState<LookupResult | null>(null);
+
+  const [ficheFile, setFicheFile] = useState<File | null>(null);
+  const [ficheSubmitting, setFicheSubmitting] = useState(false);
+  const [ficheError, setFicheError] = useState<string | null>(null);
+  const ficheInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleSearch() {
+    setSearchError(null);
+    if (!refInput.trim() || !waInput.trim()) {
+      setSearchError('Renseignez votre référence de dossier et votre numéro WhatsApp.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const result = await lookupDossier(refInput.trim(), waInput.trim());
+      if (!result.ok) {
+        setDossier(null);
+        setSearchError(
+          'Aucun dossier trouvé pour ces informations. Vérifiez votre référence et votre numéro WhatsApp.',
+        );
+        return;
+      }
+      setDossier(result.data);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleFicheSubmit() {
+    if (!ficheFile || !dossier) return;
+    setFicheError(null);
+    setFicheSubmitting(true);
+    try {
+      const form = new FormData();
+      form.append('reference', refInput.trim());
+      form.append('whatsapp', waInput.trim());
+      form.append('file', ficheFile);
+      await uploadFiche(form);
+      setDossier({ ...dossier, ficheUploaded: true });
+      setFicheFile(null);
+    } catch {
+      setFicheError('Impossible de transmettre votre fiche. Merci de réessayer.');
+    } finally {
+      setFicheSubmitting(false);
+    }
+  }
+
+  const active = dossier?.stage ?? null;
 
   return (
     <>
@@ -65,112 +107,158 @@ export function TrackingDemo() {
         <div className="row2">
           <div className="field" style={{ marginBottom: 0 }}>
             <label>Référence de dossier</label>
-            <input placeholder="EB-2026-000482" />
+            <input
+              placeholder="EB-202609-001"
+              value={refInput}
+              onChange={(e) => setRefInput(e.target.value)}
+            />
           </div>
           <div className="field" style={{ marginBottom: 0 }}>
             <label>Numéro WhatsApp</label>
-            <input placeholder="+229 97 00 00 00" />
+            <input
+              placeholder="+229 97 00 00 00"
+              value={waInput}
+              onChange={(e) => setWaInput(e.target.value)}
+            />
           </div>
         </div>
-        <button type="button" className="btn btn-primary btn-block" style={{ marginTop: 14 }}>
-          Afficher mon dossier
+        {searchError && (
+          <p className="err-msg" style={{ marginTop: 10 }}>
+            {searchError}
+          </p>
+        )}
+        <button
+          type="button"
+          className={`btn btn-primary btn-block${loading ? ' is-disabled' : ''}`}
+          style={{ marginTop: 14 }}
+          disabled={loading}
+          onClick={handleSearch}
+        >
+          {loading ? 'Recherche…' : 'Afficher mon dossier'}
         </button>
       </div>
 
-      <div style={{ marginTop: 10, fontSize: 12, color: 'var(--prod-ink-faint)' }}>
-        Aperçu des différentes étapes possibles :
-      </div>
-      <div className="track-pick">
-        {TRACK_OPTIONS.map((opt) => (
-          <button
-            key={opt.value}
-            type="button"
-            className={active === opt.value ? 'on' : ''}
-            onClick={() => setActive(opt.value)}
-          >
-            {opt.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="timeline">
-        {active === 0 ? (
-          <div className="tl-row">
-            <div className="tl-node">
-              <div
-                className="tl-dot"
-                style={{ background: 'var(--prod-danger)', borderColor: 'var(--prod-danger)' }}
-              />
-            </div>
-            <div className="tl-body">
-              <div className="tl-title">
-                Dossier rejeté <span className="st danger">À corriger</span>
+      {active !== null && (
+        <div className="timeline" style={{ marginTop: 18 }}>
+          {active === 0 ? (
+            <div className="tl-row">
+              <div className="tl-node">
+                <div
+                  className="tl-dot"
+                  style={{ background: 'var(--prod-danger)', borderColor: 'var(--prod-danger)' }}
+                />
               </div>
-              <div className="tl-desc">
-                Motif : les pièces 1 et 2 n&rsquo;ont pas été fournies pour chacune des 2
-                spécialités demandées.
-              </div>
-              <div className="comment-note">
-                💬 Merci de renvoyer une demande et une lettre distinctes pour chaque spécialité,
-                puis de nous les transmettre via WhatsApp.
-              </div>
-            </div>
-          </div>
-        ) : (
-          STAGES.map((stage, i) => {
-            const n = i + 1;
-            const state = stateOf(n, active);
-            return (
-              <div key={stage.t} className="tl-row">
-                <div className="tl-node">
-                  <div
-                    className={`tl-dot${state === 'done' ? ' done' : state === 'now' ? ' now' : ''}`}
-                  />
-                  {i < STAGES.length - 1 && (
-                    <div className={`tl-line${state === 'done' ? ' done' : ''}`} />
-                  )}
+              <div className="tl-body">
+                <div className="tl-title">
+                  Dossier rejeté <span className="st danger">À corriger</span>
                 </div>
-                <div className="tl-body">
-                  <div className="tl-title">
-                    {stage.t}
-                    <span className={`st ${state}`}>{STATE_LABEL[state]}</span>
+                <div className="tl-desc">
+                  Motif : {dossier?.motifRejet || 'aucun motif communiqué.'}
+                </div>
+                <div className="comment-note">
+                  💬 Merci de nous transmettre les corrections nécessaires via WhatsApp.
+                </div>
+              </div>
+            </div>
+          ) : (
+            STAGES.map((stage, i) => {
+              const n = i + 1;
+              const state = stateOf(n, active);
+              return (
+                <div key={stage.t} className="tl-row">
+                  <div className="tl-node">
+                    <div
+                      className={`tl-dot${state === 'done' ? ' done' : state === 'now' ? ' now' : ''}`}
+                    />
+                    {i < STAGES.length - 1 && (
+                      <div className={`tl-line${state === 'done' ? ' done' : ''}`} />
+                    )}
                   </div>
-                  <div className="tl-desc">{stage.d}</div>
-                  {n === 2 && state === 'now' && (
-                    <div className="comment-note">
-                      💬 Consultez votre WhatsApp : le formulaire d&rsquo;authentification de
-                      diplôme vous attend.
+                  <div className="tl-body">
+                    <div className="tl-title">
+                      {stage.t}
+                      <span className={`st ${state}`}>{STATE_LABEL[state]}</span>
                     </div>
-                  )}
-                  {n === 3 && state === 'now' && (
-                    <>
+                    <div className="tl-desc">{stage.d}</div>
+                    {n === 2 && state === 'now' && (
+                      <div className="comment-note">
+                        💬 Consultez votre WhatsApp : le formulaire d&rsquo;authentification de
+                        diplôme vous attend.
+                      </div>
+                    )}
+                    {n === 3 && state === 'now' && (
+                      <>
+                        <div className="cuo-note">
+                          Inscrivez-vous sur <strong>cuo.sigan-uac.bj</strong>, puis transmettez
+                          votre fiche d&rsquo;inscription ci-dessous.
+                        </div>
+                        {dossier?.ficheUploaded ? (
+                          <div className="comment-note" style={{ marginTop: 10 }}>
+                            ✓ Fiche d&rsquo;inscription transmise.
+                          </div>
+                        ) : (
+                          <>
+                            <div
+                              className="dropzone"
+                              style={{ marginTop: 10 }}
+                              onClick={() => ficheInputRef.current?.click()}
+                              onDragOver={(e) => e.preventDefault()}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                const dropped = e.dataTransfer.files[0];
+                                if (dropped) setFicheFile(dropped);
+                              }}
+                            >
+                              {ficheFile
+                                ? ficheFile.name
+                                : 'Glissez votre fiche d’inscription ici, ou cliquez pour parcourir'}
+                            </div>
+                            <input
+                              ref={ficheInputRef}
+                              type="file"
+                              accept="application/pdf"
+                              hidden
+                              onChange={(e) => setFicheFile(e.target.files?.[0] ?? null)}
+                            />
+                            {ficheError && (
+                              <p className="err-msg" style={{ marginTop: 6 }}>
+                                {ficheError}
+                              </p>
+                            )}
+                            <button
+                              type="button"
+                              className={`btn btn-primary btn-sm${!ficheFile || ficheSubmitting ? ' is-disabled' : ''}`}
+                              disabled={!ficheFile || ficheSubmitting}
+                              style={{ marginTop: 8 }}
+                              onClick={handleFicheSubmit}
+                            >
+                              {ficheSubmitting
+                                ? 'Envoi en cours…'
+                                : "Transmettre ma fiche d'inscription"}
+                            </button>
+                          </>
+                        )}
+                      </>
+                    )}
+                    {n === 5 && state === 'done' && (
                       <div className="cuo-note">
-                        Inscrivez-vous sur <strong>cuo.sigan-uac.bj</strong>, puis transmettez votre
-                        fiche d&rsquo;inscription ci-dessous.
+                        📄 Récépissé de dépôt FSS disponible —{' '}
+                        {dossier?.recepisseUrl ? (
+                          <a href={dossier.recepisseUrl} target="_blank" rel="noopener noreferrer">
+                            <strong>télécharger le PDF</strong>
+                          </a>
+                        ) : (
+                          <strong>en cours de mise à disposition</strong>
+                        )}
                       </div>
-                      <div className="dropzone" style={{ marginTop: 10 }}>
-                        Glissez votre fiche d&rsquo;inscription ici, ou cliquez pour parcourir
-                      </div>
-                      <button
-                        type="button"
-                        className="btn btn-primary btn-sm"
-                        style={{ marginTop: 8 }}
-                      >
-                        Transmettre ma fiche d&rsquo;inscription
-                      </button>
-                    </>
-                  )}
-                  {n === 5 && state === 'done' && (
-                    <div className="cuo-note">
-                      📄 Récépissé de dépôt FSS disponible — <strong>télécharger le PDF</strong>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })
-        )}
-      </div>
+              );
+            })
+          )}
+        </div>
+      )}
     </>
   );
 }
