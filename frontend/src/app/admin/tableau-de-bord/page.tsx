@@ -1,20 +1,47 @@
-// Écran Tableau de bord — docs/design-reference/DESIGN-SPEC.md, section
-// "9. Tableau de bord". Layout, copy et données d'exemple reproduits à la
-// lettre depuis docs/design-reference/educbenin-prototype.html. Les KPI,
-// alertes, activité et séries du graphique restent des exemples statiques
-// (aucun modèle de données "dossier" n'existe encore côté backend) — seul
-// l'accès à cet écran est réel (voir frontend/src/app/admin/layout.tsx).
+// frontend/src/app/admin/tableau-de-bord/page.tsx
+'use client';
 
+// Écran Tableau de bord — docs/design-reference/DESIGN-SPEC.md, section
+// "9. Tableau de bord". #kpiBlockGeneral, "en attente" and "activité
+// récente" are now real (see Task 24 of
+// docs/superpowers/plans/2026-09-03-dossiers-backend.md for why this page
+// is a client component rather than the spec's original server-component
+// suggestion). #kpiBlockFinance and the chart/payment-breakdown panels stay
+// example data per spec §2/§10 — no financial ledger exists yet.
+
+import { useEffect, useState } from 'react';
+import { api } from '@/lib/api';
 import { FinanceChart } from '@/components/backoffice/FinanceChart';
 import { fmtF2 } from '@/lib/format';
+import { STAGE_NAMES, pillClass, displayName, formatRelativeTime } from '@/lib/dossiers-data';
 
-const KPIS: { n: number; l: string; cls: string }[] = [
-  { n: 24, l: 'En cours de traitement', cls: 'accent' },
-  { n: 9, l: 'Authentification du diplôme', cls: 'accent' },
-  { n: 6, l: 'Inscription en ligne', cls: 'warn' },
-  { n: 4, l: 'Dépôt en cours', cls: 'warn' },
-  { n: 58, l: 'Déposés avec succès', cls: 'ok' },
-  { n: 5, l: 'Rejetés', cls: 'danger' },
+interface EnAttenteRow {
+  id: string;
+  reference: string;
+  nom: string;
+  prenom: string;
+  stage: number;
+  stageChangedAt: string;
+}
+interface ActivityEvent {
+  dossierId: string;
+  reference: string;
+  label: string;
+  at: string;
+}
+interface SummaryResponse {
+  kpis: Record<string, number>;
+  enAttente: EnAttenteRow[];
+  activiteRecente: ActivityEvent[];
+}
+
+const KPI_DEFS: { key: string; l: string; cls: string }[] = [
+  { key: '1', l: 'En cours de traitement', cls: 'accent' },
+  { key: '2', l: 'Authentification du diplôme', cls: 'accent' },
+  { key: '3', l: 'Inscription en ligne', cls: 'warn' },
+  { key: '4', l: 'Dépôt en cours', cls: 'warn' },
+  { key: '5', l: 'Déposés avec succès', cls: 'ok' },
+  { key: '0', l: 'Rejetés', cls: 'danger' },
 ];
 
 const FIN_FACTURE = [1250000, 1400000, 1600000, 1800000, 2100000, 2450000];
@@ -29,19 +56,25 @@ const FIN_MOYENS: { label: string; pct: number; color: string }[] = [
   { label: 'Virement', pct: 15, color: '#8B84C7' },
 ];
 
-const ALERTES: { text: string; pill: 'warn' | 'danger'; label: string }[] = [
-  { text: 'EB-2026-000401 · Dr. Sossou T.', pill: 'warn', label: 'Authentification' },
-  { text: 'EB-2026-000388 · Dr. Houngbo E.', pill: 'warn', label: 'En cours de traitement' },
-  { text: 'EB-2026-000377 · Dr. Adjovi R.', pill: 'danger', label: 'Inscription en ligne' },
-];
-
-const ACTIVITE: { text: string; time: string }[] = [
-  { text: 'Statut modifié', time: 'Il y a 12 min' },
-  { text: "Formulaire d'authentification reçu", time: 'Il y a 40 min' },
-  { text: 'Nouveau dossier reçu', time: 'Il y a 1 h' },
-];
-
 export default function TableauDeBordPage() {
+  const [summary, setSummary] = useState<SummaryResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await api<SummaryResponse>('/api/admin/dossiers/summary');
+        if (!cancelled) setSummary(res);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <>
       <h3 className="bo-h1">Tableau de bord</h3>
@@ -50,9 +83,9 @@ export default function TableauDeBordPage() {
         <div id="kpiBlockGeneral">
           <div className="bo-sub">Vue d&rsquo;ensemble de tous les dossiers</div>
           <div className="kpi-grid">
-            {KPIS.map((k) => (
-              <div key={k.l} className={`kpi ${k.cls}`}>
-                <div className="n mono">{k.n}</div>
+            {KPI_DEFS.map((k) => (
+              <div key={k.key} className={`kpi ${k.cls}`}>
+                <div className="n mono">{loading ? '—' : (summary?.kpis[k.key] ?? 0)}</div>
                 <div className="l">{k.l}</div>
               </div>
             ))}
@@ -89,22 +122,36 @@ export default function TableauDeBordPage() {
         <div className="panel">
           <h3>Dossiers en attente depuis plus de 5 jours</h3>
           <div className="sub">Nécessitent une action de l&rsquo;équipe</div>
-          {ALERTES.map((a) => (
-            <div key={a.text} className="alert-row">
-              <span>{a.text}</span>
-              <span className={`pill ${a.pill}`}>{a.label}</span>
-            </div>
-          ))}
+          {loading ? (
+            <p className="hint">Chargement…</p>
+          ) : summary!.enAttente.length === 0 ? (
+            <p className="hint">Aucun dossier en attente depuis plus de 5 jours.</p>
+          ) : (
+            summary!.enAttente.map((d) => (
+              <div key={d.id} className="alert-row">
+                <span>
+                  {d.reference} · {displayName(d.nom, d.prenom)}
+                </span>
+                <span className={`pill ${pillClass(d.stage)}`}>{STAGE_NAMES[d.stage]}</span>
+              </div>
+            ))
+          )}
         </div>
         <div className="panel">
           <h3>Activité récente</h3>
           <div className="sub">Dernières actions du back-office</div>
-          {ACTIVITE.map((a) => (
-            <div key={a.text} className="alert-row">
-              <span>{a.text}</span>
-              <span className="pill neutral">{a.time}</span>
-            </div>
-          ))}
+          {loading ? (
+            <p className="hint">Chargement…</p>
+          ) : summary!.activiteRecente.length === 0 ? (
+            <p className="hint">Aucune activité récente.</p>
+          ) : (
+            summary!.activiteRecente.map((a, i) => (
+              <div key={`${a.dossierId}-${i}`} className="alert-row">
+                <span>{a.label}</span>
+                <span className="pill neutral">{formatRelativeTime(a.at)}</span>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
