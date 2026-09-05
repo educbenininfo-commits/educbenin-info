@@ -1,7 +1,7 @@
 import 'server-only';
 
 /**
- * Generates the next `EB-YYYYMM-NNN` reference for the given month,
+ * Generates the next `EB-MMYYYY-NNN` reference for the given month,
  * counting existing dossiers whose reference already carries that
  * prefix. Must be called INSIDE the same transaction that inserts the
  * new Dossier row (see POST /api/dossiers) — the caller is responsible
@@ -14,8 +14,8 @@ export async function generateReference(
   },
   now: Date = new Date(),
 ): Promise<string> {
-  const yyyymm = `${now.getUTCFullYear()}${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
-  const prefix = `EB-${yyyymm}-`;
+  const mmyyyy = `${String(now.getUTCMonth() + 1).padStart(2, '0')}${now.getUTCFullYear()}`;
+  const prefix = `EB-${mmyyyy}-`;
   const count = await tx.dossier.count({ where: { reference: { startsWith: prefix } } });
   return `${prefix}${String(count + 1).padStart(3, '0')}`;
 }
