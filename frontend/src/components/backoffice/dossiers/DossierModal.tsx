@@ -8,6 +8,7 @@ import {
   pillClass,
   displayName,
   formatRelativeTime,
+  formatDateTime,
   type DossierDetail,
 } from '@/lib/dossiers-data';
 import {
@@ -661,7 +662,8 @@ export function DossierModal({
                     <div key={c.id} className="bubble pub">
                       {c.text}
                       <div className="meta">
-                        {c.authorName} · {formatRelativeTime(c.createdAt)}
+                        {c.authorName} · {formatRelativeTime(c.createdAt)} ·{' '}
+                        {formatDateTime(c.createdAt)}
                       </div>
                     </div>
                   ))}
@@ -698,7 +700,8 @@ export function DossierModal({
                     <div key={c.id} className="bubble int">
                       🔒 {c.text}
                       <div className="meta">
-                        {c.authorName} · {formatRelativeTime(c.createdAt)}
+                        {c.authorName} · {formatRelativeTime(c.createdAt)} ·{' '}
+                        {formatDateTime(c.createdAt)}
                       </div>
                     </div>
                   ))}

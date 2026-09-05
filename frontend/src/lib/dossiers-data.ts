@@ -126,3 +126,20 @@ export function formatRelativeTime(at: string | Date): string {
   if (hours < 24) return `il y a ${hours} h`;
   return `il y a ${Math.floor(hours / 24)} j`;
 }
+
+/**
+ * Absolute "DD/MM/YYYY HH:MM" for comment timestamps — shown alongside
+ * formatRelativeTime per explicit user request: every public/internal
+ * comment must show its exact date and time, not only a relative fuzz.
+ * Built manually (not `toLocaleString`) so the format doesn't depend on
+ * the Node build's ICU data.
+ */
+export function formatDateTime(at: string | Date): string {
+  const date = typeof at === 'string' ? new Date(at) : at;
+  const dd = String(date.getDate()).padStart(2, '0');
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const yyyy = date.getFullYear();
+  const hh = String(date.getHours()).padStart(2, '0');
+  const min = String(date.getMinutes()).padStart(2, '0');
+  return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
+}
