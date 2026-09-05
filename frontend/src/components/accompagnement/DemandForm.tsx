@@ -2,13 +2,14 @@
 
 import { useRef, useState } from 'react';
 import { SPECIALTIES } from '@/lib/specialties';
+import { createDossier, DossierApiError } from '@/lib/dossiers-public-api';
 
 // Multi-step "Faire ma demande" form — DESIGN-SPEC.md section "2. Accompagnement
 // & demande" + educbenin-prototype.html (#stepper / .form-step / #confirmPanel).
-// The prototype implements no field validation and ships an already-filled
-// example (pre-checked boxes, a pre-attached file) — per explicit product
-// decision this session, the real form starts blank (unchecked boxes, no
-// file) and gates each step behind validation the prototype left undefined.
+// Step 3 submission now calls the real POST /api/dossiers route (see
+// docs/superpowers/specs/2026-09-03-dossiers-backend-design.md §7) — the
+// confirmation panel shows the reference the backend generated, not a
+// hardcoded example.
 
 const WHATSAPP_RE = /^\+229\s?(\d{2}\s?){4}$/;
 
@@ -22,6 +23,9 @@ type Step2Errors = { nom?: string; prenom?: string; whatsapp?: string };
 export function DemandForm() {
   const [step, setStep] = useState(1);
   const [submitted, setSubmitted] = useState(false);
+  const [reference, setReference] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Step 1 — la toute première spécialité est pré-sélectionnée au chargement
   // (comportement fonctionnel explicite du prototype, pas une donnée d'exemple).
@@ -42,6 +46,7 @@ export function DemandForm() {
     checks: string | undefined;
   }>({ file: undefined, checks: undefined });
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const canSubmit = file !== null && checks.every(Boolean);
 
   function toggleChip(code: string) {
     setSelectedCodes((prev) =>
@@ -80,7 +85,7 @@ export function DemandForm() {
     setStep3Errors((prev) => ({ file: prev.file, checks: undefined }));
   }
 
-  function submit() {
+  async function submit() {
     const errors: { file: string | undefined; checks: string | undefined } = {
       file: file ? undefined : 'Déposez votre dossier au format PDF.',
       checks: checks.every(Boolean)
@@ -89,7 +94,33 @@ export function DemandForm() {
     };
     setStep3Errors(errors);
     if (errors.file || errors.checks) return;
-    setSubmitted(true);
+
+    setSubmitError(null);
+    setSubmitting(true);
+    try {
+      const form = new FormData();
+      for (const code of selectedCodes) form.append('specialtyCodes', code);
+      form.append('nom', nom.trim());
+      form.append('prenom', prenom.trim());
+      form.append('whatsapp', whatsapp.trim());
+      form.append('consent1', String(checks[0]));
+      form.append('consent2', String(checks[1]));
+      form.append('consent3', String(checks[2]));
+      form.append('consent4', String(checks[3]));
+      form.append('pdf', file!);
+
+      const res = await createDossier(form);
+      setReference(res.reference);
+      setSubmitted(true);
+    } catch (err) {
+      setSubmitError(
+        err instanceof DossierApiError
+          ? "Votre demande n'a pas pu être envoyée. Merci de vérifier vos informations et de réessayer."
+          : 'Impossible de contacter le serveur. Vérifiez votre connexion et réessayez.',
+      );
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   if (submitted) {
@@ -100,7 +131,7 @@ export function DemandForm() {
         <p style={{ color: 'var(--prod-ink-muted)', marginTop: 8, fontSize: 13.5 }}>
           Conservez votre référence de dossier et surveillez votre WhatsApp.
         </p>
-        <div className="ref mono">EB-2026-000482</div>
+        <div className="ref mono">{reference}</div>
       </div>
     );
   }
@@ -266,12 +297,27 @@ export function DemandForm() {
             ))}
             {step3Errors.checks && <p className="err-msg">{step3Errors.checks}</p>}
           </div>
+          {submitError && (
+            <p className="err-msg" style={{ marginTop: 10 }}>
+              {submitError}
+            </p>
+          )}
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
-            <button type="button" className="btn btn-outline" onClick={() => setStep(2)}>
+            <button
+              type="button"
+              className="btn btn-outline"
+              onClick={() => setStep(2)}
+              disabled={submitting}
+            >
               Retour
             </button>
-            <button type="button" className="btn btn-primary" onClick={submit}>
-              Envoyer ma demande
+            <button
+              type="button"
+              className={`btn btn-primary${canSubmit && !submitting ? '' : ' is-disabled'}`}
+              disabled={!canSubmit || submitting}
+              onClick={submit}
+            >
+              {submitting ? 'Envoi en cours…' : 'Envoyer ma demande'}
             </button>
           </div>
         </div>
