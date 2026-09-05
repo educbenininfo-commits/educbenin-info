@@ -108,7 +108,7 @@ export function TrackingDemo() {
           <div className="field" style={{ marginBottom: 0 }}>
             <label>Référence de dossier</label>
             <input
-              placeholder="EB-202609-001"
+              placeholder="EB-092026-001"
               value={refInput}
               onChange={(e) => setRefInput(e.target.value)}
             />
