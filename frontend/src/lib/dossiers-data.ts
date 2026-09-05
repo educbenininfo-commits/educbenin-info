@@ -1,8 +1,12 @@
-// DOSSIERS — educbenin-prototype.html (10 example dossiers, stage 0=rejeté
-// .. 5=déposé). DESIGN-SPEC.md section "10. Dossiers": d10 was added
-// specifically to demonstrate the "never sent" auth-form state — with it,
-// all 3 states of the auth button are directly demonstrable (d10 → send,
-// d5 → awaiting, d4 → view, the only one carrying a full authForm).
+// frontend/src/lib/dossiers-data.ts
+// Type + formatting layer for the back-office Dossiers screens — mirrors the
+// Prisma `Dossier`/`DossierComment` models
+// (docs/superpowers/specs/2026-09-03-dossiers-backend-design.md §4) on the
+// wire. STAGE_NAMES/DOSSIER_FILTERS/initials/pillClass/fmtF are unchanged
+// from the original static-data version (educbenin-prototype.html) — only
+// the row shape moved from a hardcoded example dict to the real API's JSON.
+
+import { SPECIALTIES } from './specialties';
 
 export type AuthForm = {
   nom: string;
@@ -19,22 +23,48 @@ export type AuthForm = {
   doctorat: { institution: string; email: string; annee: string; pays: string; adresse: string };
 };
 
-export type Dossier = {
-  ref: string;
-  name: string;
-  spec: string;
-  wa: string;
+export type DossierComment = {
+  id: string;
+  dossierId: string;
+  type: 'public' | 'internal';
+  text: string;
+  authorName: string;
+  createdAt: string;
+};
+
+export type DossierListItem = {
+  id: string;
+  reference: string;
+  nom: string;
+  prenom: string;
+  specialtyCodes: string[];
   stage: 0 | 1 | 2 | 3 | 4 | 5;
-  authSent: boolean;
-  authSubmitted: boolean;
+  stageChangedAt: string;
+  motifRejet: string | null;
+};
+
+export type DossierDetail = DossierListItem & {
+  whatsapp: string;
+  pieceJointeUrl: string | null;
+  authToken: string | null;
+  authTokenExpiresAt: string | null;
+  authSentAt: string | null;
+  authSubmittedAt: string | null;
+  authFormData: AuthForm | null;
+  diplomaBacUrl: string | null;
+  diplomaDoctoratUrl: string | null;
   ficheUploaded: boolean;
+  ficheUrl: string | null;
   recepisseUploaded: boolean;
-  days: string;
+  recepisseUrl: string | null;
   montant: number;
+  montantSupplement: number | null;
   paye: number;
   moyen: 'Non renseigné' | 'Mobile Money' | 'Espèces' | 'Virement';
-  authForm?: AuthForm;
-  motif?: string;
+  motifRejet: string | null;
+  createdAt: string;
+  updatedAt: string;
+  comments: DossierComment[];
 };
 
 export const STAGE_NAMES: Record<number, string> = {
@@ -44,185 +74,6 @@ export const STAGE_NAMES: Record<number, string> = {
   3: 'Inscription en ligne',
   4: 'Dépôt de dossier en cours',
   5: 'Dossier déposé avec succès',
-};
-
-export const INITIAL_DOSSIERS: Record<string, Dossier> = {
-  d1: {
-    ref: 'EB-2026-000388',
-    name: 'Dr. Houngbo Estelle',
-    spec: 'Pédiatrie',
-    wa: '+229 96 44 12 09',
-    stage: 1,
-    authSent: false,
-    authSubmitted: false,
-    ficheUploaded: false,
-    recepisseUploaded: false,
-    days: '1 j',
-    montant: 50000,
-    paye: 50000,
-    moyen: 'Mobile Money',
-  },
-  d2: {
-    ref: 'EB-2026-000377',
-    name: 'Dr. Adjovi Roméo',
-    spec: 'Chirurgie Générale',
-    wa: '+229 97 20 55 31',
-    stage: 1,
-    authSent: false,
-    authSubmitted: false,
-    ficheUploaded: false,
-    recepisseUploaded: false,
-    days: '4 j',
-    montant: 100000,
-    paye: 50000,
-    moyen: 'Espèces',
-  },
-  d3: {
-    ref: 'EB-2026-000390',
-    name: 'Dr. Codjo Sènan',
-    spec: 'Gynécologie-Obstétrique',
-    wa: '+229 95 10 44 02',
-    stage: 1,
-    authSent: false,
-    authSubmitted: false,
-    ficheUploaded: false,
-    recepisseUploaded: false,
-    days: '2 j',
-    montant: 50000,
-    paye: 0,
-    moyen: 'Non renseigné',
-  },
-  d4: {
-    ref: 'EB-2026-000401',
-    name: 'Dr. Sossou Théodore',
-    spec: 'Cardiologie',
-    wa: '+229 96 12 34 56',
-    stage: 2,
-    authSent: true,
-    authSubmitted: true,
-    ficheUploaded: false,
-    recepisseUploaded: false,
-    days: '5 j',
-    montant: 50000,
-    paye: 50000,
-    moyen: 'Mobile Money',
-    authForm: {
-      nom: 'SOSSOU',
-      prenom: 'Théodore',
-      naissance: '14/03/1988',
-      lieuNaissance: 'Cotonou, Bénin',
-      nationalite: 'Béninoise',
-      adresse: 'Fidjrossè, Cotonou, Bénin',
-      piece: 'CNI',
-      pieceRef: 'B-04422190',
-      email: 'theodore.sossou@gmail.com',
-      tel: '+229 96 12 34 56',
-      bac: {
-        institution: 'Office du Baccalauréat du Bénin',
-        email: 'contact@obb.bj',
-        annee: '2013',
-        pays: 'Bénin',
-        adresse: 'Cotonou, Bénin',
-      },
-      doctorat: {
-        institution: 'FSS / UAC',
-        email: 'scolarite@fss-uac.bj',
-        annee: '2023',
-        pays: 'Bénin',
-        adresse: 'Campus FSS, Cotonou, Bénin',
-      },
-    },
-  },
-  d5: {
-    ref: 'EB-2026-000399',
-    name: 'Dr. Zannou Marlène',
-    spec: 'Dermatologie-Vénérologie',
-    wa: '+229 94 88 21 03',
-    stage: 2,
-    authSent: true,
-    authSubmitted: false,
-    ficheUploaded: false,
-    recepisseUploaded: false,
-    days: '2 j',
-    montant: 50000,
-    paye: 25000,
-    moyen: 'Virement',
-  },
-  d6: {
-    ref: 'EB-2026-000370',
-    name: 'Dr. Dossou Prudence',
-    spec: 'Néphrologie',
-    wa: '+229 97 65 43 21',
-    stage: 3,
-    authSent: true,
-    authSubmitted: true,
-    ficheUploaded: true,
-    recepisseUploaded: false,
-    days: '3 j',
-    montant: 50000,
-    paye: 50000,
-    moyen: 'Mobile Money',
-  },
-  d7: {
-    ref: 'EB-2026-000360',
-    name: 'Dr. Aina Landry',
-    spec: 'Ophtalmologie',
-    wa: '+229 96 77 88 12',
-    stage: 4,
-    authSent: true,
-    authSubmitted: true,
-    ficheUploaded: true,
-    recepisseUploaded: false,
-    days: '1 j',
-    montant: 50000,
-    paye: 50000,
-    moyen: 'Espèces',
-  },
-  d8: {
-    ref: 'EB-2026-000312',
-    name: 'Dr. Kpossou Jonas',
-    spec: 'Urologie-Andrologie',
-    wa: '+229 95 22 11 90',
-    stage: 5,
-    authSent: true,
-    authSubmitted: true,
-    ficheUploaded: true,
-    recepisseUploaded: true,
-    days: '—',
-    montant: 50000,
-    paye: 50000,
-    moyen: 'Mobile Money',
-  },
-  d9: {
-    ref: 'EB-2026-000305',
-    name: 'Dr. Fanou Sandrine',
-    spec: "Psychiatrie d'Adultes",
-    wa: '+229 94 33 66 77',
-    stage: 5,
-    authSent: true,
-    authSubmitted: true,
-    ficheUploaded: true,
-    recepisseUploaded: true,
-    days: '—',
-    montant: 50000,
-    paye: 50000,
-    moyen: 'Mobile Money',
-  },
-  d10: {
-    ref: 'EB-2026-000415',
-    name: 'Dr. Agbodji Firmin',
-    spec: 'Neurochirurgie',
-    wa: '+229 93 40 12 88',
-    stage: 2,
-    authSent: false,
-    authSubmitted: false,
-    ficheUploaded: false,
-    recepisseUploaded: false,
-    days: '3 h',
-    montant: 50000,
-    paye: 0,
-    moyen: 'Non renseigné',
-  },
 };
 
 export const DOSSIER_FILTERS: { label: string; stage: 'all' | 1 | 2 | 3 | 4 | 5 }[] = [
@@ -248,4 +99,30 @@ export function pillClass(stage: number): 'danger' | 'ok' | 'warn' | 'neutral' {
 
 export function fmtF(n: number): string {
   return n.toLocaleString('fr-FR') + ' FCFA';
+}
+
+export function displayName(nom: string, prenom: string): string {
+  return `${nom} ${prenom}`;
+}
+
+export function specialtyLabel(codes: string[]): string {
+  return codes.map((code) => SPECIALTIES.find((s) => s.code === code)?.name ?? code).join(', ');
+}
+
+/** Time-since-last-stage-change for the dossier-list "days" column. */
+export function formatElapsed(stage: number, stageChangedAt: string | Date): string {
+  if (stage === 5) return '—';
+  const changed = typeof stageChangedAt === 'string' ? new Date(stageChangedAt) : stageChangedAt;
+  const hours = Math.max(0, Math.floor((Date.now() - changed.getTime()) / (3600 * 1000)));
+  if (hours < 24) return `${hours} h`;
+  return `${Math.floor(hours / 24)} j`;
+}
+
+/** Relative "il y a X h/j" for comment timestamps. */
+export function formatRelativeTime(at: string | Date): string {
+  const date = typeof at === 'string' ? new Date(at) : at;
+  const hours = Math.max(0, Math.floor((Date.now() - date.getTime()) / (3600 * 1000)));
+  if (hours < 1) return "à l'instant";
+  if (hours < 24) return `il y a ${hours} h`;
+  return `il y a ${Math.floor(hours / 24)} j`;
 }

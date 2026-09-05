@@ -1,25 +1,47 @@
+// frontend/src/components/backoffice/dossiers/DossierModal.tsx
 'use client';
 
-import { useState } from 'react';
-import { STAGE_NAMES, fmtF, pillClass, type Dossier } from '@/lib/dossiers-data';
+import { useEffect, useRef, useState } from 'react';
+import {
+  STAGE_NAMES,
+  fmtF,
+  pillClass,
+  displayName,
+  formatRelativeTime,
+  type DossierDetail,
+} from '@/lib/dossiers-data';
+import {
+  fetchDossierDetail,
+  updateDossierPayment,
+  sendAuthForm,
+  rejectDossier,
+  restoreDossier,
+  advanceDossier,
+  addDossierComment,
+  uploadRecepisse,
+} from '@/lib/dossiers-admin-api';
 
 // #dossierOverlay / openModal / authButtonState / ficheButtonState /
 // recepisseButtonState / showConfirm — DESIGN-SPEC.md section "10. Dossiers".
-// Rendered with `key={dossier.ref}` by the parent so every re-open remounts
-// with fresh state — same effect as the prototype's openModal() resetting
-// tabs/previews/confirm box each time.
-//
-// One deliberate deviation, flagged by the doc itself as needed for the real
-// product: the rejection motif is now captured onto the dossier instead of
-// being read and discarded — there's still no backend to persist it beyond
-// this session's in-memory state, but at least it survives to the Dossiers
-// rejetés-equivalent view instead of vanishing.
+// Now backed by real data: the modal fetches its own detail by `id` on open
+// (rendered with `key={id}` by the parent, so every re-open remounts fresh —
+// same effect as the prototype's openModal() resetting tabs/previews/confirm
+// each time) and every action calls the real admin route instead of mutating
+// local state. See Task 22 of
+// docs/superpowers/plans/2026-09-03-dossiers-backend.md for the 3 behavioral
+// gaps this filled in (payment save-on-blur, comment submit buttons, file
+// row sizes).
 
 type AuthButtonState = { enabled: boolean; label: string; title: string };
 type FicheButtonState = { enabled: boolean; title: string };
-type RecepisseButtonState = { enabled: boolean; label: string; title: string };
+type RecepisseButtonState = {
+  enabled: boolean;
+  label: string;
+  title: string;
+  mode: 'add' | 'view' | 'none';
+};
 
-function authButtonState(d: Dossier): AuthButtonState {
+function authButtonState(d: DossierDetail): AuthButtonState {
   if (d.stage !== 2) {
     return {
       enabled: false,
@@ -30,14 +52,14 @@ function authButtonState(d: Dossier): AuthButtonState {
           : 'Disponible une fois le dossier à l’étape « Authentification du diplôme en cours ».',
     };
   }
-  if (!d.authSent) {
+  if (!d.authSentAt) {
     return {
       enabled: true,
       label: "Envoyer le formulaire d'authentification",
       title: 'Envoie le lien du formulaire par WhatsApp au candidat.',
     };
   }
-  if (d.authSent && !d.authSubmitted) {
+  if (d.authSentAt && !d.authSubmittedAt) {
     return {
       enabled: false,
       label: 'En attente du candidat',
@@ -51,7 +73,7 @@ function authButtonState(d: Dossier): AuthButtonState {
   };
 }
 
-function ficheButtonState(d: Dossier): FicheButtonState {
+function ficheButtonState(d: DossierDetail): FicheButtonState {
   if (d.stage !== 3) {
     return {
       enabled: false,
@@ -70,12 +92,13 @@ function ficheButtonState(d: Dossier): FicheButtonState {
   return { enabled: true, title: "Afficher la fiche d'inscription transmise par le candidat." };
 }
 
-function recepisseButtonState(d: Dossier): RecepisseButtonState {
+function recepisseButtonState(d: DossierDetail): RecepisseButtonState {
   if (d.stage === 4) {
     return {
       enabled: true,
       label: 'Ajouter le récépissé (scan FSS)',
       title: 'Uploader le scan du récépissé remis par la FSS au moment du dépôt.',
+      mode: 'add',
     };
   }
   if (d.stage === 5 && d.recepisseUploaded) {
@@ -83,12 +106,14 @@ function recepisseButtonState(d: Dossier): RecepisseButtonState {
       enabled: true,
       label: 'Voir le récépissé',
       title: 'Afficher le récépissé transmis au candidat.',
+      mode: 'view',
     };
   }
   return {
     enabled: false,
     label: 'Récépissé de dépôt',
     title: 'Disponible à partir de l’étape « Dépôt de dossier en cours ».',
+    mode: 'none',
   };
 }
 
@@ -112,18 +137,58 @@ type ConfirmState =
   | null;
 
 export function DossierModal({
-  dossier,
+  id,
   onClose,
-  onUpdate,
+  onChanged,
 }: {
-  dossier: Dossier;
+  id: string;
   onClose: () => void;
-  onUpdate: (next: Dossier) => void;
+  onChanged: () => void;
 }) {
+  const [dossier, setDossier] = useState<DossierDetail | null>(null);
+  const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'pay' | 'pub' | 'int'>('pay');
   const [authPreviewOpen, setAuthPreviewOpen] = useState(false);
   const [fichePreviewOpen, setFichePreviewOpen] = useState(false);
+  const [recepissePreviewOpen, setRecepissePreviewOpen] = useState(false);
   const [confirm, setConfirm] = useState<ConfirmState>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [payeInput, setPayeInput] = useState('0');
+  const [publicComment, setPublicComment] = useState('');
+  const [internalComment, setInternalComment] = useState('');
+  const [commentSubmitting, setCommentSubmitting] = useState(false);
+  const recepisseInputRef = useRef<HTMLInputElement>(null);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const res = await fetchDossierDetail(id);
+      setDossier(res.dossier);
+      setPayeInput(String(res.dossier.paye));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void load();
+    // Only `id` should re-trigger the fetch; `load` is stable in behavior.
+    // (No react-hooks/exhaustive-deps plugin is configured in this repo's
+    // eslint.config.mjs, so no disable directive is needed here.)
+  }, [id]);
+
+  if (loading || !dossier) {
+    return (
+      <div className="overlay show">
+        <div className="modal">
+          <div className="modal-body" style={{ padding: 40, textAlign: 'center' }}>
+            <span style={{ color: 'var(--prod-ink-muted)', fontSize: 13.5 }}>Chargement…</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const auth = authButtonState(dossier);
   const fiche = ficheButtonState(dossier);
@@ -131,36 +196,137 @@ export function DossierModal({
   const canReject = dossier.stage >= 1 && dossier.stage <= 4;
   const canRestore = dossier.stage === 0;
   const canAdvance = dossier.stage >= 1 && dossier.stage <= 4;
-  const reste = Math.max(dossier.montant - dossier.paye, 0);
-  const fileName = `dossier-${dossier.name.split(' ').pop()!.toLowerCase()}.pdf`;
+  const totalDue = dossier.montant + (dossier.montantSupplement ?? 0);
+  const reste = Math.max(totalDue - dossier.paye, 0);
 
-  function handleAuthClick() {
-    if (!auth.enabled) return;
-    if (!dossier.authSent) {
-      onUpdate({ ...dossier, authSent: true });
+  async function handleAuthClick() {
+    if (!auth.enabled || !dossier) return;
+    if (!dossier.authSentAt) {
+      setActionError(null);
+      setActionLoading(true);
+      try {
+        const res = await sendAuthForm(dossier.id);
+        const url = `${window.location.origin}/authentification-diplome/${res.token}`;
+        const message = `Bonjour, votre dossier ${dossier.reference} est en cours de traitement chez Educ Bénin. Merci de compléter le formulaire d'authentification de votre diplôme via ce lien : ${url}`;
+        const digits = dossier.whatsapp.replace(/\D/g, '');
+        window.open(
+          `https://wa.me/${digits}?text=${encodeURIComponent(message)}`,
+          '_blank',
+          'noopener,noreferrer',
+        );
+        await load();
+        onChanged();
+      } catch {
+        setActionError("Impossible d'envoyer le formulaire d'authentification.");
+      } finally {
+        setActionLoading(false);
+      }
       return;
     }
     setAuthPreviewOpen((v) => !v);
   }
 
-  function handlePayeChange(raw: string) {
-    const parsed = parseInt(raw || '0', 10);
-    const clamped = Math.max(0, Math.min(Number.isNaN(parsed) ? 0 : parsed, dossier.montant));
-    onUpdate({ ...dossier, paye: clamped });
+  async function commitPaye() {
+    if (!dossier) return;
+    const parsed = parseInt(payeInput || '0', 10);
+    const value = Number.isNaN(parsed) ? 0 : parsed;
+    if (value === dossier.paye) return;
+    try {
+      const res = await updateDossierPayment(dossier.id, { paye: value });
+      setDossier(res.dossier);
+      setPayeInput(String(res.dossier.paye));
+    } catch {
+      setActionError('Impossible de mettre à jour le montant payé.');
+      setPayeInput(String(dossier.paye));
+    }
   }
 
-  function confirmAdvance() {
-    onUpdate({ ...dossier, stage: Math.min(dossier.stage + 1, 5) as Dossier['stage'] });
-    setConfirm(null);
+  async function handleMoyenChange(moyen: string) {
+    if (!dossier) return;
+    try {
+      const res = await updateDossierPayment(dossier.id, { moyen });
+      setDossier(res.dossier);
+    } catch {
+      setActionError('Impossible de mettre à jour le moyen de paiement.');
+    }
   }
-  function confirmRestore() {
-    onUpdate({ ...dossier, stage: 1 });
-    setConfirm(null);
+
+  async function submitComment(type: 'public' | 'internal') {
+    if (!dossier) return;
+    const text = type === 'public' ? publicComment.trim() : internalComment.trim();
+    if (!text) return;
+    setCommentSubmitting(true);
+    try {
+      await addDossierComment(dossier.id, type, text);
+      if (type === 'public') setPublicComment('');
+      else setInternalComment('');
+      await load();
+    } catch {
+      setActionError('Impossible de publier ce commentaire.');
+    } finally {
+      setCommentSubmitting(false);
+    }
   }
-  function confirmReject() {
-    if (confirm?.kind !== 'rejeter') return;
-    onUpdate({ ...dossier, stage: 0, motif: confirm.motif });
-    setConfirm(null);
+
+  async function handleRecepisseFile(file: File | null) {
+    if (!file || !dossier) return;
+    setActionError(null);
+    setActionLoading(true);
+    try {
+      const res = await uploadRecepisse(dossier.id, file);
+      setDossier(res.dossier);
+      onChanged();
+    } catch {
+      setActionError('Impossible de transmettre le récépissé.');
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function confirmAdvance() {
+    if (!dossier) return;
+    setActionError(null);
+    setActionLoading(true);
+    try {
+      const res = await advanceDossier(dossier.id);
+      setDossier(res.dossier);
+      onChanged();
+      setConfirm(null);
+    } catch {
+      setActionError('Impossible de faire progresser ce dossier.');
+    } finally {
+      setActionLoading(false);
+    }
+  }
+  async function confirmRestore() {
+    if (!dossier) return;
+    setActionError(null);
+    setActionLoading(true);
+    try {
+      const res = await restoreDossier(dossier.id);
+      setDossier(res.dossier);
+      onChanged();
+      setConfirm(null);
+    } catch {
+      setActionError('Impossible de restaurer ce dossier.');
+    } finally {
+      setActionLoading(false);
+    }
+  }
+  async function confirmReject() {
+    if (!dossier || confirm?.kind !== 'rejeter') return;
+    setActionError(null);
+    setActionLoading(true);
+    try {
+      const res = await rejectDossier(dossier.id, confirm.motif);
+      setDossier(res.dossier);
+      onChanged();
+      setConfirm(null);
+    } catch {
+      setActionError('Impossible de rejeter ce dossier.');
+    } finally {
+      setActionLoading(false);
+    }
   }
 
   return (
@@ -173,12 +339,12 @@ export function DossierModal({
       <div className="modal">
         <div className="modal-head">
           <div>
-            <h3>{dossier.name}</h3>
+            <h3>{displayName(dossier.nom, dossier.prenom)}</h3>
             <div
               style={{ fontSize: 12, color: 'var(--prod-ink-faint)', marginTop: 3 }}
               className="mono"
             >
-              {dossier.ref} · {dossier.spec}
+              {dossier.reference}
             </div>
           </div>
           <button type="button" className="x" onClick={onClose}>
@@ -192,7 +358,7 @@ export function DossierModal({
               <div className="hint" style={{ marginBottom: 3 }}>
                 Numéro WhatsApp
               </div>
-              <div style={{ fontWeight: 600, fontSize: 13.5 }}>{dossier.wa}</div>
+              <div style={{ fontWeight: 600, fontSize: 13.5 }}>{dossier.whatsapp}</div>
             </div>
             <div>
               <div className="hint" style={{ marginBottom: 3 }}>
@@ -204,13 +370,31 @@ export function DossierModal({
             </div>
           </div>
 
+          {actionError && (
+            <p className="err-msg" style={{ marginTop: 12 }}>
+              {actionError}
+            </p>
+          )}
+
           <div style={{ marginTop: 18 }}>
             <div className="hint" style={{ marginBottom: 8 }}>
               Pièces jointes
             </div>
             <div className="file-row">
-              <span className="n">📎 {fileName}</span>
-              <span className="hint">4,8 Mo</span>
+              {dossier.pieceJointeUrl ? (
+                <a
+                  className="n"
+                  href={dossier.pieceJointeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  📎 dossier-{dossier.reference}.pdf
+                </a>
+              ) : (
+                <span className="n" style={{ color: 'var(--prod-ink-faint)' }}>
+                  📎 Aucune pièce jointe
+                </span>
+              )}
             </div>
             <div className="actions-grid">
               <button
@@ -223,7 +407,7 @@ export function DossierModal({
               <button
                 type="button"
                 className={`btn btn-outline btn-sm${auth.enabled ? '' : ' is-disabled'}`}
-                disabled={!auth.enabled}
+                disabled={!auth.enabled || actionLoading}
                 title={auth.title}
                 onClick={handleAuthClick}
               >
@@ -241,11 +425,25 @@ export function DossierModal({
               <button
                 type="button"
                 className={`btn btn-outline btn-sm${recepisse.enabled ? '' : ' is-disabled'}`}
-                disabled={!recepisse.enabled}
+                disabled={!recepisse.enabled || actionLoading}
                 title={recepisse.title}
+                onClick={() =>
+                  recepisse.mode === 'add'
+                    ? recepisseInputRef.current?.click()
+                    : recepisse.mode === 'view'
+                      ? setRecepissePreviewOpen((v) => !v)
+                      : undefined
+                }
               >
                 {recepisse.label}
               </button>
+              <input
+                ref={recepisseInputRef}
+                type="file"
+                accept="application/pdf"
+                hidden
+                onChange={(e) => handleRecepisseFile(e.target.files?.[0] ?? null)}
+              />
             </div>
 
             <div className={`preview-box${authPreviewOpen ? ' show' : ''}`}>
@@ -254,9 +452,9 @@ export function DossierModal({
               </div>
               <dl>
                 <dt>N° de dossier (pré-rempli)</dt>
-                <dd className="dd-readonly">{dossier.ref}</dd>
+                <dd className="dd-readonly">{dossier.reference}</dd>
               </dl>
-              {dossier.authForm ? (
+              {dossier.authFormData ? (
                 <>
                   <div
                     className="hint"
@@ -272,18 +470,18 @@ export function DossierModal({
                   </div>
                   <KvList
                     pairs={[
-                      ['Nom', dossier.authForm.nom],
-                      ['Prénom(s)', dossier.authForm.prenom],
-                      ['Date de naissance', dossier.authForm.naissance],
-                      ['Lieu de naissance', dossier.authForm.lieuNaissance],
-                      ['Nationalité', dossier.authForm.nationalite],
-                      ['Adresse actuelle', dossier.authForm.adresse],
+                      ['Nom', dossier.authFormData.nom],
+                      ['Prénom(s)', dossier.authFormData.prenom],
+                      ['Date de naissance', dossier.authFormData.naissance],
+                      ['Lieu de naissance', dossier.authFormData.lieuNaissance],
+                      ['Nationalité', dossier.authFormData.nationalite],
+                      ['Adresse actuelle', dossier.authFormData.adresse],
                       [
                         "Pièce d'identité",
-                        `${dossier.authForm.piece} · ${dossier.authForm.pieceRef}`,
+                        `${dossier.authFormData.piece} · ${dossier.authFormData.pieceRef}`,
                       ],
-                      ['E-mail', dossier.authForm.email],
-                      ['Téléphone', dossier.authForm.tel],
+                      ['E-mail', dossier.authFormData.email],
+                      ['Téléphone', dossier.authFormData.tel],
                     ]}
                   />
                   <div
@@ -300,11 +498,11 @@ export function DossierModal({
                   </div>
                   <KvList
                     pairs={[
-                      ['Institution', dossier.authForm.bac.institution],
-                      ['E-mail institution', dossier.authForm.bac.email],
-                      ["Année d'obtention", dossier.authForm.bac.annee],
-                      ["Pays d'obtention", dossier.authForm.bac.pays],
-                      ['Adresse institution', dossier.authForm.bac.adresse],
+                      ['Institution', dossier.authFormData.bac.institution],
+                      ['E-mail institution', dossier.authFormData.bac.email],
+                      ["Année d'obtention", dossier.authFormData.bac.annee],
+                      ["Pays d'obtention", dossier.authFormData.bac.pays],
+                      ['Adresse institution', dossier.authFormData.bac.adresse],
                     ]}
                   />
                   <div
@@ -321,13 +519,31 @@ export function DossierModal({
                   </div>
                   <KvList
                     pairs={[
-                      ['Institution', dossier.authForm.doctorat.institution],
-                      ['E-mail institution', dossier.authForm.doctorat.email],
-                      ["Année d'obtention", dossier.authForm.doctorat.annee],
-                      ["Pays d'obtention", dossier.authForm.doctorat.pays],
-                      ['Adresse institution', dossier.authForm.doctorat.adresse],
+                      ['Institution', dossier.authFormData.doctorat.institution],
+                      ['E-mail institution', dossier.authFormData.doctorat.email],
+                      ["Année d'obtention", dossier.authFormData.doctorat.annee],
+                      ["Pays d'obtention", dossier.authFormData.doctorat.pays],
+                      ['Adresse institution', dossier.authFormData.doctorat.adresse],
                     ]}
                   />
+                  {(dossier.diplomaBacUrl || dossier.diplomaDoctoratUrl) && (
+                    <div style={{ marginTop: 10, display: 'flex', gap: 10 }}>
+                      {dossier.diplomaBacUrl && (
+                        <a href={dossier.diplomaBacUrl} target="_blank" rel="noopener noreferrer">
+                          📎 Diplôme Bac
+                        </a>
+                      )}
+                      {dossier.diplomaDoctoratUrl && (
+                        <a
+                          href={dossier.diplomaDoctoratUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          📎 Diplôme Doctorat
+                        </a>
+                      )}
+                    </div>
+                  )}
                 </>
               ) : (
                 <dl>
@@ -339,8 +555,35 @@ export function DossierModal({
 
             <div className={`preview-box${fichePreviewOpen ? ' show' : ''}`}>
               <div className="file-row" style={{ marginBottom: 0 }}>
-                <span className="n">📎 fiche-inscription-cuo.pdf</span>
-                <span className="hint">1,1 Mo</span>
+                {dossier.ficheUrl ? (
+                  <a
+                    className="n"
+                    href={dossier.ficheUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    📎 fiche-inscription-{dossier.reference}.pdf
+                  </a>
+                ) : (
+                  <span className="n">📎 Fiche non encore transmise</span>
+                )}
+              </div>
+            </div>
+
+            <div className={`preview-box${recepissePreviewOpen ? ' show' : ''}`}>
+              <div className="file-row" style={{ marginBottom: 0 }}>
+                {dossier.recepisseUrl ? (
+                  <a
+                    className="n"
+                    href={dossier.recepisseUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    📎 recepisse-{dossier.reference}.pdf
+                  </a>
+                ) : (
+                  <span className="n">📎 Récépissé non encore transmis</span>
+                )}
               </div>
             </div>
           </div>
@@ -378,7 +621,7 @@ export function DossierModal({
                 <div className="pay-field-row">
                   <div className="field" style={{ marginBottom: 0 }}>
                     <label>Montant du dossier</label>
-                    <input className="mono" readOnly value={fmtF(dossier.montant)} />
+                    <input className="mono" readOnly value={fmtF(totalDue)} />
                   </div>
                   <div className="field" style={{ marginBottom: 0 }}>
                     <label>Payé</label>
@@ -386,8 +629,9 @@ export function DossierModal({
                       className="mono"
                       type="number"
                       step={1000}
-                      value={dossier.paye}
-                      onChange={(e) => handlePayeChange(e.target.value)}
+                      value={payeInput}
+                      onChange={(e) => setPayeInput(e.target.value)}
+                      onBlur={() => void commitPaye()}
                     />
                   </div>
                 </div>
@@ -395,9 +639,7 @@ export function DossierModal({
                   <label>Moyen de paiement</label>
                   <select
                     value={dossier.moyen}
-                    onChange={(e) =>
-                      onUpdate({ ...dossier, moyen: e.target.value as Dossier['moyen'] })
-                    }
+                    onChange={(e) => void handleMoyenChange(e.target.value)}
                   >
                     <option>Non renseigné</option>
                     <option>Mobile Money</option>
@@ -413,12 +655,20 @@ export function DossierModal({
             )}
             {tab === 'pub' && (
               <div className="tabpane on">
-                <div className="bubble pub">
-                  Merci de vérifier l&rsquo;orthographe de votre nom sur la pièce n°5.
-                  <div className="meta">Chimène A. · il y a 2 j</div>
-                </div>
+                {dossier.comments
+                  .filter((c) => c.type === 'public')
+                  .map((c) => (
+                    <div key={c.id} className="bubble pub">
+                      {c.text}
+                      <div className="meta">
+                        {c.authorName} · {formatRelativeTime(c.createdAt)}
+                      </div>
+                    </div>
+                  ))}
                 <textarea
                   placeholder="Ajouter un commentaire visible par le candidat…"
+                  value={publicComment}
+                  onChange={(e) => setPublicComment(e.target.value)}
                   style={{
                     width: '100%',
                     border: '1px solid var(--prod-border)',
@@ -429,17 +679,33 @@ export function DossierModal({
                     minHeight: 60,
                   }}
                 />
+                <button
+                  type="button"
+                  className={`btn btn-primary btn-sm${!publicComment.trim() || commentSubmitting ? ' is-disabled' : ''}`}
+                  disabled={!publicComment.trim() || commentSubmitting}
+                  style={{ marginTop: 8 }}
+                  onClick={() => void submitComment('public')}
+                >
+                  {commentSubmitting ? 'Envoi…' : 'Publier'}
+                </button>
               </div>
             )}
             {tab === 'int' && (
               <div className="tabpane on">
-                <div className="bubble int">
-                  🔒 Interne — diplôme de Doctorat difficile à lire, à confirmer avec le candidat
-                  avant envoi APDP.
-                  <div className="meta">Chimène A. · il y a 1 j</div>
-                </div>
+                {dossier.comments
+                  .filter((c) => c.type === 'internal')
+                  .map((c) => (
+                    <div key={c.id} className="bubble int">
+                      🔒 {c.text}
+                      <div className="meta">
+                        {c.authorName} · {formatRelativeTime(c.createdAt)}
+                      </div>
+                    </div>
+                  ))}
                 <textarea
                   placeholder="Ajouter une note interne (non visible du candidat)…"
+                  value={internalComment}
+                  onChange={(e) => setInternalComment(e.target.value)}
                   style={{
                     width: '100%',
                     border: '1px solid var(--prod-border)',
@@ -450,6 +716,15 @@ export function DossierModal({
                     minHeight: 60,
                   }}
                 />
+                <button
+                  type="button"
+                  className={`btn btn-primary btn-sm${!internalComment.trim() || commentSubmitting ? ' is-disabled' : ''}`}
+                  disabled={!internalComment.trim() || commentSubmitting}
+                  style={{ marginTop: 8 }}
+                  onClick={() => void submitComment('internal')}
+                >
+                  {commentSubmitting ? 'Envoi…' : 'Ajouter'}
+                </button>
               </div>
             )}
           </div>
@@ -464,7 +739,8 @@ export function DossierModal({
                     <button
                       type="button"
                       className="btn btn-primary btn-sm"
-                      onClick={confirmAdvance}
+                      disabled={actionLoading}
+                      onClick={() => void confirmAdvance()}
                     >
                       Confirmer
                     </button>
@@ -485,7 +761,8 @@ export function DossierModal({
                     <button
                       type="button"
                       className="btn btn-primary btn-sm"
-                      onClick={confirmRestore}
+                      disabled={actionLoading}
+                      onClick={() => void confirmRestore()}
                     >
                       Confirmer
                     </button>
@@ -511,7 +788,8 @@ export function DossierModal({
                     <button
                       type="button"
                       className="btn btn-primary btn-sm"
-                      onClick={confirmReject}
+                      disabled={actionLoading || !confirm.motif.trim()}
+                      onClick={() => void confirmReject()}
                     >
                       Rejeter le dossier
                     </button>

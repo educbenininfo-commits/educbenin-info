@@ -1,34 +1,52 @@
+// frontend/src/components/backoffice/dossiers/DossiersList.tsx
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   DOSSIER_FILTERS,
-  INITIAL_DOSSIERS,
   STAGE_NAMES,
   initials,
   pillClass,
-  type Dossier,
+  displayName,
+  specialtyLabel,
+  formatElapsed,
+  type DossierListItem,
 } from '@/lib/dossiers-data';
+import { fetchDossiers } from '@/lib/dossiers-admin-api';
 import { DossierModal } from './DossierModal';
 
 export function DossiersList() {
-  const [dossiers, setDossiers] = useState<Record<string, Dossier>>(INITIAL_DOSSIERS);
   const [filter, setFilter] = useState<'all' | 1 | 2 | 3 | 4 | 5>('all');
+  const [items, setItems] = useState<DossierListItem[]>([]);
+  const [counts, setCounts] = useState<Record<string, number>>({
+    all: 0,
+    '1': 0,
+    '2': 0,
+    '3': 0,
+    '4': 0,
+    '5': 0,
+  });
+  const [loading, setLoading] = useState(true);
   const [openId, setOpenId] = useState<string | null>(null);
 
-  const ids = Object.keys(dossiers).filter((id) =>
-    filter === 'all' ? dossiers[id]!.stage >= 1 : dossiers[id]!.stage === filter,
-  );
-
-  function countFor(stage: 'all' | 1 | 2 | 3 | 4 | 5): number {
-    return Object.values(dossiers).filter((d) =>
-      stage === 'all' ? d.stage >= 1 : d.stage === stage,
-    ).length;
+  async function reload() {
+    setLoading(true);
+    try {
+      const res = await fetchDossiers(filter);
+      setItems(res.items);
+      setCounts(res.counts);
+    } finally {
+      setLoading(false);
+    }
   }
 
-  function updateDossier(id: string, next: Dossier) {
-    setDossiers((prev) => ({ ...prev, [id]: next }));
-  }
+  useEffect(() => {
+    void reload();
+    // Only `filter` should re-trigger the fetch — `reload` is redefined every
+    // render but is stable in behavior (closes over the same `filter` value).
+    // (No react-hooks/exhaustive-deps plugin is configured in this repo's
+    // eslint.config.mjs, so no disable directive is needed here.)
+  }, [filter]);
 
   return (
     <>
@@ -41,47 +59,46 @@ export function DossiersList() {
             onClick={() => setFilter(f.stage)}
           >
             {f.label}
-            <span className="cnt">{countFor(f.stage)}</span>
+            <span className="cnt">{counts[String(f.stage)] ?? 0}</span>
           </button>
         ))}
       </div>
 
       <div className="dossier-list">
-        {ids.length === 0 ? (
+        {loading ? (
+          <div className="dossier-empty">Chargement…</div>
+        ) : items.length === 0 ? (
           <div className="dossier-empty">Aucun dossier dans cette étape pour le moment.</div>
         ) : (
-          ids.map((id) => {
-            const d = dossiers[id]!;
-            return (
-              <div key={id} className="d-row" onClick={() => setOpenId(id)}>
-                <div className="top">
-                  <div className="avatar" style={{ width: 26, height: 26, fontSize: 11 }}>
-                    {initials(d.name)}
-                  </div>
-                  <div>
-                    <div className="name">{d.name}</div>
-                    <div className="spec">
-                      {d.spec} · {d.ref}
-                    </div>
-                  </div>
+          items.map((d) => (
+            <div key={d.id} className="d-row" onClick={() => setOpenId(d.id)}>
+              <div className="top">
+                <div className="avatar" style={{ width: 26, height: 26, fontSize: 11 }}>
+                  {initials(displayName(d.nom, d.prenom))}
                 </div>
-                <div className="meta">
-                  <span className={`pill ${pillClass(d.stage)}`}>{STAGE_NAMES[d.stage]}</span>
-                  <span className="days">{d.days}</span>
-                  <span className="chev">›</span>
+                <div>
+                  <div className="name">{displayName(d.nom, d.prenom)}</div>
+                  <div className="spec">
+                    {specialtyLabel(d.specialtyCodes)} · {d.reference}
+                  </div>
                 </div>
               </div>
-            );
-          })
+              <div className="meta">
+                <span className={`pill ${pillClass(d.stage)}`}>{STAGE_NAMES[d.stage]}</span>
+                <span className="days">{formatElapsed(d.stage, d.stageChangedAt)}</span>
+                <span className="chev">›</span>
+              </div>
+            </div>
+          ))
         )}
       </div>
 
-      {openId && dossiers[openId] && (
+      {openId && (
         <DossierModal
-          key={dossiers[openId]!.ref}
-          dossier={dossiers[openId]!}
+          key={openId}
+          id={openId}
           onClose={() => setOpenId(null)}
-          onUpdate={(next) => updateDossier(openId, next)}
+          onChanged={() => void reload()}
         />
       )}
     </>
