@@ -8,7 +8,10 @@ import { redis } from '@/lib/server/redis';
 import { createEmailLimiter } from '@/lib/server/middleware/rate-limit-by-email';
 import { makeRequestContext, withRequestContext } from '@/lib/server/observability/request-context';
 import { generateReference } from '@/lib/server/dossiers/reference';
-import { uploadPublicFile } from '@/lib/server/upload/uploadPublicFile';
+import {
+  uploadPublicFile,
+  CANDIDATE_DOCUMENT_MAX_BYTES,
+} from '@/lib/server/upload/uploadPublicFile';
 import { SPECIALTIES } from '@/lib/specialties';
 
 const WHATSAPP_RE = /^\+229\s?(\d{2}\s?){4}$/;
@@ -85,10 +88,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     });
 
     // Upload happens after the row commits (reference must exist first to
-    // build the Cloudinary path). If this fails, the dossier row survives
+    // build the storage path). If this fails, the dossier row survives
     // without a pieceJointeUrl — an operator sees an incomplete dossier in
     // the back-office rather than a silently lost submission.
-    const upload = await uploadPublicFile(pdf, `dossiers/${created.reference}/piece-jointe`);
+    const upload = await uploadPublicFile(pdf, `dossiers/${created.reference}/piece-jointe`, {
+      maxBytes: CANDIDATE_DOCUMENT_MAX_BYTES,
+    });
     if (!upload.ok) {
       return NextResponse.json(
         { error: upload.error.code, message: 'File upload failed' },
@@ -98,7 +103,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     await prisma.dossier.update({
       where: { id: created.id },
-      data: { pieceJointeUrl: upload.url },
+      data: { pieceJointeUrl: upload.path },
     });
 
     return NextResponse.json({ reference: created.reference }, { status: 201 });

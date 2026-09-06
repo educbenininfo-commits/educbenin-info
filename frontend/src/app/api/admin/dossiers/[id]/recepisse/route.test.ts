@@ -55,7 +55,7 @@ beforeEach(() => {
   mockVerifyCsrf.mockReturnValue(null);
   mockUploadPublicFile.mockResolvedValue({
     ok: true,
-    url: 'https://res.cloudinary.com/demo/raw/upload/dossiers/EB-202609-001/recepisse',
+    path: 'dossiers/EB-202609-001/recepisse',
     bytes: 900,
   });
 });
@@ -76,7 +76,7 @@ describe('POST /api/admin/dossiers/[id]/recepisse', () => {
       where: { id: 'd1' },
       data: {
         recepisseUploaded: true,
-        recepisseUrl: 'https://res.cloudinary.com/demo/raw/upload/dossiers/EB-202609-001/recepisse',
+        recepisseUrl: 'dossiers/EB-202609-001/recepisse',
       },
       include: { comments: { orderBy: { createdAt: 'asc' } } },
     });

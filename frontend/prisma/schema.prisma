@@ -48,10 +48,37 @@ model User {
   // on their domain models.
   ownedOrganizations Organization[]      @relation("OrgOwner")
   memberships        OrganizationMember[] @relation("OrgMembership")
+  sessions           Session[]
 
   @@index([email])
   @@index([role])
   @@index([status])
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// Sessions — one row per logical login (device/browser), spanning every
+// refresh-token rotation until revoked or naturally expired. `id` is the
+// stable `sid` claim embedded in both the access and refresh JWTs (see
+// lib/server/auth/sessions.ts) — this is what lets refresh reject a
+// specific revoked session instead of the all-or-nothing tokenVersion bump.
+// Created at login/verify-email/OAuth callback; touched (lastSeenAt) on
+// every refresh; revoked on logout or an explicit "Déconnecter" click in
+// Paramètres → Sessions actives.
+model Session {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  userAgent String? // raw header, kept for debugging; `device` below is the parsed display label
+  device    String? // e.g. "Windows · Chrome" — see parseDeviceLabel()
+  ip        String?
+  location  String? // e.g. "Cotonou, Bénin" — resolved once at creation, best-effort (never blocks login)
+
+  createdAt  DateTime  @default(now())
+  lastSeenAt DateTime  @default(now())
+  revokedAt  DateTime?
+
+  @@index([userId])
 }
 
 // ───────────────────────────────────────────────────────────────────────
@@ -344,21 +371,20 @@ model Dossier {
   specialtyCodes String[] // codes from frontend/src/lib/specialties.ts, e.g. ["ANR","CAR"]
   stage          Int      @default(1) // 0=rejeté, 1..5 — see STAGE_NAMES in frontend/src/lib/dossiers-data.ts
 
-  pieceJointeUrl String? // initial dossier PDF (Cloudinary secure_url)
+  pieceJointeUrl String? // initial dossier PDF — Supabase Storage path (private bucket), not a URL despite the field name; signed URLs are minted on read (see lib/server/upload/supabase-storage-client.ts)
 
   authToken          String?   @unique // random, generated on "Envoyer" — never the reference itself
   authTokenExpiresAt DateTime?
   authSentAt         DateTime?
   authSubmittedAt    DateTime? // set for real when the candidate submits /authentification-diplome/[token]
   authFormData       Json? // same shape as the existing frontend `AuthForm` type
-  diplomaBacUrl      String?
-  diplomaDoctoratUrl String?
+  diplomaUrl         String? // single combined Bac+Doctorat PDF — candidate uploads one file, not two (storage path, see pieceJointeUrl note above)
 
   ficheUploaded Boolean @default(false)
-  ficheUrl      String?
+  ficheUrl      String? // storage path, see pieceJointeUrl note above
 
   recepisseUploaded Boolean @default(false)
-  recepisseUrl      String?
+  recepisseUrl      String? // storage path, see pieceJointeUrl note above
 
   montant           Int     @default(50000)
   montantSupplement Int? // multi-spécialités, staff-editable, may stay empty

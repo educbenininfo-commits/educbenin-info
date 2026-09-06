@@ -8,6 +8,7 @@ import { enforceAdminRateLimit } from '@/lib/server/middleware/rate-limit-by-use
 import { prisma } from '@/lib/server/prisma';
 import { logAdminAction } from '@/lib/server/admin/audit';
 import { uploadPublicFile } from '@/lib/server/upload/uploadPublicFile';
+import { withSignedFileUrls } from '@/lib/server/dossiers/resolve-file-urls';
 
 export async function POST(
   req: NextRequest,
@@ -55,7 +56,7 @@ export async function POST(
   // `include: comments` — see Task 11's identical note.
   const updated = await prisma.dossier.update({
     where: { id },
-    data: { recepisseUploaded: true, recepisseUrl: upload.url },
+    data: { recepisseUploaded: true, recepisseUrl: upload.path },
     include: { comments: { orderBy: { createdAt: 'asc' } } },
   });
 
@@ -67,5 +68,5 @@ export async function POST(
     metadata: { reference: dossier.reference },
   });
 
-  return NextResponse.json({ dossier: updated });
+  return NextResponse.json({ dossier: await withSignedFileUrls(updated) });
 }

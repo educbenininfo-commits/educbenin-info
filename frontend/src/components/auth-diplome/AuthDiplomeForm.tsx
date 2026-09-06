@@ -99,8 +99,7 @@ export function AuthDiplomeForm({ token }: { token: string }) {
   });
   const [bac, setBac] = useState<Institution>(EMPTY_INSTITUTION);
   const [doctorat, setDoctorat] = useState<Institution>(EMPTY_INSTITUTION);
-  const [bacFile, setBacFile] = useState<File | null>(null);
-  const [doctoratFile, setDoctoratFile] = useState<File | null>(null);
+  const [documentsFile, setDocumentsFile] = useState<File | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -146,8 +145,10 @@ export function AuthDiplomeForm({ token }: { token: string }) {
       Object.values(personal).every((v) => v.trim().length > 0) &&
       Object.values(bac).every((v) => v.trim().length > 0) &&
       Object.values(doctorat).every((v) => v.trim().length > 0);
-    if (!allFilled || !bacFile || !doctoratFile) {
-      setSubmitError('Merci de renseigner tous les champs et de joindre les deux diplômes.');
+    if (!allFilled || !documentsFile) {
+      setSubmitError(
+        'Merci de renseigner tous les champs et de joindre vos documents à authentifier.',
+      );
       return;
     }
 
@@ -158,8 +159,7 @@ export function AuthDiplomeForm({ token }: { token: string }) {
       for (const [k, v] of Object.entries(personal)) form.append(k, v.trim());
       for (const [k, v] of Object.entries(bac)) form.append(`bac.${k}`, v.trim());
       for (const [k, v] of Object.entries(doctorat)) form.append(`doctorat.${k}`, v.trim());
-      form.append('diplomaBac', bacFile);
-      form.append('diplomaDoctorat', doctoratFile);
+      form.append('documents', documentsFile);
 
       await submitAuthForm(token, form);
       setView('submitted');
@@ -221,11 +221,8 @@ export function AuthDiplomeForm({ token }: { token: string }) {
     return <MessageScreen title={copy.title} body={copy.body} />;
   }
 
-  const bacFileName = bacFile
-    ? `diplôme-${personal.nom.toLowerCase()}-${personal.prenom.toLowerCase()}-bac.pdf`
-    : null;
-  const doctoratFileName = doctoratFile
-    ? `diplôme-${personal.nom.toLowerCase()}-${personal.prenom.toLowerCase()}-doctorat.pdf`
+  const documentsFileName = documentsFile
+    ? `diplôme-${personal.nom.toLowerCase()}-${personal.prenom.toLowerCase()}.pdf`
     : null;
 
   return (
@@ -347,26 +344,6 @@ export function AuthDiplomeForm({ token }: { token: string }) {
             <label>Adresse de l&rsquo;institution</label>
             <input placeholder="Adresse précise" {...institutionField('bac', 'adresse')} />
           </div>
-          <div className="field">
-            <label>Pièce jointe — diplôme du Baccalauréat (PDF)</label>
-            <label className="dropzone" style={{ display: 'block', cursor: 'pointer' }}>
-              {bacFileName ? (
-                <>
-                  Glissez le fichier ici, ou cliquez pour parcourir
-                  <br />
-                  <strong>{bacFileName}</strong>
-                </>
-              ) : (
-                'Glissez le fichier ici, ou cliquez pour parcourir'
-              )}
-              <input
-                type="file"
-                accept="application/pdf"
-                hidden
-                onChange={(e) => setBacFile(e.target.files?.[0] ?? null)}
-              />
-            </label>
-          </div>
 
           <div className="section-lbl">Diplôme du Doctorat</div>
           <div className="row2">
@@ -400,23 +377,30 @@ export function AuthDiplomeForm({ token }: { token: string }) {
             <label>Adresse de l&rsquo;institution</label>
             <input placeholder="Adresse précise" {...institutionField('doctorat', 'adresse')} />
           </div>
+
+          <div className="section-lbl">Documents à authentifier</div>
           <div className="field">
-            <label>Pièce jointe — diplôme du Doctorat (PDF)</label>
+            <label>Diplôme du Baccalauréat + diplôme du Doctorat (un seul PDF)</label>
+            <p className="hint" style={{ marginTop: -6, marginBottom: 8 }}>
+              Combinez les deux diplômes (Bac et Doctorat) dans un seul fichier PDF avant de
+              l&rsquo;envoyer — cela réduit l&rsquo;espace de stockage nécessaire et accélère le
+              traitement de votre dossier.
+            </p>
             <label className="dropzone" style={{ display: 'block', cursor: 'pointer' }}>
-              {doctoratFileName ? (
+              {documentsFileName ? (
                 <>
                   Glissez le fichier ici, ou cliquez pour parcourir
                   <br />
-                  <strong>{doctoratFileName}</strong>
+                  <strong>{documentsFileName}</strong>
                 </>
               ) : (
-                'Glissez le fichier ici, ou cliquez pour parcourir'
+                'Glissez le fichier PDF ici, ou cliquez pour parcourir'
               )}
               <input
                 type="file"
                 accept="application/pdf"
                 hidden
-                onChange={(e) => setDoctoratFile(e.target.files?.[0] ?? null)}
+                onChange={(e) => setDocumentsFile(e.target.files?.[0] ?? null)}
               />
             </label>
           </div>

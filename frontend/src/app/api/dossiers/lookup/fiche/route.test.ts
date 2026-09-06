@@ -31,7 +31,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockUploadPublicFile.mockResolvedValue({
     ok: true,
-    url: 'https://res.cloudinary.com/demo/raw/upload/dossiers/EB-202609-001/fiche-inscription',
+    path: 'dossiers/EB-202609-001/fiche-inscription',
     bytes: 500,
   });
 });
@@ -53,8 +53,7 @@ describe('POST /api/dossiers/lookup/fiche', () => {
       where: { id: 'dos_1' },
       data: {
         ficheUploaded: true,
-        ficheUrl:
-          'https://res.cloudinary.com/demo/raw/upload/dossiers/EB-202609-001/fiche-inscription',
+        ficheUrl: 'dossiers/EB-202609-001/fiche-inscription',
       },
     });
   });

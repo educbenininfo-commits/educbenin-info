@@ -7,6 +7,7 @@ import { prisma } from '@/lib/server/prisma';
 import { redis } from '@/lib/server/redis';
 import { createEmailLimiter } from '@/lib/server/middleware/rate-limit-by-email';
 import { makeRequestContext, withRequestContext } from '@/lib/server/observability/request-context';
+import { signedUrl } from '@/lib/server/upload/supabase-storage-client';
 
 const Query = z.object({
   reference: z.string().trim().min(1),
@@ -57,12 +58,17 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       );
     }
 
+    const recepisseUrl =
+      dossier.stage === 5 && dossier.recepisseUploaded
+        ? await signedUrl(dossier.recepisseUrl)
+        : null;
+
     return NextResponse.json({
       reference: dossier.reference,
       stage: dossier.stage,
       motifRejet: dossier.stage === 0 ? dossier.motifRejet : null,
       ficheUploaded: dossier.ficheUploaded,
-      recepisseUrl: dossier.stage === 5 && dossier.recepisseUploaded ? dossier.recepisseUrl : null,
+      recepisseUrl,
     });
   });
 }

@@ -6,7 +6,10 @@ import { z } from 'zod';
 import { prisma } from '@/lib/server/prisma';
 import { zEmail } from '@/lib/server/zod-helpers';
 import { makeRequestContext, withRequestContext } from '@/lib/server/observability/request-context';
-import { uploadPublicFile } from '@/lib/server/upload/uploadPublicFile';
+import {
+  uploadPublicFile,
+  CANDIDATE_DOCUMENT_MAX_BYTES,
+} from '@/lib/server/upload/uploadPublicFile';
 
 export type AuthTokenReason = 'invalid' | 'expired' | 'already-submitted' | 'wrong-stage';
 
@@ -135,9 +138,11 @@ export async function POST(
       },
     });
 
-    const diplomaBac = form.get('diplomaBac');
-    const diplomaDoctorat = form.get('diplomaDoctorat');
-    if (!parsed.success || !(diplomaBac instanceof File) || !(diplomaDoctorat instanceof File)) {
+    // Single combined upload — per product decision, the candidate submits
+    // one PDF covering both the Bac and Doctorat diplomas (saves storage
+    // space, and halves the upload count vs. the original two-file design).
+    const documents = form.get('documents');
+    if (!parsed.success || !(documents instanceof File)) {
       return NextResponse.json(
         { error: 'VALIDATION_FAILED', message: 'Invalid request' },
         { status: 400 },
@@ -147,9 +152,9 @@ export async function POST(
     const { id, reference } = check;
 
     // Naming per docs/design-reference/prompts-par-ecran/16-formulaire-authentification-diplome.md:
-    // "nommés automatiquement « diplôme-nom-prénom-bac » et « diplôme-nom-prénom-doctorat »".
-    // `reference` still scopes the Cloudinary path for uniqueness (two dossiers
-    // can share a candidate name); the leaf segment carries the mandated name.
+    // originally "diplôme-nom-prénom-bac" / "-doctorat" for two files — now a
+    // single "diplôme-nom-prénom" combined document. `reference` still scopes
+    // the storage path for uniqueness (two dossiers can share a candidate name).
     const DIACRITICS_RE = new RegExp('[\\u0300-\\u036f]', 'g'); // combining marks (é→e, etc.)
     const slug = (s: string) =>
       s
@@ -160,24 +165,13 @@ export async function POST(
         .replace(/^-+|-+$/g, '');
     const namePart = `${slug(parsed.data.nom)}-${slug(parsed.data.prenom)}`;
 
-    const bacUpload = await uploadPublicFile(
-      diplomaBac,
-      `dossiers/${reference}/diplome-${namePart}-bac`,
-    );
-    if (!bacUpload.ok) {
+    const upload = await uploadPublicFile(documents, `dossiers/${reference}/diplome-${namePart}`, {
+      maxBytes: CANDIDATE_DOCUMENT_MAX_BYTES,
+    });
+    if (!upload.ok) {
       return NextResponse.json(
-        { error: bacUpload.error.code, message: 'File upload failed' },
-        { status: bacUpload.error.status },
-      );
-    }
-    const doctoratUpload = await uploadPublicFile(
-      diplomaDoctorat,
-      `dossiers/${reference}/diplome-${namePart}-doctorat`,
-    );
-    if (!doctoratUpload.ok) {
-      return NextResponse.json(
-        { error: doctoratUpload.error.code, message: 'File upload failed' },
-        { status: doctoratUpload.error.status },
+        { error: upload.error.code, message: 'File upload failed' },
+        { status: upload.error.status },
       );
     }
 
@@ -185,8 +179,7 @@ export async function POST(
       where: { id },
       data: {
         authFormData: parsed.data,
-        diplomaBacUrl: bacUpload.url,
-        diplomaDoctoratUrl: doctoratUpload.url,
+        diplomaUrl: upload.path,
         authSubmittedAt: new Date(),
       },
     });

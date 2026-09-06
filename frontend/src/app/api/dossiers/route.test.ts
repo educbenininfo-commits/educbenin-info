@@ -7,6 +7,7 @@ vi.mock('@/lib/server/dossiers/reference', () => ({
 }));
 vi.mock('@/lib/server/upload/uploadPublicFile', () => ({
   uploadPublicFile: vi.fn(),
+  CANDIDATE_DOCUMENT_MAX_BYTES: 5 * 1024 * 1024,
 }));
 
 import { POST } from './route';
@@ -58,7 +59,7 @@ beforeEach(() => {
   });
   mockUploadPublicFile.mockResolvedValue({
     ok: true,
-    url: 'https://res.cloudinary.com/demo/raw/upload/dossiers/EB-202609-001/piece-jointe',
+    path: 'dossiers/EB-202609-001/piece-jointe',
     bytes: 1234,
   });
 });
@@ -88,12 +89,12 @@ describe('POST /api/dossiers', () => {
     expect(mockUploadPublicFile).toHaveBeenCalledWith(
       expect.any(File),
       'dossiers/EB-202609-001/piece-jointe',
+      { maxBytes: 5 * 1024 * 1024 },
     );
     expect(prismaMock.dossier.update).toHaveBeenCalledWith({
       where: { id: 'dos_1' },
       data: {
-        pieceJointeUrl:
-          'https://res.cloudinary.com/demo/raw/upload/dossiers/EB-202609-001/piece-jointe',
+        pieceJointeUrl: 'dossiers/EB-202609-001/piece-jointe',
       },
     });
   });

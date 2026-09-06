@@ -75,7 +75,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     await prisma.dossier.update({
       where: { id: dossier.id },
-      data: { ficheUploaded: true, ficheUrl: upload.url },
+      data: { ficheUploaded: true, ficheUrl: upload.path },
     });
 
     return NextResponse.json({ ok: true });

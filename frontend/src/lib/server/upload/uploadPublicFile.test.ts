@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('./cloudinary-client', () => ({
+vi.mock('./supabase-storage-client', () => ({
   uploadBuffer: vi.fn(),
 }));
 
-import { uploadBuffer } from './cloudinary-client';
-import { uploadPublicFile } from './uploadPublicFile';
+import { uploadBuffer } from './supabase-storage-client';
+import { uploadPublicFile, CANDIDATE_DOCUMENT_MAX_BYTES } from './uploadPublicFile';
 
 const mockUploadBuffer = vi.mocked(uploadBuffer);
 
@@ -17,18 +17,16 @@ function pdfFile(bytes: Buffer = PDF_BYTES, name = 'test.pdf'): File {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.stubEnv('CLOUDINARY_CLOUD_NAME', 'demo');
-  vi.stubEnv('CLOUDINARY_API_KEY', 'key');
-  vi.stubEnv('CLOUDINARY_API_SECRET', 'secret');
+  vi.stubEnv('SUPABASE_URL', 'https://demo.supabase.co');
+  vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'service-role-key');
   vi.stubEnv('UPLOAD_ALLOWED_MIME', 'image/jpeg,image/png,image/webp,application/pdf');
   vi.stubEnv('UPLOAD_MAX_BYTES', '10485760');
 });
 
 describe('uploadPublicFile', () => {
-  it('uploads a valid PDF and returns its secure URL', async () => {
+  it('uploads a valid PDF and returns its storage path', async () => {
     mockUploadBuffer.mockResolvedValueOnce({
-      publicId: 'dossiers/EB-202609-001/piece',
-      secureUrl: 'https://res.cloudinary.com/demo/raw/upload/dossiers/EB-202609-001/piece',
+      path: 'dossiers/EB-202609-001/piece',
       bytes: PDF_BYTES.length,
     });
 
@@ -36,7 +34,7 @@ describe('uploadPublicFile', () => {
 
     expect(result).toEqual({
       ok: true,
-      url: 'https://res.cloudinary.com/demo/raw/upload/dossiers/EB-202609-001/piece',
+      path: 'dossiers/EB-202609-001/piece',
       bytes: PDF_BYTES.length,
     });
     expect(mockUploadBuffer).toHaveBeenCalledWith(
@@ -46,11 +44,21 @@ describe('uploadPublicFile', () => {
     );
   });
 
-  it('rejects a file larger than UPLOAD_MAX_BYTES without calling Cloudinary', async () => {
+  it('rejects a file larger than UPLOAD_MAX_BYTES without calling storage', async () => {
     vi.stubEnv('UPLOAD_MAX_BYTES', '4');
     const result = await uploadPublicFile(pdfFile(), 'x');
     expect(result).toEqual({ ok: false, error: { code: 'FILE_TOO_LARGE', status: 413 } });
     expect(mockUploadBuffer).not.toHaveBeenCalled();
+  });
+
+  it('rejects a file larger than an explicit maxBytes override', async () => {
+    const result = await uploadPublicFile(pdfFile(), 'x', { maxBytes: 4 });
+    expect(result).toEqual({ ok: false, error: { code: 'FILE_TOO_LARGE', status: 413 } });
+    expect(mockUploadBuffer).not.toHaveBeenCalled();
+  });
+
+  it('exports the 5 MB candidate-document cap used by the piece-jointe and diploma uploads', () => {
+    expect(CANDIDATE_DOCUMENT_MAX_BYTES).toBe(5 * 1024 * 1024);
   });
 
   it('rejects a MIME type not in UPLOAD_ALLOWED_MIME', async () => {
@@ -69,8 +77,8 @@ describe('uploadPublicFile', () => {
     expect(mockUploadBuffer).not.toHaveBeenCalled();
   });
 
-  it('returns STORAGE_NOT_CONFIGURED when Cloudinary env is absent, without reading the file', async () => {
-    vi.stubEnv('CLOUDINARY_CLOUD_NAME', '');
+  it('returns STORAGE_NOT_CONFIGURED when Supabase env is absent, without reading the file', async () => {
+    vi.stubEnv('SUPABASE_URL', '');
     const result = await uploadPublicFile(pdfFile(), 'x');
     expect(result).toEqual({ ok: false, error: { code: 'STORAGE_NOT_CONFIGURED', status: 503 } });
     expect(mockUploadBuffer).not.toHaveBeenCalled();

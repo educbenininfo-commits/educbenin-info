@@ -7,6 +7,7 @@ import { requireAdmin } from '@/lib/server/middleware';
 import { enforceAdminRateLimit } from '@/lib/server/middleware/rate-limit-by-userid';
 import { prisma } from '@/lib/server/prisma';
 import { logAdminAction } from '@/lib/server/admin/audit';
+import { withSignedFileUrls } from '@/lib/server/dossiers/resolve-file-urls';
 
 export async function POST(
   req: NextRequest,
@@ -48,5 +49,5 @@ export async function POST(
     metadata: { reference: dossier.reference },
   });
 
-  return NextResponse.json({ dossier: updated });
+  return NextResponse.json({ dossier: await withSignedFileUrls(updated) });
 }

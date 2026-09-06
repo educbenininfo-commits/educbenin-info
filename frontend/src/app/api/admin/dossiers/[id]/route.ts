@@ -8,6 +8,7 @@ import { enforceAdminRateLimit } from '@/lib/server/middleware/rate-limit-by-use
 import { prisma } from '@/lib/server/prisma';
 import { verifyCsrf } from '@/lib/server/auth';
 import { logAdminAction } from '@/lib/server/admin/audit';
+import { withSignedFileUrls } from '@/lib/server/dossiers/resolve-file-urls';
 
 export async function GET(
   req: NextRequest,
@@ -28,7 +29,7 @@ export async function GET(
     return NextResponse.json({ error: 'DOSSIER_NOT_FOUND' }, { status: 404 });
   }
 
-  return NextResponse.json({ dossier });
+  return NextResponse.json({ dossier: await withSignedFileUrls(dossier) });
 }
 
 const PatchBody = z.object({
@@ -97,5 +98,5 @@ export async function PATCH(
     metadata: data,
   });
 
-  return NextResponse.json({ dossier });
+  return NextResponse.json({ dossier: await withSignedFileUrls(dossier) });
 }

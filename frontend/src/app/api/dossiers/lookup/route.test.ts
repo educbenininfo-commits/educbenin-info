@@ -1,6 +1,13 @@
 import { prismaMock } from '@/test-utils/prisma-mock';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
+
+vi.mock('@/lib/server/upload/supabase-storage-client', () => ({
+  signedUrl: vi.fn((path: string | null) =>
+    Promise.resolve(path ? `https://signed.test/${path}` : null),
+  ),
+}));
+
 import { GET } from './route';
 
 function makeReq(qs: string): NextRequest {
@@ -53,20 +60,18 @@ describe('GET /api/dossiers/lookup', () => {
     expect((await res.json()).motifRejet).toBe('Pièces manquantes');
   });
 
-  it('returns recepisseUrl only when stage is 5 and the récépissé was uploaded', async () => {
+  it('returns a freshly signed recepisseUrl only when stage is 5 and the récépissé was uploaded', async () => {
     prismaMock.dossier.findFirst.mockResolvedValueOnce({
       reference: 'EB-202609-003',
       stage: 5,
       motifRejet: null,
       ficheUploaded: true,
       recepisseUploaded: true,
-      recepisseUrl: 'https://res.cloudinary.com/demo/raw/upload/dossiers/x/recepisse',
+      recepisseUrl: 'dossiers/x/recepisse',
     } as never);
 
     const res = await GET(makeReq('reference=EB-202609-003&whatsapp=%2B229+97+00+00+00'));
-    expect((await res.json()).recepisseUrl).toBe(
-      'https://res.cloudinary.com/demo/raw/upload/dossiers/x/recepisse',
-    );
+    expect((await res.json()).recepisseUrl).toBe('https://signed.test/dossiers/x/recepisse');
   });
 
   it('returns generic 404 on no match, without hinting which field was wrong', async () => {

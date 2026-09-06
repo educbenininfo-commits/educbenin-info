@@ -527,22 +527,11 @@ export function DossierModal({
                       ['Adresse institution', dossier.authFormData.doctorat.adresse],
                     ]}
                   />
-                  {(dossier.diplomaBacUrl || dossier.diplomaDoctoratUrl) && (
+                  {dossier.diplomaUrl && (
                     <div style={{ marginTop: 10, display: 'flex', gap: 10 }}>
-                      {dossier.diplomaBacUrl && (
-                        <a href={dossier.diplomaBacUrl} target="_blank" rel="noopener noreferrer">
-                          📎 Diplôme Bac
-                        </a>
-                      )}
-                      {dossier.diplomaDoctoratUrl && (
-                        <a
-                          href={dossier.diplomaDoctoratUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          📎 Diplôme Doctorat
-                        </a>
-                      )}
+                      <a href={dossier.diplomaUrl} target="_blank" rel="noopener noreferrer">
+                        📎 Documents à authentifier (Bac + Doctorat)
+                      </a>
                     </div>
                   )}
                 </>

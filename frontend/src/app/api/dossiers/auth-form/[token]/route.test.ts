@@ -4,6 +4,7 @@ import { NextRequest } from 'next/server';
 
 vi.mock('@/lib/server/upload/uploadPublicFile', () => ({
   uploadPublicFile: vi.fn(),
+  CANDIDATE_DOCUMENT_MAX_BYTES: 5 * 1024 * 1024,
 }));
 
 import { GET, POST } from './route';
@@ -104,15 +105,12 @@ function authFormFields(overrides: Record<string, string> = {}): Record<string, 
 function makePostReq(
   token: string,
   fields: Record<string, string> = authFormFields(),
-  files: { diplomaBac?: File | null; diplomaDoctorat?: File | null } = {},
+  files: { documents?: File | null } = {},
 ): NextRequest {
   const fd = new FormData();
   for (const [k, v] of Object.entries(fields)) fd.append(k, v);
-  const bac = files.diplomaBac === undefined ? pdfFile('bac.pdf') : files.diplomaBac;
-  const doctorat =
-    files.diplomaDoctorat === undefined ? pdfFile('doctorat.pdf') : files.diplomaDoctorat;
-  if (bac) fd.append('diplomaBac', bac);
-  if (doctorat) fd.append('diplomaDoctorat', doctorat);
+  const documents = files.documents === undefined ? pdfFile('diplomes.pdf') : files.documents;
+  if (documents) fd.append('documents', documents);
   return new NextRequest(`http://test/api/dossiers/auth-form/${token}`, {
     method: 'POST',
     body: fd,
@@ -121,15 +119,15 @@ function makePostReq(
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockUploadPublicFile.mockImplementation(async (_file, publicId) => ({
+  mockUploadPublicFile.mockImplementation(async (_file, storagePath) => ({
     ok: true,
-    url: `https://res.cloudinary.com/demo/raw/upload/${publicId}`,
+    path: storagePath,
     bytes: 1000,
   }));
 });
 
 describe('POST /api/dossiers/auth-form/[token]', () => {
-  it('stores authFormData + both diploma URLs and sets authSubmittedAt on a valid token', async () => {
+  it('stores authFormData + the combined diploma document path, capped at 5 MB, and sets authSubmittedAt', async () => {
     prismaMock.dossier.findUnique.mockResolvedValueOnce({
       id: 'dos_1',
       reference: 'EB-202609-001',
@@ -145,20 +143,14 @@ describe('POST /api/dossiers/auth-form/[token]', () => {
     expect(await res.json()).toEqual({ ok: true });
     expect(mockUploadPublicFile).toHaveBeenCalledWith(
       expect.any(File),
-      'dossiers/EB-202609-001/diplome-sossou-theodore-bac',
-    );
-    expect(mockUploadPublicFile).toHaveBeenCalledWith(
-      expect.any(File),
-      'dossiers/EB-202609-001/diplome-sossou-theodore-doctorat',
+      'dossiers/EB-202609-001/diplome-sossou-theodore',
+      { maxBytes: 5 * 1024 * 1024 },
     );
 
     const updateArg = prismaMock.dossier.update.mock.calls[0]?.[0];
     expect(updateArg?.where).toEqual({ id: 'dos_1' });
     expect(updateArg?.data).toMatchObject({
-      diplomaBacUrl:
-        'https://res.cloudinary.com/demo/raw/upload/dossiers/EB-202609-001/diplome-sossou-theodore-bac',
-      diplomaDoctoratUrl:
-        'https://res.cloudinary.com/demo/raw/upload/dossiers/EB-202609-001/diplome-sossou-theodore-doctorat',
+      diplomaUrl: 'dossiers/EB-202609-001/diplome-sossou-theodore',
     });
     expect(updateArg?.data?.authSubmittedAt).toBeInstanceOf(Date);
     expect(updateArg?.data?.authFormData).toMatchObject({
@@ -231,7 +223,7 @@ describe('POST /api/dossiers/auth-form/[token]', () => {
     expect(prismaMock.dossier.update).not.toHaveBeenCalled();
   });
 
-  it('returns 400 VALIDATION_FAILED when a diploma file is missing', async () => {
+  it('returns 400 VALIDATION_FAILED when the documents file is missing', async () => {
     prismaMock.dossier.findUnique.mockResolvedValueOnce({
       id: 'dos_1',
       reference: 'EB-202609-001',
@@ -240,7 +232,7 @@ describe('POST /api/dossiers/auth-form/[token]', () => {
       authSubmittedAt: null,
     } as never);
     const res = await POST(
-      makePostReq('tok_live', undefined, { diplomaBac: null }),
+      makePostReq('tok_live', undefined, { documents: null }),
       paramsOf('tok_live'),
     );
     expect(res.status).toBe(400);
