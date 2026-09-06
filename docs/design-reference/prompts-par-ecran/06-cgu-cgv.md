@@ -10,3 +10,6 @@ mêmes couleurs (valeurs hexadécimales exactes), mêmes polices, même structur
 même copy, mêmes différences desktop/mobile. N'invente aucune variation de style. Si un
 détail de comportement n'est pas couvert par le document, demande-moi avant de décider
 toi-même.
+
+Comportement backend pour cet écran : aucun. Page de contenu entièrement statique, pas de
+modèle de données associé — n'en crée pas.

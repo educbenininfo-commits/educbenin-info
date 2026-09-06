@@ -11,3 +11,10 @@ lettre : mêmes couleurs (valeurs hexadécimales exactes), mêmes polices, même
 layout, même copy, même logique d'interaction, mêmes différences desktop/mobile. N'invente
 aucune variation de style. Si un détail de comportement n'est pas couvert par le document,
 demande-moi avant de décider toi-même.
+
+Comportement backend pour cet écran : dans le prototype, cette table était codée en dur et
+complètement déconnectée des dossiers de l'écran Dossiers, et le bouton « Restaurer » n'avait
+aucun handler — corrige les deux : cet écran doit lister les vrais dossiers à l'étape 0
+(rejetés) du même modèle Dossier défini dans 00-fondations-backend.md, avec leur vrai motif de
+rejet et leur vraie date de rejet, et le bouton « Restaurer » doit appeler la même action que la
+restauration déjà fonctionnelle de la modale Dossiers (passer l'étape à 1).

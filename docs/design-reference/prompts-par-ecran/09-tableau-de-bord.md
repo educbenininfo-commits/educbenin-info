@@ -12,3 +12,12 @@ layout (y compris le regroupement des deux blocs de KPI et leur réordonnancemen
 mobile — le suivi financier avant le général), même copy, même logique d'interaction,
 mêmes différences desktop/mobile. N'invente aucune variation de style. Si un détail de
 comportement n'est pas couvert par le document, demande-moi avant de décider toi-même.
+
+Comportement backend pour cet écran : remplace les compteurs et montants codés en dur par de
+vraies agrégations calculées depuis le modèle Dossier (défini dans 00-fondations-backend.md) :
+les 6 compteurs par étape, les 3 totaux financiers (facturé/encaissé/reste à payer), la
+répartition par moyen de paiement, et le graphique d'évolution des encaissements sur les 6
+derniers mois. Le panneau « Dossiers en attente depuis plus de 5 jours » doit lister les vrais
+dossiers dont l'ancienneté dépasse 5 jours à l'étape courante. Le panneau « Activité récente »
+doit être un vrai journal d'événements (nouveau dossier créé, étape changée, formulaire
+d'authentification reçu, etc.), pas un contenu statique — horodate chaque entrée réellement.

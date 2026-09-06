@@ -12,3 +12,12 @@ et des numéros WhatsApp associés) en suivant ce document à la lettre : mêmes
 logique d'interaction, mêmes différences desktop/mobile. N'invente aucune variation de
 style. Si un détail de comportement n'est pas couvert par le document, demande-moi avant
 de décider toi-même.
+
+Comportement backend pour cet écran : les boutons « Enregistrer et propager » et « Modifier »
+par ligne n'avaient aucun handler dans le prototype — implémente-les réellement : ils doivent
+écrire dans le même modèle Spécialité défini dans 00-fondations-backend.md, qui est la source
+unique lue aussi par l'écran public « Spécialités » et par la page d'accueil — une modification
+ici doit donc se répercuter automatiquement partout ailleurs, sans copie séparée. Le champ
+« Lien du groupe WhatsApp FSS » modifie le lien général partagé par les 27 fiches ; les liens
+WhatsApp par spécialité sont modifiés ligne par ligne. Vérifie la permission du compte connecté
+sur le module « Spécialités & WhatsApp » avant d'autoriser l'écriture.

@@ -10,3 +10,12 @@ mêmes couleurs (valeurs hexadécimales exactes), mêmes polices, même structur
 même copy, même logique d'interaction, mêmes différences desktop/mobile. N'invente aucune
 variation de style. Si un détail de comportement n'est pas couvert par le document,
 demande-moi avant de décider toi-même.
+
+Comportement backend pour cet écran : le bouton « Modifier le barème » n'avait aucun handler
+dans le prototype — implémente-le réellement, en t'appuyant sur le modèle Tarif défini dans
+00-fondations-backend.md : modifier le barème actif doit archiver l'ancien (statut « Archivé »,
+conservé dans l'historique) et créer le nouveau comme actif, daté du jour. La « règle
+spécialités additionnelles » reste un champ texte libre tant que le client n'a pas fixé de
+formule exacte (actuellement « à définir », ne force pas de format numérique). Ce barème doit
+être la même source lue par l'écran Accompagnement pour le prix de base affiché. Vérifie la
+permission du compte connecté sur le module « Tarifs ».

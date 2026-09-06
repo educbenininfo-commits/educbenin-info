@@ -10,3 +10,10 @@ mêmes couleurs (valeurs hexadécimales exactes), mêmes polices, même structur
 même copy, même logique d'interaction, mêmes différences desktop/mobile. N'invente aucune
 variation de style. Si un détail de comportement n'est pas couvert par le document,
 demande-moi avant de décider toi-même.
+
+Comportement backend pour cet écran : « Enregistrer les modifications » n'avait aucun handler
+dans le prototype — implémente la vraie mise à jour du profil (nom, e-mail, mot de passe) du
+compte back-office connecté, en t'appuyant sur le modèle défini dans 00-fondations-backend.md ;
+un changement de mot de passe doit redemander le mot de passe actuel. « Se déconnecter » doit
+réellement invalider la session (pas seulement naviguer vers l'écran Connexion, comme dans le
+prototype).

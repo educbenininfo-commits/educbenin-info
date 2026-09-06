@@ -59,7 +59,7 @@ never implies an account exists.
 ```prisma
 model Dossier {
   id                 String   @id @default(cuid())
-  reference          String   @unique // "EB-202609-001" — see §5
+  reference          String   @unique // "EB-092026-001" — see §5
   nom                String
   prenom             String
   whatsapp           String                // "+229 XX XX XX XX", as typed
@@ -123,8 +123,11 @@ independently, only displayed; normalizing it would be YAGNI.
 
 ## 5. Reference number generation
 
-Format: `EB-YYYYMM-NNN` (year + month, zero-padded 3-digit sequence, e.g. `EB-202609-001`),
-resetting the counter every calendar month. Generated inside the same transaction as the
+Format: `EB-MMYYYY-NNN` (month + year, zero-padded 3-digit sequence, e.g. `EB-092026-001`) —
+changed from the originally-approved `EB-YYYYMM-NNN` per a later user request, after Task 19
+had already shipped; only `frontend/src/lib/server/dossiers/reference.ts` needed to change
+(commit `387b877`), since every consumer treats the reference as an opaque string.
+Resetting the counter every calendar month. Generated inside the same transaction as the
 `Dossier` insert to avoid races: count existing dossiers for the current `YYYYMM` prefix,
 increment, retry once on a unique-constraint collision (two near-simultaneous submissions).
 

@@ -11,3 +11,9 @@ accordéon qui s'ouvre en place au clic) en suivant ce document à la lettre : m
 logique d'interaction (dont l'ouverture en accordéon directement sous la tuile cliquée),
 mêmes différences desktop/mobile. N'invente aucune variation de style. Si un détail de
 comportement n'est pas couvert par le document, demande-moi avant de décider toi-même.
+
+Comportement backend pour cet écran : aucune écriture. Alimente la grille des 27 tuiles en
+lecture seule depuis le modèle Spécialité défini dans 00-fondations-backend.md — même source
+de données que l'écran admin « Spécialités & WhatsApp », jamais une copie séparée. Les boutons
+WhatsApp doivent pointer vers de vrais liens wa.me/... (le lien dédié à la spécialité + le lien
+général FSS), lus depuis ce même modèle.

@@ -10,3 +10,10 @@ mêmes couleurs (valeurs hexadécimales exactes), mêmes polices, même structur
 même copy, même logique d'interaction, mêmes différences desktop/mobile. N'invente aucune
 variation de style. Si un détail de comportement n'est pas couvert par le document,
 demande-moi avant de décider toi-même.
+
+Comportement backend pour cet écran : implémente une vraie authentification back-office
+(e-mail/mot de passe + connexion Google), en t'appuyant sur le modèle Compte back-office défini
+dans 00-fondations-backend.md — remplace la navigation directe sans vérification du prototype
+par une vraie création de session, avec message d'erreur clair en cas d'identifiants invalides.
+Aucune inscription en libre-service : les comptes back-office sont créés depuis l'écran
+« Comptes admin & rôles », pas depuis cet écran.

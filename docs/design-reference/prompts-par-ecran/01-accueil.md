@@ -11,3 +11,8 @@ mêmes couleurs (valeurs hexadécimales exactes), mêmes polices, même structur
 grid-template-areas), même copy, même logique d'interaction, mêmes différences
 desktop/mobile. N'invente aucune variation de style. Si un détail de comportement n'est
 pas couvert par le document, demande-moi avant de décider toi-même.
+
+Comportement backend pour cet écran : aucun backend dédié — page entièrement statique
+côté contenu. Si les spécialités mises en avant sur l'accueil sont affichées dynamiquement,
+lis-les en lecture seule depuis le modèle Spécialité défini dans 00-fondations-backend.md (les
+6 premières de la liste), sans dupliquer cette donnée ailleurs.

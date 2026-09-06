@@ -1,11 +1,18 @@
-# Les 15 prompts prêts à copier — un par écran
+# Les 17 prompts prêts à copier — fondations + un par écran
 
-Ce fichier est une vue d'ensemble, pour t'y retrouver. **Pour copier-coller sans risque de te tromper, utilise plutôt le dossier `prompts-par-ecran/` fourni à côté** : un petit fichier par écran, qui ne contient QUE le prompt final, rien d'autre — tu ouvres le fichier du bon numéro, Ctrl+A, copie, colle, envoie.
+Ce fichier est une vue d'ensemble, pour t'y retrouver. **Pour copier-coller sans risque de te tromper, utilise plutôt le dossier `prompts-par-ecran/` fourni à côté** : un petit fichier par étape, qui ne contient QUE le prompt final, rien d'autre — tu ouvres le fichier du bon numéro, Ctrl+A, copie, colle, envoie.
 
-Ordre à respecter : construis-les dans cet ordre (1 à 15), c'est l'ordre logique du site public puis du back-office, et certains écrans (dashboard, dossiers) réutilisent des composants des écrans précédents.
+Chaque prompt d'écran combine maintenant deux choses dans le même bloc : la partie design (comme avant — lire la spec, regarder les captures, reproduire à la lettre) et une partie "Comportement backend pour cet écran" à la fin, pour que l'application se construise avec sa vraie logique au fur et à mesure, écran par écran, plutôt que tout le backend d'un coup à la fin.
+
+**Ordre à respecter, impératif :**
+
+1. Commence TOUJOURS par `00-fondations-backend.md` — une seule fois, avant tout écran. Il définit le modèle de données complet de l'application (dossiers, spécialités, comptes back-office, tarifs). Tous les prompts suivants s'appuient dessus et ne doivent jamais le redéfinir.
+2. Puis les écrans 1 à 15, dans l'ordre (site public, puis back-office) — certains écrans (dashboard, dossiers) réutilisent des composants des écrans précédents.
+3. Le fichier 16 (formulaire d'authentification de diplôme) peut être construit dès que l'écran 10 (Dossiers) est en place, puisque c'est ce dernier qui génère le lien envoyé au candidat.
 
 | # | Fichier à ouvrir | Écran | Captures utilisées |
 |---|---|---|---|
+| 0 | `prompts-par-ecran/00-fondations-backend.md` | Fondations backend (à faire en premier, une seule fois) | — |
 | 1 | `prompts-par-ecran/01-accueil.md` | Accueil | 01, 02, 56 |
 | 2 | `prompts-par-ecran/02-accompagnement-demande.md` | Accompagnement & demande | 03 à 12 |
 | 3 | `prompts-par-ecran/03-suivre-mon-dossier.md` | Suivre mon dossier | 13 à 19 |
@@ -21,5 +28,6 @@ Ordre à respecter : construis-les dans cet ordre (1 à 15), c'est l'ordre logiq
 | 13 | `prompts-par-ecran/13-tarifs.md` | Tarifs (back-office) | 50, 51 |
 | 14 | `prompts-par-ecran/14-comptes-admin.md` | Comptes admin & rôles (back-office) | 52, 53 |
 | 15 | `prompts-par-ecran/15-parametres.md` | Paramètres (back-office) | 54, 55 |
+| 16 | `prompts-par-ecran/16-formulaire-authentification-diplome.md` | Formulaire d'authentification de diplôme (candidat, via lien WhatsApp) | 45 (aperçu back-office de référence) |
 
-Chaque fichier contient exactement le même schéma que le Prompt 2 déjà validé pour l'Accueil, adapté à son écran : lire la spec + regarder les bonnes captures, confirmer sa compréhension avant de coder, puis implémenter à la lettre.
+Pour les écrans 5, 6 et 7 (pages légales), la partie backend dit explicitement qu'il n'y en a pas — ce sont des pages de contenu statique.
