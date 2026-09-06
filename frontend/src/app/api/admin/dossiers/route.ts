@@ -36,6 +36,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         reference: true,
         nom: true,
         prenom: true,
+        whatsapp: true,
         specialtyCodes: true,
         stage: true,
         stageChangedAt: true,
