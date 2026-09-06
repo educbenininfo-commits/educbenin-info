@@ -1,15 +1,19 @@
 'use client';
 
 // Enables Web Push notifications for admins — but ONLY once they've
-// actually installed the app (display-mode: standalone). A push prompt on
-// a plain browser tab that gets closed the moment the tab does would be
-// pointless; the whole point is a notification landing on a device where
-// the app persists. Registers the service worker (required for the Push
-// API to exist at all), requests permission once, and stores the
-// resulting subscription server-side (api/admin/push/subscribe) so
-// notifyAdmins() can reach this device the next time a dossier/auth-form
-// comes in.
-import { useEffect } from 'react';
+// actually installed the app (display-mode: standalone). Registers the
+// service worker (required for the Push API to exist at all) as soon as
+// the app opens, then shows a floating "Activer les notifications" button
+// whenever permission hasn't been decided yet.
+//
+// The permission request is deliberately NOT fired automatically on mount:
+// iOS Safari (and, increasingly, other browsers) silently ignores
+// Notification.requestPermission() calls that aren't the direct result of
+// a user gesture — call it inside a useEffect and the native prompt simply
+// never appears, permission stays 'default' forever, and this device never
+// gets subscribed. Gating the call behind this button's onClick guarantees
+// a real tap-driven gesture every time, on every platform.
+import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 
 function isStandalone(): boolean {
@@ -30,42 +34,92 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   return bytes;
 }
 
+async function subscribeAndSend(
+  registration: ServiceWorkerRegistration,
+  vapidPublicKey: string,
+): Promise<void> {
+  let subscription = await registration.pushManager.getSubscription();
+  if (!subscription) {
+    subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+    });
+  }
+  const json = subscription.toJSON();
+  if (!json.endpoint || !json.keys) return;
+  await api('/api/admin/push/subscribe', {
+    method: 'POST',
+    body: { endpoint: json.endpoint, keys: json.keys },
+  });
+}
+
 export function PushSetup() {
+  const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
+  const [vapidKey, setVapidKey] = useState<string | null>(null);
+  const [needsPermission, setNeedsPermission] = useState(false);
+  const [busy, setBusy] = useState(false);
+
   useEffect(() => {
     if (!isStandalone()) return;
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
-    const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-    if (!vapidPublicKey) return;
+    if (
+      !('serviceWorker' in navigator) ||
+      !('PushManager' in window) ||
+      !('Notification' in window)
+    ) {
+      return;
+    }
+    const key = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    if (!key) return;
 
     void (async () => {
       try {
-        const registration = await navigator.serviceWorker.register('/sw.js');
+        const reg = await navigator.serviceWorker.register('/sw.js');
+        setRegistration(reg);
+        setVapidKey(key);
 
-        let subscription = await registration.pushManager.getSubscription();
-        if (!subscription) {
-          if (Notification.permission === 'default') {
-            const permission = await Notification.requestPermission();
-            if (permission !== 'granted') return;
-          }
-          if (Notification.permission !== 'granted') return;
-          subscription = await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-          });
+        if (Notification.permission === 'granted') {
+          await subscribeAndSend(reg, key);
+        } else if (Notification.permission === 'default') {
+          setNeedsPermission(true);
         }
-
-        const json = subscription.toJSON();
-        if (!json.endpoint || !json.keys) return;
-        await api('/api/admin/push/subscribe', {
-          method: 'POST',
-          body: { endpoint: json.endpoint, keys: json.keys },
-        });
+        // 'denied' — nothing left to do from JS; re-enabling requires the
+        // user to change the site's notification permission in their
+        // browser/OS settings directly.
       } catch {
-        // Best-effort — a failed subscribe just means this device won't get
+        // Best-effort — a failed setup just means this device won't get
         // push notifications; it must never break the back-office itself.
       }
     })();
   }, []);
 
-  return null;
+  async function handleEnable() {
+    if (!registration || !vapidKey || busy) return;
+    setBusy(true);
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        await subscribeAndSend(registration, vapidKey);
+      }
+    } catch {
+      // Best-effort, see above.
+    } finally {
+      setNeedsPermission(false);
+      setBusy(false);
+    }
+  }
+
+  if (!needsPermission) return null;
+
+  return (
+    <div className="pwa-fab">
+      <button
+        type="button"
+        className="pwa-fab-btn"
+        onClick={() => void handleEnable()}
+        disabled={busy}
+      >
+        🔔 Activer les notifications
+      </button>
+    </div>
+  );
 }
