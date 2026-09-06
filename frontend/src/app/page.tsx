@@ -5,6 +5,7 @@
 import Link from 'next/link';
 import { PublicNav } from '@/components/public/PublicNav';
 import { PublicBottomNav } from '@/components/public/PublicBottomNav';
+import { EducBeninLogo } from '@/components/theme/EducBeninLogo';
 import { SPECIALTIES } from '@/lib/specialties';
 
 const HERO_TRACK: { label: string; done: boolean; num: string }[] = [
@@ -165,12 +166,7 @@ export default function Home() {
           <div className="footer-grid">
             <div>
               <div className="p-logo" style={{ marginBottom: 10 }}>
-                <img
-                  src="/logo/lockup-light.svg"
-                  alt="Educ Bénin"
-                  height={28}
-                  style={{ height: 28, width: 'auto' }}
-                />
+                <EducBeninLogo height={28} />
               </div>
               <p style={{ fontSize: 12.5, color: 'var(--prod-ink-muted)', maxWidth: '34ch' }}>
                 Service indépendant d&rsquo;accompagnement administratif. Educ Bénin n&rsquo;est ni

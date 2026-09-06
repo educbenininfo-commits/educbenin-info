@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { ThemeToggle } from '@/components/theme/ThemeToggle';
 
 // Mobile bottom nav + "more" sheet for public pages (DESIGN-SPEC.md > Fondations
 // "Barre de menu mobile du bas" + "Feuille plus (bottom sheet)", and per-screen
@@ -83,7 +84,13 @@ export function PublicBottomNav({ active }: { active: string }) {
       >
         <div className="p-moresheet">
           <div className="handle" />
-          <div className="title">Menu Educ Bénin</div>
+          <div
+            className="title"
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+          >
+            Menu Educ Bénin
+            <ThemeToggle />
+          </div>
           {MORE_ITEMS.map((item) => (
             <Link key={item.key} href={item.href} onClick={() => setOpen(false)}>
               <span className="ic">{item.icon}</span>

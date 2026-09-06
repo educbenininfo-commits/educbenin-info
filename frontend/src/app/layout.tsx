@@ -4,6 +4,16 @@ import './globals.css';
 import { ToastProvider } from '@/contexts/ToastContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { InstallPrompt } from '@/components/pwa/InstallPrompt';
+import { THEME_STORAGE_KEY } from '@/lib/theme';
+
+// Blocking inline script — runs before hydration so an explicit Clair/Sombre
+// choice (persisted in localStorage) applies before first paint, avoiding a
+// flash of the wrong theme. "Système" (nothing stored) sets no attribute at
+// all; globals.css's prefers-color-scheme media query handles that case with
+// no JS needed. Kept in sync with ThemeToggle.tsx's THEME_STORAGE_KEY.
+const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem(${JSON.stringify(
+  THEME_STORAGE_KEY,
+)});if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();`;
 
 // Educ Bénin design system (docs/design-reference/DESIGN-SPEC.md — Fondations
 // de design > Typographie): IBM Plex Sans for body/UI, Source Serif 4 for all
@@ -46,8 +56,10 @@ export default function RootLayout({
     <html
       lang="fr"
       className={`${ibmPlexSans.variable} ${sourceSerif4.variable} ${ibmPlexMono.variable}`}
+      suppressHydrationWarning
     >
       <body className={ibmPlexSans.className}>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <ToastProvider>
           <AuthProvider>{children}</AuthProvider>
         </ToastProvider>

@@ -8,6 +8,7 @@ import {
   DossierApiError,
   type AuthTokenState,
 } from '@/lib/dossiers-public-api';
+import { EducBeninLogo } from '@/components/theme/EducBeninLogo';
 
 type ViewState = 'loading' | 'ready' | 'submitted' | AuthTokenState;
 
@@ -54,12 +55,7 @@ function BareHeader() {
     <div className="nav-bleed">
       <div className="p-nav pw" style={{ justifyContent: 'center' }}>
         <Link href="/" className="p-logo">
-          <img
-            src="/logo/lockup-light.svg"
-            alt="Educ Bénin"
-            height={32}
-            style={{ height: 32, width: 'auto' }}
-          />
+          <EducBeninLogo height={32} />
         </Link>
       </div>
     </div>

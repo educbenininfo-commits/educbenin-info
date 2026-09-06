@@ -6,6 +6,7 @@
    for exact values). Values copied verbatim — do not approximate.
    ========================================================================== */
 :root {
+  color-scheme: light;
   --prod-ink: #1e1b33;
   --prod-ink-muted: #655f80;
   --prod-ink-faint: #9490ac;
@@ -26,6 +27,56 @@
   --prod-danger-tint: #fbe7e5;
 }
 
+/* Dark mode — three states: "Système" (default, no stored preference: follows
+   prefers-color-scheme live) and explicit "Clair"/"Sombre" (ThemeToggle sets
+   [data-theme] on <html>, persisted in localStorage). The prefers-color-scheme
+   block only applies when there's no explicit override, so a manual choice
+   always wins over the OS setting. See components/theme/ThemeToggle.tsx. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --prod-ink: #f1f0f8;
+    --prod-ink-muted: #b6b1cc;
+    --prod-ink-faint: #8b86a3;
+    --prod-surface: #1c1a2e;
+    --prod-surface-2: #252239;
+    --prod-page: #131120;
+    --prod-border: #34304c;
+    --prod-primary: #635bea;
+    --prod-primary-dark: #7d75f2;
+    --prod-primary-tint: #272449;
+    --prod-gold: #d9a94e;
+    --prod-gold-tint: #372c17;
+    --prod-success: #2bcb92;
+    --prod-success-tint: #10352a;
+    --prod-warning: #e08f43;
+    --prod-warning-tint: #392710;
+    --prod-danger: #e5645a;
+    --prod-danger-tint: #3a1c1a;
+  }
+}
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --prod-ink: #f1f0f8;
+  --prod-ink-muted: #b6b1cc;
+  --prod-ink-faint: #8b86a3;
+  --prod-surface: #1c1a2e;
+  --prod-surface-2: #252239;
+  --prod-page: #131120;
+  --prod-border: #34304c;
+  --prod-primary: #635bea;
+  --prod-primary-dark: #7d75f2;
+  --prod-primary-tint: #272449;
+  --prod-gold: #d9a94e;
+  --prod-gold-tint: #372c17;
+  --prod-success: #2bcb92;
+  --prod-success-tint: #10352a;
+  --prod-warning: #e08f43;
+  --prod-warning-tint: #392710;
+  --prod-danger: #e5645a;
+  --prod-danger-tint: #3a1c1a;
+}
+
 *,
 *::before,
 *::after {
@@ -34,6 +85,7 @@
 
 body {
   color: var(--prod-ink);
+  background: var(--prod-page);
   font-family:
     var(--font-sans),
     system-ui,
@@ -82,6 +134,10 @@ button {
 /* ---- public nav ---- */
 .nav-bleed {
   border-bottom: 1px solid var(--prod-border);
+  background: var(--prod-surface);
+  position: sticky;
+  top: 0;
+  z-index: 20;
 }
 .p-nav {
   display: flex;
@@ -1202,6 +1258,9 @@ button {
   border-bottom: 1px solid var(--prod-border);
   background: var(--prod-surface);
   gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
 }
 .bo-search {
   border: 1px solid var(--prod-border);
@@ -1798,22 +1857,34 @@ table.dtable tr:last-child td {
   .p-links {
     display: none;
   }
+  /* Not enough room for logo + toggle + CTA on one line — the toggle moves
+     into the "Menu" bottom-sheet instead (see PublicBottomNav.tsx). */
+  .p-nav .theme-toggle {
+    display: none;
+  }
 
   .p-bottomnav {
     display: flex;
     position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    left: 12px;
+    right: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
     z-index: 30;
     background: var(--prod-surface);
-    border-top: 1px solid var(--prod-border);
-    padding: 2px 4px calc(2px + env(safe-area-inset-bottom, 0px));
-    box-shadow: 0 -10px 26px -18px rgba(20, 15, 60, 0.4);
+    border-radius: 20px;
+    padding: 6px 4px;
+    box-shadow:
+      0 14px 32px -12px rgba(20, 15, 60, 0.45),
+      0 2px 10px -2px rgba(20, 15, 60, 0.18);
   }
-  /* Accueil's footer is the last element on the page — clear the fixed bottom nav. */
-  .footer {
-    margin-bottom: 66px;
+  /* Universal clearance from the floating bottom nav — applies to every public
+     page's true bottom regardless of which wrapper class its last block uses
+     (mirrors .bo-content's own padding-bottom below for the back-office side).
+     Previously only .content-pad/.legal/.footer had their own margin-bottom,
+     which missed .section (e.g. Accompagnement's stepper "Continuer" button
+     rendered right above the nav with nothing to scroll it clear of). */
+  .prod:not(.bo) {
+    padding-bottom: 90px;
   }
 
   .disclaimer-bar {
@@ -1863,7 +1934,6 @@ table.dtable tr:last-child td {
   }
   .content-pad {
     padding: 8px 18px 44px;
-    margin-bottom: 66px;
   }
   .two-col {
     grid-template-columns: 1fr;
@@ -1879,7 +1949,6 @@ table.dtable tr:last-child td {
   }
   .legal {
     padding: 26px 18px 50px;
-    margin-bottom: 66px;
   }
 
   .login-grid {
@@ -1897,14 +1966,16 @@ table.dtable tr:last-child td {
   .bo-bottomnav {
     display: flex;
     position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    left: 12px;
+    right: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
     z-index: 30;
     background: var(--prod-surface);
-    border-top: 1px solid var(--prod-border);
-    padding: 2px 4px calc(2px + env(safe-area-inset-bottom, 0px));
-    box-shadow: 0 -10px 26px -18px rgba(20, 15, 60, 0.4);
+    border-radius: 20px;
+    padding: 6px 4px;
+    box-shadow:
+      0 14px 32px -12px rgba(20, 15, 60, 0.45),
+      0 2px 10px -2px rgba(20, 15, 60, 0.18);
   }
   .bo-top {
     padding: 12px 16px;
@@ -1953,6 +2024,59 @@ table.dtable tr:last-child td {
   .pay-field-row {
     grid-template-columns: 1fr;
   }
+}
+
+/* Theme-aware wordmark (components/theme/EducBeninLogo.tsx) — the "light"
+   lockup has dark text, the "dark" one has white text; only one of the two
+   is ever shown, keyed off the same [data-theme]/prefers-color-scheme
+   pattern as the token overrides above. */
+.logo-dark-only {
+  display: none;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .logo-light-only {
+    display: none;
+  }
+  :root:not([data-theme='light']) .logo-dark-only {
+    display: inline;
+  }
+}
+:root[data-theme='dark'] .logo-light-only {
+  display: none;
+}
+:root[data-theme='dark'] .logo-dark-only {
+  display: inline;
+}
+
+/* Light/Dark/System theme toggle (components/theme/ThemeToggle.tsx). */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--prod-border);
+  border-radius: 999px;
+  background: var(--prod-surface-2);
+  flex: none;
+}
+.theme-toggle button {
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--prod-ink-faint);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.theme-toggle button.on {
+  background: var(--prod-surface);
+  color: var(--prod-primary);
+  box-shadow: 0 1px 4px rgba(20, 15, 60, 0.15);
 }
 
 /* PWA install prompt — floating dismissible button + instructional modal

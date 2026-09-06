@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { ThemeToggle } from '@/components/theme/ThemeToggle';
+import { EducBeninLogo } from '@/components/theme/EducBeninLogo';
 
 // Desktop nav for public pages (DESIGN-SPEC.md > Fondations + per-screen
 // "Layout & visual design"). `.p-links` and `.p-burger` are hidden under
@@ -18,12 +20,7 @@ export function PublicNav({ active }: { active: string }) {
     <div className="nav-bleed">
       <div className="p-nav pw">
         <Link href="/" className="p-logo">
-          <img
-            src="/logo/lockup-light.svg"
-            alt="Educ Bénin"
-            height={32}
-            style={{ height: 32, width: 'auto' }}
-          />
+          <EducBeninLogo height={32} />
         </Link>
         <div className="p-links">
           {LINKS.map((link) => (
@@ -32,9 +29,12 @@ export function PublicNav({ active }: { active: string }) {
             </Link>
           ))}
         </div>
-        <Link href="/accompagnement" className="btn btn-primary btn-sm">
-          Faire ma demande
-        </Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <ThemeToggle />
+          <Link href="/accompagnement" className="btn btn-primary btn-sm">
+            Faire ma demande
+          </Link>
+        </div>
       </div>
     </div>
   );

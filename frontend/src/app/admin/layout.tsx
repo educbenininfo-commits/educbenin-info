@@ -12,6 +12,7 @@ import { api, ApiError } from '@/lib/api';
 import { BackofficeSidebar } from '@/components/backoffice/BackofficeSidebar';
 import { BackofficeBottomNav } from '@/components/backoffice/BackofficeBottomNav';
 import { BackofficeAdminProvider } from '@/contexts/BackofficeAdminContext';
+import { ThemeToggle } from '@/components/theme/ThemeToggle';
 
 interface AdminMe {
   admin: { id: string; email: string; role: 'ADMIN' | 'SUPERADMIN' };
@@ -118,10 +119,13 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         <div className="bo-main">
           <div className="bo-top">
             <AdminSearchBox pathname={pathname} />
-            <div className="bo-user">
-              <div className="avatar">{admin.email.slice(0, 2).toUpperCase()}</div>
-              {admin.email} ·{' '}
-              {admin.role === 'SUPERADMIN' ? 'Super-administrateur' : 'Administrateur'}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <ThemeToggle />
+              <div className="bo-user">
+                <div className="avatar">{admin.email.slice(0, 2).toUpperCase()}</div>
+                {admin.email} ·{' '}
+                {admin.role === 'SUPERADMIN' ? 'Super-administrateur' : 'Administrateur'}
+              </div>
             </div>
           </div>
           <div className="bo-content">{children}</div>
