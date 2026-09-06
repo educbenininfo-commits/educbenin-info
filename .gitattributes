@@ -1,0 +1,12 @@
+# Normalize all text files to LF in the repository, regardless of the
+# checkout platform's line-ending settings (core.autocrlf). Prevents the
+# whole tree from showing as "modified" on Windows checkouts.
+* text=auto eol=lf
+
+# Binary files — never touched by line-ending normalization.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.woff binary
+*.woff2 binary
