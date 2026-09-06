@@ -2,10 +2,18 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { displayName, specialtyLabel, type DossierListItem } from '@/lib/dossiers-data';
+import { useSearchParams } from 'next/navigation';
+import {
+  displayName,
+  specialtyLabel,
+  matchesDossierSearch,
+  type DossierListItem,
+} from '@/lib/dossiers-data';
 import { fetchDossiers, restoreDossier } from '@/lib/dossiers-admin-api';
 
 export function RejectedDossiersList() {
+  const searchParams = useSearchParams();
+  const query = searchParams.get('q') ?? '';
   const [items, setItems] = useState<DossierListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [restoringId, setRestoringId] = useState<string | null>(null);
@@ -38,6 +46,8 @@ export function RejectedDossiersList() {
     }
   }
 
+  const visibleItems = items.filter((d) => matchesDossierSearch(d, query));
+
   return (
     <div className="tablewrap">
       {error && (
@@ -62,14 +72,16 @@ export function RejectedDossiersList() {
                 Chargement…
               </td>
             </tr>
-          ) : items.length === 0 ? (
+          ) : visibleItems.length === 0 ? (
             <tr>
               <td colSpan={5} className="hint">
-                Aucun dossier rejeté pour le moment.
+                {query
+                  ? 'Aucun dossier rejeté ne correspond à cette recherche.'
+                  : 'Aucun dossier rejeté pour le moment.'}
               </td>
             </tr>
           ) : (
-            items.map((d) => (
+            visibleItems.map((d) => (
               <tr key={d.id}>
                 <td>
                   {displayName(d.nom, d.prenom)} · {d.reference}

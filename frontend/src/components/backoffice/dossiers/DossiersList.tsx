@@ -2,6 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   DOSSIER_FILTERS,
   STAGE_NAMES,
@@ -10,12 +11,15 @@ import {
   displayName,
   specialtyLabel,
   formatElapsed,
+  matchesDossierSearch,
   type DossierListItem,
 } from '@/lib/dossiers-data';
 import { fetchDossiers } from '@/lib/dossiers-admin-api';
 import { DossierModal } from './DossierModal';
 
 export function DossiersList() {
+  const searchParams = useSearchParams();
+  const query = searchParams.get('q') ?? '';
   const [filter, setFilter] = useState<'all' | 1 | 2 | 3 | 4 | 5>('all');
   const [items, setItems] = useState<DossierListItem[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({
@@ -48,6 +52,8 @@ export function DossiersList() {
     // eslint.config.mjs, so no disable directive is needed here.)
   }, [filter]);
 
+  const visibleItems = items.filter((d) => matchesDossierSearch(d, query));
+
   return (
     <>
       <div className="dossier-filters">
@@ -67,10 +73,14 @@ export function DossiersList() {
       <div className="dossier-list">
         {loading ? (
           <div className="dossier-empty">Chargement…</div>
-        ) : items.length === 0 ? (
-          <div className="dossier-empty">Aucun dossier dans cette étape pour le moment.</div>
+        ) : visibleItems.length === 0 ? (
+          <div className="dossier-empty">
+            {query
+              ? 'Aucun dossier ne correspond à cette recherche.'
+              : 'Aucun dossier dans cette étape pour le moment.'}
+          </div>
         ) : (
-          items.map((d) => (
+          visibleItems.map((d) => (
             <div key={d.id} className="d-row" onClick={() => setOpenId(d.id)}>
               <div className="top">
                 <div className="avatar" style={{ width: 26, height: 26, fontSize: 11 }}>

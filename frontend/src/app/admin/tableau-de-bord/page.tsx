@@ -10,10 +10,22 @@
 // example data per spec §2/§10 — no financial ledger exists yet.
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { api } from '@/lib/api';
+import { fetchDossiers } from '@/lib/dossiers-admin-api';
 import { FinanceChart } from '@/components/backoffice/FinanceChart';
 import { fmtF2 } from '@/lib/format';
-import { STAGE_NAMES, pillClass, displayName, formatRelativeTime } from '@/lib/dossiers-data';
+import {
+  STAGE_NAMES,
+  pillClass,
+  displayName,
+  formatRelativeTime,
+  matchesDossierSearch,
+  type DossierListItem,
+} from '@/lib/dossiers-data';
+import { SPECIALTIES } from '@/lib/specialties';
+import { TARIFS_HISTORIQUE, ADMIN_MEMBERS } from '@/lib/backoffice-static-data';
 
 interface EnAttenteRow {
   id: string;
@@ -57,6 +69,9 @@ const FIN_MOYENS: { label: string; pct: number; color: string }[] = [
 ];
 
 export default function TableauDeBordPage() {
+  const searchParams = useSearchParams();
+  const rawQuery = searchParams.get('q') ?? '';
+  const query = rawQuery.trim().toLowerCase();
   const [summary, setSummary] = useState<SummaryResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -74,6 +89,173 @@ export default function TableauDeBordPage() {
       cancelled = true;
     };
   }, []);
+
+  // Global search — the Tableau de bord's search box is the one entry point
+  // that searches EVERY back-office section at once (à la recherche
+  // Réglages iPhone), unlike every other page which only filters its own
+  // list. Dossiers are fetched on demand (only while a query is active);
+  // the other sections are already in-memory arrays, filtered client-side.
+  const [dossiers, setDossiers] = useState<DossierListItem[]>([]);
+  const [rejetes, setRejetes] = useState<DossierListItem[]>([]);
+  const [dossiersLoading, setDossiersLoading] = useState(false);
+
+  useEffect(() => {
+    if (!query) return;
+    let cancelled = false;
+    setDossiersLoading(true);
+    void (async () => {
+      try {
+        const [all, rejected] = await Promise.all([fetchDossiers('all'), fetchDossiers(0)]);
+        if (!cancelled) {
+          setDossiers(all.items);
+          setRejetes(rejected.items);
+        }
+      } finally {
+        if (!cancelled) setDossiersLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [query]);
+
+  if (query) {
+    const matchingDossiers = dossiers.filter((d) => matchesDossierSearch(d, query));
+    const matchingRejetes = rejetes.filter((d) => matchesDossierSearch(d, query));
+    const matchingSpecialites = SPECIALTIES.filter(
+      (s) =>
+        s.name.toLowerCase().includes(query) ||
+        s.salle.toLowerCase().includes(query) ||
+        s.date.includes(query),
+    );
+    const matchingTarifs = TARIFS_HISTORIQUE.filter(
+      (h) =>
+        h.depuis.includes(query) ||
+        h.prix.toLowerCase().includes(query) ||
+        h.regle.toLowerCase().includes(query) ||
+        h.statut.toLowerCase().includes(query),
+    );
+    const matchingMembers = ADMIN_MEMBERS.filter((m) => m.name.toLowerCase().includes(query));
+
+    const qs = `?q=${encodeURIComponent(rawQuery)}`;
+    const nothingFound =
+      !dossiersLoading &&
+      matchingDossiers.length === 0 &&
+      matchingRejetes.length === 0 &&
+      matchingSpecialites.length === 0 &&
+      matchingTarifs.length === 0 &&
+      matchingMembers.length === 0;
+
+    return (
+      <>
+        <h3 className="bo-h1">Résultats pour «&nbsp;{rawQuery}&nbsp;»</h3>
+        <div className="bo-sub">Recherche dans tout le back-office.</div>
+
+        {dossiersLoading && (
+          <p className="hint" style={{ marginTop: 16 }}>
+            Recherche en cours…
+          </p>
+        )}
+        {nothingFound && (
+          <p className="hint" style={{ marginTop: 16 }}>
+            Aucun résultat dans Dossiers, Dossiers rejetés, Spécialités, Tarifs ou Comptes admin.
+          </p>
+        )}
+
+        {matchingDossiers.length > 0 && (
+          <div className="panel" style={{ marginTop: 18 }}>
+            <h3>Dossiers ({matchingDossiers.length})</h3>
+            {matchingDossiers.map((d) => (
+              <Link
+                key={d.id}
+                href={`/admin/dossiers${qs}`}
+                className="alert-row"
+                style={{ display: 'flex' }}
+              >
+                <span>
+                  {d.reference} · {displayName(d.nom, d.prenom)}
+                </span>
+                <span className={`pill ${pillClass(d.stage)}`}>{STAGE_NAMES[d.stage]}</span>
+              </Link>
+            ))}
+          </div>
+        )}
+
+        {matchingRejetes.length > 0 && (
+          <div className="panel" style={{ marginTop: 18 }}>
+            <h3>Dossiers rejetés ({matchingRejetes.length})</h3>
+            {matchingRejetes.map((d) => (
+              <Link
+                key={d.id}
+                href={`/admin/dossiers-rejetes${qs}`}
+                className="alert-row"
+                style={{ display: 'flex' }}
+              >
+                <span>
+                  {d.reference} · {displayName(d.nom, d.prenom)}
+                </span>
+                <span className="pill danger">{d.motifRejet || 'Rejeté'}</span>
+              </Link>
+            ))}
+          </div>
+        )}
+
+        {matchingSpecialites.length > 0 && (
+          <div className="panel" style={{ marginTop: 18 }}>
+            <h3>Spécialités &amp; WhatsApp ({matchingSpecialites.length})</h3>
+            {matchingSpecialites.map((s) => (
+              <Link
+                key={s.code}
+                href={`/admin/specialites${qs}`}
+                className="alert-row"
+                style={{ display: 'flex' }}
+              >
+                <span>{s.name}</span>
+                <span className="pill neutral">{s.salle}</span>
+              </Link>
+            ))}
+          </div>
+        )}
+
+        {matchingTarifs.length > 0 && (
+          <div className="panel" style={{ marginTop: 18 }}>
+            <h3>Tarifs ({matchingTarifs.length})</h3>
+            {matchingTarifs.map((h) => (
+              <Link
+                key={h.depuis}
+                href={`/admin/tarifs${qs}`}
+                className="alert-row"
+                style={{ display: 'flex' }}
+              >
+                <span>
+                  {h.prix} — en vigueur depuis {h.depuis}
+                </span>
+                <span className={`pill ${h.statut === 'Actif' ? 'ok' : 'neutral'}`}>
+                  {h.statut}
+                </span>
+              </Link>
+            ))}
+          </div>
+        )}
+
+        {matchingMembers.length > 0 && (
+          <div className="panel" style={{ marginTop: 18 }}>
+            <h3>Comptes admin &amp; rôles ({matchingMembers.length})</h3>
+            {matchingMembers.map((m) => (
+              <Link
+                key={m.name}
+                href={`/admin/comptes-admin${qs}`}
+                className="alert-row"
+                style={{ display: 'flex' }}
+              >
+                <span>{m.name}</span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </>
+    );
+  }
 
   return (
     <>
@@ -122,36 +304,38 @@ export default function TableauDeBordPage() {
         <div className="panel">
           <h3>Dossiers en attente depuis plus de 5 jours</h3>
           <div className="sub">Nécessitent une action de l&rsquo;équipe</div>
-          {loading ? (
-            <p className="hint">Chargement…</p>
-          ) : summary!.enAttente.length === 0 ? (
-            <p className="hint">Aucun dossier en attente depuis plus de 5 jours.</p>
-          ) : (
-            summary!.enAttente.map((d) => (
+          {(() => {
+            if (loading) return <p className="hint">Chargement…</p>;
+            const rows = summary!.enAttente;
+            if (rows.length === 0) {
+              return <p className="hint">Aucun dossier en attente depuis plus de 5 jours.</p>;
+            }
+            return rows.map((d) => (
               <div key={d.id} className="alert-row">
                 <span>
                   {d.reference} · {displayName(d.nom, d.prenom)}
                 </span>
                 <span className={`pill ${pillClass(d.stage)}`}>{STAGE_NAMES[d.stage]}</span>
               </div>
-            ))
-          )}
+            ));
+          })()}
         </div>
         <div className="panel">
           <h3>Activité récente</h3>
           <div className="sub">Dernières actions du back-office</div>
-          {loading ? (
-            <p className="hint">Chargement…</p>
-          ) : summary!.activiteRecente.length === 0 ? (
-            <p className="hint">Aucune activité récente.</p>
-          ) : (
-            summary!.activiteRecente.map((a, i) => (
+          {(() => {
+            if (loading) return <p className="hint">Chargement…</p>;
+            const rows = summary!.activiteRecente;
+            if (rows.length === 0) {
+              return <p className="hint">Aucune activité récente.</p>;
+            }
+            return rows.map((a, i) => (
               <div key={`${a.dossierId}-${i}`} className="alert-row">
                 <span>{a.label}</span>
                 <span className="pill neutral">{formatRelativeTime(a.at)}</span>
               </div>
-            ))
-          )}
+            ));
+          })()}
         </div>
       </div>
 

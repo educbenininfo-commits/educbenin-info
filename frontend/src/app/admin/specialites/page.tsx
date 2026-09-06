@@ -6,7 +6,21 @@
 
 import { SPECIALTIES } from '@/lib/specialties';
 
-export default function SpecialitesAdminPage() {
+export default async function SpecialitesAdminPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const query = ((await searchParams).q ?? '').trim().toLowerCase();
+  const rows = query
+    ? SPECIALTIES.filter(
+        (s) =>
+          s.name.toLowerCase().includes(query) ||
+          s.salle.toLowerCase().includes(query) ||
+          s.date.includes(query),
+      )
+    : SPECIALTIES;
+
   return (
     <>
       <h3 className="bo-h1">Spécialités &amp; WhatsApp</h3>
@@ -41,20 +55,28 @@ export default function SpecialitesAdminPage() {
             </tr>
           </thead>
           <tbody>
-            {SPECIALTIES.map((s) => (
-              <tr key={s.code}>
-                <td>{s.name}</td>
-                <td className="mono">{s.date}</td>
-                <td className="mono">{s.heure}</td>
-                <td>{s.salle}</td>
-                <td className="mono">wa.me/{s.code.toLowerCase()}…</td>
-                <td>
-                  <button type="button" className="btn btn-outline btn-sm">
-                    Modifier
-                  </button>
+            {rows.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="hint">
+                  Aucune spécialité ne correspond à cette recherche.
                 </td>
               </tr>
-            ))}
+            ) : (
+              rows.map((s) => (
+                <tr key={s.code}>
+                  <td>{s.name}</td>
+                  <td className="mono">{s.date}</td>
+                  <td className="mono">{s.heure}</td>
+                  <td>{s.salle}</td>
+                  <td className="mono">wa.me/{s.code.toLowerCase()}…</td>
+                  <td>
+                    <button type="button" className="btn btn-outline btn-sm">
+                      Modifier
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

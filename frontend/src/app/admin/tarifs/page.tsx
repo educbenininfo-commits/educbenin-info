@@ -4,12 +4,24 @@
 // quel, pas une valeur à inventer. "Modifier le barème" n'a pas de
 // comportement réel dans le prototype.
 
-const HISTORIQUE = [
-  { depuis: '01/09/2026', prix: '50 000 FCFA', regle: 'À définir', statut: 'Actif' as const },
-  { depuis: '01/01/2026', prix: '45 000 FCFA', regle: '—', statut: 'Archivé' as const },
-];
+import { TARIFS_HISTORIQUE as HISTORIQUE } from '@/lib/backoffice-static-data';
 
-export default function TarifsPage() {
+export default async function TarifsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const query = ((await searchParams).q ?? '').trim().toLowerCase();
+  const rows = query
+    ? HISTORIQUE.filter(
+        (h) =>
+          h.depuis.includes(query) ||
+          h.prix.toLowerCase().includes(query) ||
+          h.regle.toLowerCase().includes(query) ||
+          h.statut.toLowerCase().includes(query),
+      )
+    : HISTORIQUE;
+
   return (
     <>
       <h3 className="bo-h1">Tarifs</h3>
@@ -49,18 +61,26 @@ export default function TarifsPage() {
             </tr>
           </thead>
           <tbody>
-            {HISTORIQUE.map((h) => (
-              <tr key={h.depuis}>
-                <td className="mono">{h.depuis}</td>
-                <td>{h.prix}</td>
-                <td>{h.regle}</td>
-                <td>
-                  <span className={`pill ${h.statut === 'Actif' ? 'ok' : 'neutral'}`}>
-                    {h.statut}
-                  </span>
+            {rows.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="hint">
+                  Aucune ligne ne correspond à cette recherche.
                 </td>
               </tr>
-            ))}
+            ) : (
+              rows.map((h) => (
+                <tr key={h.depuis}>
+                  <td className="mono">{h.depuis}</td>
+                  <td>{h.prix}</td>
+                  <td>{h.regle}</td>
+                  <td>
+                    <span className={`pill ${h.statut === 'Actif' ? 'ok' : 'neutral'}`}>
+                      {h.statut}
+                    </span>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

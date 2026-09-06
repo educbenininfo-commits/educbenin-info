@@ -7,7 +7,7 @@
 // /admin/* page.
 
 import { useEffect, useState, type ReactNode } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { api, ApiError } from '@/lib/api';
 import { BackofficeSidebar } from '@/components/backoffice/BackofficeSidebar';
 import { BackofficeBottomNav } from '@/components/backoffice/BackofficeBottomNav';
@@ -15,6 +15,52 @@ import { BackofficeAdminProvider } from '@/contexts/BackofficeAdminContext';
 
 interface AdminMe {
   admin: { id: string; email: string; role: 'ADMIN' | 'SUPERADMIN' };
+}
+
+// The search box filters whatever list lives on the CURRENT admin page — it
+// is not scoped to Dossiers. Each page reads the shared `?q=` URL param
+// itself and filters its own rows (Dossiers/Dossiers rejetés via
+// matchesDossierSearch in dossiers-data.ts; Spécialités/Tarifs/Comptes admin
+// filter their own arrays server-side). Tableau de bord is the one
+// exception — per product decision, its search box searches EVERY section
+// at once (à la recherche Réglages iPhone) instead of just its own two
+// widgets; see its page for the merged results view. Only Paramètres has no
+// list to search, so it keeps the static "—" it always had.
+const SEARCH_PLACEHOLDERS: Record<string, string> = {
+  '/admin/dossiers': 'Rechercher un dossier (nom, référence, WhatsApp)…',
+  '/admin/dossiers-rejetes': 'Rechercher un dossier rejeté…',
+  '/admin/specialites': 'Rechercher une spécialité, une salle…',
+  '/admin/tarifs': "Rechercher dans l'historique des tarifs…",
+  '/admin/comptes-admin': 'Rechercher un membre…',
+  '/admin/tableau-de-bord': 'Rechercher dans tout le back-office…',
+};
+
+function AdminSearchBox({ pathname }: { pathname: string }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  if (pathname === '/admin/parametres') {
+    return <div className="bo-search">—</div>;
+  }
+
+  function updateQuery(next: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (next.trim()) params.set('q', next);
+    else params.delete('q');
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }
+
+  return (
+    <input
+      key={pathname}
+      className="bo-search"
+      type="search"
+      placeholder={SEARCH_PLACEHOLDERS[pathname] ?? 'Rechercher…'}
+      defaultValue={searchParams.get('q') ?? ''}
+      onChange={(e) => updateQuery(e.target.value)}
+    />
+  );
 }
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
@@ -71,10 +117,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         <BackofficeBottomNav />
         <div className="bo-main">
           <div className="bo-top">
-            {/* Paramètres is the one back-office screen where search is irrelevant. */}
-            <div className="bo-search">
-              {pathname === '/admin/parametres' ? '—' : 'Rechercher…'}
-            </div>
+            <AdminSearchBox pathname={pathname} />
             <div className="bo-user">
               <div className="avatar">{admin.email.slice(0, 2).toUpperCase()}</div>
               {admin.email} ·{' '}

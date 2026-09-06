@@ -37,6 +37,7 @@ export type DossierListItem = {
   reference: string;
   nom: string;
   prenom: string;
+  whatsapp: string;
   specialtyCodes: string[];
   stage: 0 | 1 | 2 | 3 | 4 | 5;
   stageChangedAt: string;
@@ -51,8 +52,7 @@ export type DossierDetail = DossierListItem & {
   authSentAt: string | null;
   authSubmittedAt: string | null;
   authFormData: AuthForm | null;
-  diplomaBacUrl: string | null;
-  diplomaDoctoratUrl: string | null;
+  diplomaUrl: string | null;
   ficheUploaded: boolean;
   ficheUrl: string | null;
   recepisseUploaded: boolean;
@@ -107,6 +107,28 @@ export function displayName(nom: string, prenom: string): string {
 
 export function specialtyLabel(codes: string[]): string {
   return codes.map((code) => SPECIALTIES.find((s) => s.code === code)?.name ?? code).join(', ');
+}
+
+/**
+ * Free-text match for the back-office search box — name, reference,
+ * WhatsApp. Checks nom/prenom both separately (matches a single-word query)
+ * AND combined in both orders ("DOSSOU Horace" as displayed, or "Horace
+ * Dossou" as a person would naturally type it) — a query spanning both
+ * words previously matched neither field alone and silently found nothing.
+ */
+export function matchesDossierSearch(item: DossierListItem, query: string): boolean {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return true;
+  const nom = item.nom.toLowerCase();
+  const prenom = item.prenom.toLowerCase();
+  return (
+    nom.includes(needle) ||
+    prenom.includes(needle) ||
+    `${nom} ${prenom}`.includes(needle) ||
+    `${prenom} ${nom}`.includes(needle) ||
+    item.reference.toLowerCase().includes(needle) ||
+    item.whatsapp.toLowerCase().includes(needle)
+  );
 }
 
 /** Time-since-last-stage-change for the dossier-list "days" column. */

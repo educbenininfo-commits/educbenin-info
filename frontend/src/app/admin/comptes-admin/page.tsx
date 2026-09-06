@@ -6,28 +6,22 @@
 // ADMIN/SUPERADMIN global existe). "+ Inviter un membre" n'a pas de
 // comportement réel dans le prototype — même état ici.
 
-type Perm = 'manage' | 'read' | 'none';
+import { ADMIN_MEMBERS as MEMBERS, type AdminPerm } from '@/lib/backoffice-static-data';
 
-const PERM_LABEL: Record<Perm, string> = {
+const PERM_LABEL: Record<AdminPerm, string> = {
   manage: 'Gérer',
   read: 'Lecture seule',
   none: 'Aucun accès',
 };
 
-const MEMBERS: { name: string; perms: [Perm, Perm, Perm, Perm, Perm] }[] = [
-  { name: 'Horace L. — Fondateur', perms: ['manage', 'manage', 'manage', 'manage', 'manage'] },
-  {
-    name: 'Chimène A. — Agent de traitement',
-    perms: ['manage', 'manage', 'read', 'none', 'none'],
-  },
-  {
-    name: 'Roméo K. — Agent authentification',
-    perms: ['manage', 'read', 'none', 'none', 'none'],
-  },
-  { name: 'Estelle D. — Supervision', perms: ['manage', 'manage', 'manage', 'read', 'none'] },
-];
+export default async function ComptesAdminPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const query = ((await searchParams).q ?? '').trim().toLowerCase();
+  const rows = query ? MEMBERS.filter((m) => m.name.toLowerCase().includes(query)) : MEMBERS;
 
-export default function ComptesAdminPage() {
   return (
     <>
       <div
@@ -65,16 +59,24 @@ export default function ComptesAdminPage() {
             </tr>
           </thead>
           <tbody>
-            {MEMBERS.map((m) => (
-              <tr key={m.name}>
-                <td>{m.name}</td>
-                {m.perms.map((p, i) => (
-                  <td key={i}>
-                    <span className={`perm ${p}`}>{PERM_LABEL[p]}</span>
-                  </td>
-                ))}
+            {rows.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="hint">
+                  Aucun membre ne correspond à cette recherche.
+                </td>
               </tr>
-            ))}
+            ) : (
+              rows.map((m) => (
+                <tr key={m.name}>
+                  <td>{m.name}</td>
+                  {m.perms.map((p, i) => (
+                    <td key={i}>
+                      <span className={`perm ${p}`}>{PERM_LABEL[p]}</span>
+                    </td>
+                  ))}
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
