@@ -1,8 +1,9 @@
 // frontend/src/components/backoffice/dossiers/DossiersList.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useApi } from '@/lib/useApi';
 import {
   DOSSIER_FILTERS,
   STAGE_NAMES,
@@ -14,43 +15,29 @@ import {
   matchesDossierSearch,
   type DossierListItem,
 } from '@/lib/dossiers-data';
-import { fetchDossiers } from '@/lib/dossiers-admin-api';
 import { DossierModal } from './DossierModal';
+
+interface DossiersResponse {
+  items: DossierListItem[];
+  counts: Record<string, number>;
+}
 
 export function DossiersList() {
   const searchParams = useSearchParams();
   const query = searchParams.get('q') ?? '';
   const [filter, setFilter] = useState<'all' | 1 | 2 | 3 | 4 | 5>('all');
-  const [items, setItems] = useState<DossierListItem[]>([]);
-  const [counts, setCounts] = useState<Record<string, number>>({
-    all: 0,
-    '1': 0,
-    '2': 0,
-    '3': 0,
-    '4': 0,
-    '5': 0,
-  });
-  const [loading, setLoading] = useState(true);
   const [openId, setOpenId] = useState<string | null>(null);
 
-  async function reload() {
-    setLoading(true);
-    try {
-      const res = await fetchDossiers(filter);
-      setItems(res.items);
-      setCounts(res.counts);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    void reload();
-    // Only `filter` should re-trigger the fetch — `reload` is redefined every
-    // render but is stable in behavior (closes over the same `filter` value).
-    // (No react-hooks/exhaustive-deps plugin is configured in this repo's
-    // eslint.config.mjs, so no disable directive is needed here.)
-  }, [filter]);
+  // useApi caches per URL (module-level, survives unmount) — switching
+  // filters or navigating back to Dossiers from elsewhere in the back-office
+  // shows the last-known list instantly instead of a blank "Chargement…"
+  // every time, while a stale (>2min) entry silently revalidates in the
+  // background.
+  const { data, loading, refresh } = useApi<DossiersResponse>(
+    `/api/admin/dossiers?stage=${filter}`,
+  );
+  const items = data?.items ?? [];
+  const counts = data?.counts ?? { all: 0, '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 };
 
   const visibleItems = items.filter((d) => matchesDossierSearch(d, query));
 
@@ -71,7 +58,7 @@ export function DossiersList() {
       </div>
 
       <div className="dossier-list">
-        {loading ? (
+        {loading && !data ? (
           <div className="dossier-empty">Chargement…</div>
         ) : visibleItems.length === 0 ? (
           <div className="dossier-empty">
@@ -108,7 +95,7 @@ export function DossiersList() {
           key={openId}
           id={openId}
           onClose={() => setOpenId(null)}
-          onChanged={() => void reload()}
+          onChanged={() => void refresh()}
         />
       )}
     </>

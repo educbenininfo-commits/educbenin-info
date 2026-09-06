@@ -2,6 +2,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { invalidateCachePrefix } from '@/lib/useApi';
 import {
   STAGE_NAMES,
   fmtF,
@@ -291,6 +292,7 @@ export function DossierModal({
     try {
       const res = await advanceDossier(dossier.id);
       setDossier(res.dossier);
+      invalidateCachePrefix('/api/admin/dossiers');
       onChanged();
       setConfirm(null);
     } catch {
@@ -306,6 +308,7 @@ export function DossierModal({
     try {
       const res = await restoreDossier(dossier.id);
       setDossier(res.dossier);
+      invalidateCachePrefix('/api/admin/dossiers');
       onChanged();
       setConfirm(null);
     } catch {
@@ -321,6 +324,7 @@ export function DossierModal({
     try {
       const res = await rejectDossier(dossier.id, confirm.motif);
       setDossier(res.dossier);
+      invalidateCachePrefix('/api/admin/dossiers');
       onChanged();
       setConfirm(null);
     } catch {

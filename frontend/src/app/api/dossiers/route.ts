@@ -13,6 +13,8 @@ import {
   CANDIDATE_DOCUMENT_MAX_BYTES,
 } from '@/lib/server/upload/uploadPublicFile';
 import { SPECIALTIES } from '@/lib/specialties';
+import { notifyAdmins } from '@/lib/server/push/send';
+import { log } from '@/lib/server/observability/log';
 
 const WHATSAPP_RE = /^\+229\s?(\d{2}\s?){4}$/;
 const VALID_CODES = new Set(SPECIALTIES.map((s) => s.code));
@@ -105,6 +107,16 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       where: { id: created.id },
       data: { pieceJointeUrl: upload.path },
     });
+
+    try {
+      await notifyAdmins({
+        title: 'Nouveau dossier',
+        body: `${nom} ${prenom} vient de déposer un dossier (${created.reference}).`,
+        url: '/admin/dossiers',
+      });
+    } catch (err) {
+      log.warn('dossiers: notifyAdmins failed', { err: String(err) });
+    }
 
     return NextResponse.json({ reference: created.reference }, { status: 201 });
   });

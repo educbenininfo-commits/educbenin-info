@@ -53,4 +53,15 @@ export default tseslint.config(
       '@typescript-eslint/no-require-imports': 'off',
     },
   },
+  {
+    // Service worker script — runs in its own global scope (ServiceWorkerGlobalScope),
+    // not a browser window or Node process, so it needs its own globals (self,
+    // clients, registration, caches, …) rather than globals.browser/node above.
+    files: ['frontend/public/sw.js'],
+    languageOptions: {
+      globals: {
+        ...globals.serviceworker,
+      },
+    },
+  },
 );

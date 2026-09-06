@@ -49,6 +49,7 @@ model User {
   ownedOrganizations Organization[]      @relation("OrgOwner")
   memberships        OrganizationMember[] @relation("OrgMembership")
   sessions           Session[]
+  pushSubscriptions  PushSubscription[]
 
   @@index([email])
   @@index([role])
@@ -77,6 +78,29 @@ model Session {
   createdAt  DateTime  @default(now())
   lastSeenAt DateTime  @default(now())
   revokedAt  DateTime?
+
+  @@index([userId])
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// Web Push subscriptions — one row per browser/device an admin subscribed
+// from (usually while running the installed PWA, see
+// components/pwa/PushSetup.tsx). `endpoint` is unique per push service
+// registration; `p256dh`/`auth` are the subscription's encryption keys,
+// required by the Web Push protocol (see lib/server/push/send.ts). A
+// subscription that a push service reports as gone (404/410) is deleted
+// rather than retried.
+model PushSubscription {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  endpoint  String @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+
+  createdAt DateTime @default(now())
 
   @@index([userId])
 }

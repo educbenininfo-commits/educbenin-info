@@ -10,6 +10,8 @@ import {
   uploadPublicFile,
   CANDIDATE_DOCUMENT_MAX_BYTES,
 } from '@/lib/server/upload/uploadPublicFile';
+import { notifyAdmins } from '@/lib/server/push/send';
+import { log } from '@/lib/server/observability/log';
 
 export type AuthTokenReason = 'invalid' | 'expired' | 'already-submitted' | 'wrong-stage';
 
@@ -183,6 +185,16 @@ export async function POST(
         authSubmittedAt: new Date(),
       },
     });
+
+    try {
+      await notifyAdmins({
+        title: "Formulaire d'authentification reçu",
+        body: `${parsed.data.nom} ${parsed.data.prenom} a soumis son dossier d'authentification de diplôme (${reference}).`,
+        url: '/admin/dossiers',
+      });
+    } catch (err) {
+      log.warn('auth-form: notifyAdmins failed', { err: String(err) });
+    }
 
     return NextResponse.json({ ok: true });
   });

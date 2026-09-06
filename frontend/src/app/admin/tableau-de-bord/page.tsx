@@ -9,11 +9,9 @@
 // suggestion). #kpiBlockFinance and the chart/payment-breakdown panels stay
 // example data per spec §2/§10 — no financial ledger exists yet.
 
-import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { api } from '@/lib/api';
-import { fetchDossiers } from '@/lib/dossiers-admin-api';
+import { useApi } from '@/lib/useApi';
 import { FinanceChart } from '@/components/backoffice/FinanceChart';
 import { fmtF2 } from '@/lib/format';
 import {
@@ -68,60 +66,40 @@ const FIN_MOYENS: { label: string; pct: number; color: string }[] = [
   { label: 'Virement', pct: 15, color: '#8B84C7' },
 ];
 
+interface DossiersResponse {
+  items: DossierListItem[];
+  counts: Record<string, number>;
+}
+
 export default function TableauDeBordPage() {
   const searchParams = useSearchParams();
   const rawQuery = searchParams.get('q') ?? '';
   const query = rawQuery.trim().toLowerCase();
-  const [summary, setSummary] = useState<SummaryResponse | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        const res = await api<SummaryResponse>('/api/admin/dossiers/summary');
-        if (!cancelled) setSummary(res);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  // useApi's cache is shared by URL — these two calls hit the exact same
+  // cache entries DossiersList/RejectedDossiersList use, so searching from
+  // here after having just visited Dossiers (or vice versa) is instant.
+  const { data: summary, loading } = useApi<SummaryResponse>('/api/admin/dossiers/summary');
 
   // Global search — the Tableau de bord's search box is the one entry point
   // that searches EVERY back-office section at once (à la recherche
   // Réglages iPhone), unlike every other page which only filters its own
-  // list. Dossiers are fetched on demand (only while a query is active);
+  // list. Dossiers are fetched on demand (skipped while no query is active);
   // the other sections are already in-memory arrays, filtered client-side.
-  const [dossiers, setDossiers] = useState<DossierListItem[]>([]);
-  const [rejetes, setRejetes] = useState<DossierListItem[]>([]);
-  const [dossiersLoading, setDossiersLoading] = useState(false);
-
-  useEffect(() => {
-    if (!query) return;
-    let cancelled = false;
-    setDossiersLoading(true);
-    void (async () => {
-      try {
-        const [all, rejected] = await Promise.all([fetchDossiers('all'), fetchDossiers(0)]);
-        if (!cancelled) {
-          setDossiers(all.items);
-          setRejetes(rejected.items);
-        }
-      } finally {
-        if (!cancelled) setDossiersLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [query]);
+  const { data: dossiersRes, loading: dossiersLoading } = useApi<DossiersResponse>(
+    '/api/admin/dossiers?stage=all',
+    { skip: !query },
+  );
+  const { data: rejetesRes, loading: rejetesLoading } = useApi<DossiersResponse>(
+    '/api/admin/dossiers?stage=0',
+    { skip: !query },
+  );
 
   if (query) {
-    const matchingDossiers = dossiers.filter((d) => matchesDossierSearch(d, query));
-    const matchingRejetes = rejetes.filter((d) => matchesDossierSearch(d, query));
+    const matchingDossiers = (dossiersRes?.items ?? []).filter((d) =>
+      matchesDossierSearch(d, query),
+    );
+    const matchingRejetes = (rejetesRes?.items ?? []).filter((d) => matchesDossierSearch(d, query));
     const matchingSpecialites = SPECIALTIES.filter(
       (s) =>
         s.name.toLowerCase().includes(query) ||
@@ -138,8 +116,9 @@ export default function TableauDeBordPage() {
     const matchingMembers = ADMIN_MEMBERS.filter((m) => m.name.toLowerCase().includes(query));
 
     const qs = `?q=${encodeURIComponent(rawQuery)}`;
+    const searching = (dossiersLoading && !dossiersRes) || (rejetesLoading && !rejetesRes);
     const nothingFound =
-      !dossiersLoading &&
+      !searching &&
       matchingDossiers.length === 0 &&
       matchingRejetes.length === 0 &&
       matchingSpecialites.length === 0 &&
@@ -151,7 +130,7 @@ export default function TableauDeBordPage() {
         <h3 className="bo-h1">Résultats pour «&nbsp;{rawQuery}&nbsp;»</h3>
         <div className="bo-sub">Recherche dans tout le back-office.</div>
 
-        {dossiersLoading && (
+        {searching && (
           <p className="hint" style={{ marginTop: 16 }}>
             Recherche en cours…
           </p>
@@ -267,7 +246,9 @@ export default function TableauDeBordPage() {
           <div className="kpi-grid">
             {KPI_DEFS.map((k) => (
               <div key={k.key} className={`kpi ${k.cls}`}>
-                <div className="n mono">{loading ? '—' : (summary?.kpis[k.key] ?? 0)}</div>
+                <div className="n mono">
+                  {loading && !summary ? '—' : (summary?.kpis[k.key] ?? 0)}
+                </div>
                 <div className="l">{k.l}</div>
               </div>
             ))}
@@ -305,8 +286,8 @@ export default function TableauDeBordPage() {
           <h3>Dossiers en attente depuis plus de 5 jours</h3>
           <div className="sub">Nécessitent une action de l&rsquo;équipe</div>
           {(() => {
-            if (loading) return <p className="hint">Chargement…</p>;
-            const rows = summary!.enAttente;
+            if (loading && !summary) return <p className="hint">Chargement…</p>;
+            const rows = summary?.enAttente ?? [];
             if (rows.length === 0) {
               return <p className="hint">Aucun dossier en attente depuis plus de 5 jours.</p>;
             }
@@ -324,8 +305,8 @@ export default function TableauDeBordPage() {
           <h3>Activité récente</h3>
           <div className="sub">Dernières actions du back-office</div>
           {(() => {
-            if (loading) return <p className="hint">Chargement…</p>;
-            const rows = summary!.activiteRecente;
+            if (loading && !summary) return <p className="hint">Chargement…</p>;
+            const rows = summary?.activiteRecente ?? [];
             if (rows.length === 0) {
               return <p className="hint">Aucune activité récente.</p>;
             }

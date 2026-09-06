@@ -1,44 +1,40 @@
 // frontend/src/components/backoffice/dossiers/RejectedDossiersList.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useApi, invalidateCache } from '@/lib/useApi';
 import {
   displayName,
   specialtyLabel,
   matchesDossierSearch,
   type DossierListItem,
 } from '@/lib/dossiers-data';
-import { fetchDossiers, restoreDossier } from '@/lib/dossiers-admin-api';
+import { restoreDossier } from '@/lib/dossiers-admin-api';
+
+interface DossiersResponse {
+  items: DossierListItem[];
+  counts: Record<string, number>;
+}
 
 export function RejectedDossiersList() {
   const searchParams = useSearchParams();
   const query = searchParams.get('q') ?? '';
-  const [items, setItems] = useState<DossierListItem[]>([]);
-  const [loading, setLoading] = useState(true);
   const [restoringId, setRestoringId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function reload() {
-    setLoading(true);
-    try {
-      const res = await fetchDossiers(0);
-      setItems(res.items);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    void reload();
-  }, []);
+  const { data, loading, refresh } = useApi<DossiersResponse>('/api/admin/dossiers?stage=0');
+  const items = data?.items ?? [];
 
   async function handleRestore(id: string) {
     setError(null);
     setRestoringId(id);
     try {
       await restoreDossier(id);
-      await reload();
+      // Restoring moves the dossier out of stage 0 and into the normal
+      // Dossiers list (stage=all) — that cache entry is now stale too.
+      invalidateCache('/api/admin/dossiers?stage=all');
+      await refresh();
     } catch {
       setError('Impossible de restaurer ce dossier.');
     } finally {
@@ -66,7 +62,7 @@ export function RejectedDossiersList() {
           </tr>
         </thead>
         <tbody>
-          {loading ? (
+          {loading && !data ? (
             <tr>
               <td colSpan={5} className="hint">
                 Chargement…

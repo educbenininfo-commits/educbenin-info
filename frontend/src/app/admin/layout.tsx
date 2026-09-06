@@ -1,152 +1,28 @@
-'use client';
+import type { Metadata } from 'next';
+import type { ReactNode } from 'react';
+import { AdminLayoutClient } from './AdminLayoutClient';
 
-// Real admin gate — GET /api/admin/me returns 200 (admin object) or
-// 401/403. Pattern copied from examples/frontend-pages/admin/layout.tsx,
-// the starter's own reference implementation. Renders the DESIGN-SPEC.md
-// `.bo` shell (sidebar + mobile bottom nav + top bar) around every
-// /admin/* page.
-
-import { useEffect, useState, type ReactNode } from 'react';
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { api, ApiError } from '@/lib/api';
-import { BackofficeSidebar } from '@/components/backoffice/BackofficeSidebar';
-import { BackofficeBottomNav } from '@/components/backoffice/BackofficeBottomNav';
-import { BackofficeAdminProvider } from '@/contexts/BackofficeAdminContext';
-import { ThemeToggle } from '@/components/theme/ThemeToggle';
-
-interface AdminMe {
-  admin: { id: string; email: string; role: 'ADMIN' | 'SUPERADMIN' };
-}
-
-// The search box filters whatever list lives on the CURRENT admin page — it
-// is not scoped to Dossiers. Each page reads the shared `?q=` URL param
-// itself and filters its own rows (Dossiers/Dossiers rejetés via
-// matchesDossierSearch in dossiers-data.ts; Spécialités/Tarifs/Comptes admin
-// filter their own arrays server-side). Tableau de bord is the one
-// exception — per product decision, its search box searches EVERY section
-// at once (à la recherche Réglages iPhone) instead of just its own two
-// widgets; see its page for the merged results view. Only Paramètres has no
-// list to search, so it keeps the static "—" it always had.
-const SEARCH_PLACEHOLDERS: Record<string, string> = {
-  '/admin/dossiers': 'Rechercher un dossier (nom, référence, WhatsApp)…',
-  '/admin/dossiers-rejetes': 'Rechercher un dossier rejeté…',
-  '/admin/specialites': 'Rechercher une spécialité, une salle…',
-  '/admin/tarifs': "Rechercher dans l'historique des tarifs…",
-  '/admin/comptes-admin': 'Rechercher un membre…',
-  '/admin/tableau-de-bord': 'Rechercher dans tout le back-office…',
+// Server Component on purpose: `metadata.manifest` here overrides, for this
+// segment and everything under it, the <link rel="manifest"> that Next.js
+// auto-injects site-wide from the root app/manifest.ts special file. Next.js
+// merges metadata per-route with the most specific segment winning on
+// singular fields, and renders the result server-side — so every /admin/*
+// page's initial HTML already points at /admin-manifest.webmanifest before
+// any client JS runs. That's what makes "installer l'app" from inside the
+// back-office open straight back into the back-office instead of the public
+// homepage, without a client-side DOM-mutation race against the browser's
+// install-prompt logic. Candidates installing from the public site are
+// unaffected — they never render this segment.
+//
+// (app/admin/manifest.ts, the file-convention approach, does NOT work here —
+// confirmed via build output showing no route generated for it and a live
+// 404 on /admin/manifest.webmanifest: Next's special-file manifest handling
+// is root-only, unlike this `metadata` field which does support per-segment
+// overrides.)
+export const metadata: Metadata = {
+  manifest: '/admin-manifest.webmanifest',
 };
 
-function AdminSearchBox({ pathname }: { pathname: string }) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  if (pathname === '/admin/parametres') {
-    return <div className="bo-search">—</div>;
-  }
-
-  function updateQuery(next: string) {
-    const params = new URLSearchParams(searchParams.toString());
-    if (next.trim()) params.set('q', next);
-    else params.delete('q');
-    const qs = params.toString();
-    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-  }
-
-  return (
-    <input
-      key={pathname}
-      className="bo-search"
-      type="search"
-      placeholder={SEARCH_PLACEHOLDERS[pathname] ?? 'Rechercher…'}
-      defaultValue={searchParams.get('q') ?? ''}
-      onChange={(e) => updateQuery(e.target.value)}
-    />
-  );
-}
-
 export default function AdminLayout({ children }: { children: ReactNode }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const [admin, setAdmin] = useState<AdminMe['admin'] | null>(null);
-  const [checked, setChecked] = useState(false);
-
-  // Swap the single <link rel="manifest"> to the back-office one for as
-  // long as any /admin/* page is mounted, restoring the public one on
-  // unmount. Next.js's manifest.ts special file is root-only (no nested
-  // per-segment override), so this is what actually makes "installer
-  // l'app" from inside the back-office open straight back into the
-  // back-office instead of the public homepage — without touching what
-  // candidates get when they install from the public site.
-  useEffect(() => {
-    const link = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
-    const previousHref = link?.getAttribute('href') ?? '/manifest.webmanifest';
-    link?.setAttribute('href', '/admin-manifest.webmanifest');
-    return () => {
-      link?.setAttribute('href', previousHref);
-    };
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        const res = await api<AdminMe>('/api/admin/me');
-        if (!cancelled) setAdmin(res.admin);
-      } catch (err) {
-        if (!cancelled) {
-          if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
-            router.replace('/connexion');
-          } else {
-            router.replace('/connexion');
-          }
-        }
-      } finally {
-        if (!cancelled) setChecked(true);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [router]);
-
-  if (!checked || !admin) {
-    return (
-      <div
-        className="prod"
-        style={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <span style={{ color: 'var(--prod-ink-muted)', fontSize: 13.5 }}>
-          Vérification de l&rsquo;accès…
-        </span>
-      </div>
-    );
-  }
-
-  return (
-    <BackofficeAdminProvider admin={admin}>
-      <div className="prod bo">
-        <BackofficeSidebar />
-        <BackofficeBottomNav />
-        <div className="bo-main">
-          <div className="bo-top">
-            <AdminSearchBox pathname={pathname} />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <ThemeToggle />
-              <div className="bo-user">
-                <div className="avatar">{admin.email.slice(0, 2).toUpperCase()}</div>
-                {admin.email} ·{' '}
-                {admin.role === 'SUPERADMIN' ? 'Super-administrateur' : 'Administrateur'}
-              </div>
-            </div>
-          </div>
-          <div className="bo-content">{children}</div>
-        </div>
-      </div>
-    </BackofficeAdminProvider>
-  );
+  return <AdminLayoutClient>{children}</AdminLayoutClient>;
 }
