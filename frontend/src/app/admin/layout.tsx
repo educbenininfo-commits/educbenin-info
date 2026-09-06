@@ -21,6 +21,7 @@ import { AdminLayoutClient } from './AdminLayoutClient';
 // overrides.)
 export const metadata: Metadata = {
   manifest: '/admin-manifest.webmanifest',
+  robots: { index: false, follow: false },
 };
 
 export default function AdminLayout({ children }: { children: ReactNode }) {

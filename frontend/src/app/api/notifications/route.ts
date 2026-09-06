@@ -26,6 +26,11 @@ const MAX_LIMIT = 50;
 
 const PatchBody = z.object({
   ids: z.union([z.array(z.string().min(1)).min(1), z.literal('all')]),
+  // Narrows `ids: 'all'` to specific Notification.type values — lets the
+  // "Dossiers" nav badge mark only dossier-related notifications read on
+  // visiting /admin/dossiers, without touching unrelated unread rows.
+  // Ignored when `ids` is an explicit array.
+  types: z.array(z.string().min(1)).optional(),
 });
 
 interface SerializedNotification {
@@ -119,7 +124,13 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
 
     const where: Prisma.NotificationWhereInput =
       parsed.data.ids === 'all'
-        ? { userId: auth.user.sub, readAt: null }
+        ? {
+            userId: auth.user.sub,
+            readAt: null,
+            ...(parsed.data.types && parsed.data.types.length > 0
+              ? { type: { in: parsed.data.types } }
+              : {}),
+          }
         : { userId: auth.user.sub, readAt: null, id: { in: parsed.data.ids } };
 
     const r = await prisma.notification.updateMany({

@@ -4,8 +4,14 @@
 // "[À COMPLÉTER]" et la mention "(proposition à valider)" sont des points
 // réels non tranchés côté client — à ne pas combler par extrapolation.
 
+import type { Metadata } from 'next';
 import { PublicNav } from '@/components/public/PublicNav';
 import { PublicBottomNav } from '@/components/public/PublicBottomNav';
+
+export const metadata: Metadata = {
+  title: 'Politique de confidentialité',
+  alternates: { canonical: '/confidentialite' },
+};
 
 export default function ConfidentialitePage() {
   return (

@@ -4,8 +4,14 @@
 // sont des informations juridiques réelles non finalisées — à ne pas
 // inventer, ils restent tels quels jusqu'à ce que le client les fournisse.
 
+import type { Metadata } from 'next';
 import { PublicNav } from '@/components/public/PublicNav';
 import { PublicBottomNav } from '@/components/public/PublicBottomNav';
+
+export const metadata: Metadata = {
+  title: 'Mentions légales',
+  alternates: { canonical: '/mentions-legales' },
+};
 
 export default function MentionsLegalesPage() {
   return (

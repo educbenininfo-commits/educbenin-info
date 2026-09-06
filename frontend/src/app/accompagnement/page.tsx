@@ -2,9 +2,17 @@
 // section "2. Accompagnement & demande". Contenu et structure reproduits à
 // la lettre depuis docs/design-reference/educbenin-prototype.html.
 
+import type { Metadata } from 'next';
 import { PublicNav } from '@/components/public/PublicNav';
 import { PublicBottomNav } from '@/components/public/PublicBottomNav';
 import { DemandForm } from '@/components/accompagnement/DemandForm';
+
+export const metadata: Metadata = {
+  title: 'Accompagnement & demande de dossier',
+  description:
+    'Pièces à fournir, tarif, et formulaire de demande en 3 étapes pour votre dossier de probatoire spécialité FSS/UAC — spécialité, informations personnelles, pièces & envoi.',
+  alternates: { canonical: '/accompagnement' },
+};
 
 const PIECES: { id: string; content: React.ReactNode }[] = [
   {

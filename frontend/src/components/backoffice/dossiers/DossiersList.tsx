@@ -1,9 +1,10 @@
 // frontend/src/components/backoffice/dossiers/DossiersList.tsx
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useApi } from '@/lib/useApi';
+import { markDossiersNotificationsRead } from '@/lib/useDossiersUnreadCount';
 import {
   DOSSIER_FILTERS,
   STAGE_NAMES,
@@ -38,6 +39,11 @@ export function DossiersList() {
   );
   const items = data?.items ?? [];
   const counts = data?.counts ?? { all: 0, '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 };
+
+  // Clears the "Dossiers" nav badge — the admin is looking at the list now.
+  useEffect(() => {
+    markDossiersNotificationsRead();
+  }, []);
 
   const visibleItems = items.filter((d) => matchesDossierSearch(d, query));
 

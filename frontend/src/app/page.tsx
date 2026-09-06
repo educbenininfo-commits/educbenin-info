@@ -44,9 +44,27 @@ const STEPS: { n: string; title: string; desc: string }[] = [
 // c'est aussi cet ordre qui détermine les 6 tuiles affichées sur l'accueil).
 const HOME_SPECIALTIES = SPECIALTIES.slice(0, 6);
 
+// Minimal, strictly factual JSON-LD (name/url/description/logo only) — no
+// address, phone, or founding date, since none of that is finalized yet
+// (see Mentions légales' "[À COMPLÉTER]" fields). Fabricating those for SEO
+// would risk a Google structured-data mismatch penalty, not help ranking.
+const ORGANIZATION_JSON_LD = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'Educ Bénin',
+  url: 'https://www.educbenin.info',
+  logo: 'https://www.educbenin.info/logo/lockup-dark.svg',
+  description:
+    'Educ Bénin accompagne les médecins candidats aux 27 spécialités de la FSS : rassemblement des pièces, authentification de diplôme, inscription en ligne et dépôt du dossier — avec un suivi clair à chaque étape.',
+};
+
 export default function Home() {
   return (
     <div className="prod">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(ORGANIZATION_JSON_LD) }}
+      />
       <PublicNav active="home" />
       <PublicBottomNav active="home" />
 

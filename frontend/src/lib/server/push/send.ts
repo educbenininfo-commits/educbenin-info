@@ -1,20 +1,32 @@
-// Web Push sender — notifies every admin device subscribed via
-// components/pwa/PushSetup.tsx (only offered while running the installed
-// PWA). Lazy-configures VAPID the same way cloudinary-client.ts/
-// supabase-storage-client.ts gate on their own required env vars: missing
-// keys make this a clean no-op instead of a crash, so a dev/preview
-// environment without push configured still boots and creates dossiers
-// fine — it just doesn't notify anyone.
+// Admin notification fan-out for dossier events (new dossier, auth-diplome
+// form submitted). Two channels, both best-effort — neither may ever throw,
+// since callers (dossier create, auth-form submit) must not fail the
+// candidate's request over a notification problem:
+//   1. In-app Notification rows (every ADMIN/SUPERADMIN, regardless of
+//      whether they've installed the PWA) — this is what drives the unread
+//      badge on the "Dossiers" nav item (see lib/notification-types.ts +
+//      lib/useDossiersUnreadCount.ts).
+//   2. Web Push (only devices subscribed via components/pwa/PushSetup.tsx,
+//      which only offers to subscribe while running the installed PWA).
+//      Lazy-configures VAPID the same way cloudinary-client.ts/
+//      supabase-storage-client.ts gate on their own required env vars —
+//      missing keys just skip this channel, in-app rows are unaffected.
 import 'server-only';
 import webpush from 'web-push';
 import { prisma } from '@/lib/server/prisma';
 import { log } from '@/lib/server/observability/log';
+import { createNotification } from '@/lib/server/notifications';
 
-export interface PushPayload {
+export interface NotifyAdminsInput {
   title: string;
   body: string;
   /** Path to focus/open when the notification is clicked, e.g. "/admin/dossiers". */
   url: string;
+  /** Notification.type — see lib/notification-types.ts. Drives per-menu unread badges. */
+  type: string;
+  /** Deterministic dedup base, WITHOUT the recipient suffix — `:${adminId}` is appended per admin. */
+  dedupeKeyBase: string;
+  data?: Record<string, unknown>;
 }
 
 let _configured = false;
@@ -30,15 +42,34 @@ function configureOnce(): boolean {
   return true;
 }
 
-/**
- * Sends `payload` to every stored PushSubscription. Best-effort: a
- * subscription the push service reports as gone (404/410 — uninstalled,
- * permission revoked, browser data cleared) is deleted; any other failure
- * is logged and skipped. Never throws — callers (dossier create, auth-form
- * submit) must not fail the candidate's request over a notification
- * problem.
- */
-export async function notifyAdmins(payload: PushPayload): Promise<void> {
+async function createInAppNotifications(input: NotifyAdminsInput): Promise<void> {
+  const admins = await prisma.user.findMany({
+    where: { role: { in: ['ADMIN', 'SUPERADMIN'] } },
+    select: { id: true },
+  });
+
+  await Promise.all(
+    admins.map(async (admin) => {
+      try {
+        await createNotification(prisma, {
+          userId: admin.id,
+          type: input.type,
+          title: input.title,
+          body: input.body,
+          ...(input.data ? { data: input.data } : {}),
+          dedupeKey: `${input.dedupeKeyBase}:${admin.id}`,
+        });
+      } catch (err) {
+        log.warn('notifyAdmins: createNotification failed', {
+          adminId: admin.id,
+          err: String(err),
+        });
+      }
+    }),
+  );
+}
+
+async function sendWebPush(input: NotifyAdminsInput): Promise<void> {
   if (!configureOnce()) return;
 
   const subscriptions = await prisma.pushSubscription.findMany({
@@ -46,7 +77,7 @@ export async function notifyAdmins(payload: PushPayload): Promise<void> {
   });
   if (subscriptions.length === 0) return;
 
-  const body = JSON.stringify(payload);
+  const body = JSON.stringify({ title: input.title, body: input.body, url: input.url });
   const staleIds: string[] = [];
 
   await Promise.all(
@@ -73,4 +104,10 @@ export async function notifyAdmins(payload: PushPayload): Promise<void> {
   if (staleIds.length > 0) {
     await prisma.pushSubscription.deleteMany({ where: { id: { in: staleIds } } });
   }
+}
+
+/** Best-effort — never throws. See module doc for the two channels this fans out to. */
+export async function notifyAdmins(input: NotifyAdminsInput): Promise<void> {
+  await createInAppNotifications(input);
+  await sendWebPush(input);
 }

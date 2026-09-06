@@ -4,8 +4,14 @@
 // des articles (1,2,3,5,6,8,10 — pas de 4,7,9) est volontaire, pas une
 // erreur de transcription — voir DESIGN-SPEC.md.
 
+import type { Metadata } from 'next';
 import { PublicNav } from '@/components/public/PublicNav';
 import { PublicBottomNav } from '@/components/public/PublicBottomNav';
+
+export const metadata: Metadata = {
+  title: 'CGU / CGV',
+  alternates: { canonical: '/cgu-cgv' },
+};
 
 export default function CguCgvPage() {
   return (

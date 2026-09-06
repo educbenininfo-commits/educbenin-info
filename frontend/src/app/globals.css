@@ -537,6 +537,7 @@ button {
   text-decoration: none;
 }
 .p-bn-item .ic {
+  position: relative;
   width: 20px;
   height: 20px;
   display: flex;
@@ -1244,6 +1245,35 @@ button {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+/* Unread-count badge on nav items (currently just "Dossiers") — sidebar
+   (.bo-item), bottom-bar icon (.p-bn-item .ic), and the mobile "more" sheet
+   share this pill. */
+.nav-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--prod-danger);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1;
+  margin-left: 6px;
+}
+.nav-badge-icon {
+  position: absolute;
+  top: -5px;
+  right: -9px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  font-size: 9px;
+  margin-left: 0;
 }
 .bo-main {
   flex: 1;

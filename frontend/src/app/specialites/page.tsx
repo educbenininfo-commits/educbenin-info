@@ -2,9 +2,17 @@
 // "4. Spécialités". Contenu et structure reproduits à la lettre depuis
 // docs/design-reference/educbenin-prototype.html.
 
+import type { Metadata } from 'next';
 import { PublicNav } from '@/components/public/PublicNav';
 import { PublicBottomNav } from '@/components/public/PublicBottomNav';
 import { SpecialtyGrid } from '@/components/specialites/SpecialtyGrid';
+
+export const metadata: Metadata = {
+  title: 'Les 27 spécialités du D.E.S. de la FSS',
+  description:
+    "Liste des 27 spécialités du D.E.S. de la FSS avec, pour chacune, la date, l'heure et la salle d'examen, et l'accès aux communautés WhatsApp.",
+  alternates: { canonical: '/specialites' },
+};
 
 export default function SpecialitesPage() {
   return (

@@ -3,9 +3,11 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { BACKOFFICE_NAV } from '@/lib/backoffice-nav';
+import { useDossiersUnreadCount } from '@/lib/useDossiersUnreadCount';
 
 export function BackofficeSidebar() {
   const pathname = usePathname();
+  const dossiersUnread = useDossiersUnreadCount();
 
   return (
     <aside className="bo-side">
@@ -25,6 +27,9 @@ export function BackofficeSidebar() {
         >
           <span className="ic">{item.icon}</span>
           <span className="lbl">{item.label}</span>
+          {item.key === 'dossiers' && dossiersUnread > 0 && (
+            <span className="nav-badge">{dossiersUnread > 99 ? '99+' : dossiersUnread}</span>
+          )}
         </Link>
       ))}
     </aside>

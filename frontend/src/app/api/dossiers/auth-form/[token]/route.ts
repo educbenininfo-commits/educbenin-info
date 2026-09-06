@@ -12,6 +12,7 @@ import {
 } from '@/lib/server/upload/uploadPublicFile';
 import { notifyAdmins } from '@/lib/server/push/send';
 import { log } from '@/lib/server/observability/log';
+import { DOSSIER_AUTH_SUBMITTED } from '@/lib/notification-types';
 
 export type AuthTokenReason = 'invalid' | 'expired' | 'already-submitted' | 'wrong-stage';
 
@@ -191,6 +192,9 @@ export async function POST(
         title: "Formulaire d'authentification reçu",
         body: `${parsed.data.nom} ${parsed.data.prenom} a soumis son dossier d'authentification de diplôme (${reference}).`,
         url: '/admin/dossiers',
+        type: DOSSIER_AUTH_SUBMITTED,
+        dedupeKeyBase: `dossier-auth-submitted:${id}`,
+        data: { dossierId: id, reference },
       });
     } catch (err) {
       log.warn('auth-form: notifyAdmins failed', { err: String(err) });

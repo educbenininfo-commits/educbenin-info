@@ -15,6 +15,7 @@ import {
 import { SPECIALTIES } from '@/lib/specialties';
 import { notifyAdmins } from '@/lib/server/push/send';
 import { log } from '@/lib/server/observability/log';
+import { DOSSIER_CREATED } from '@/lib/notification-types';
 
 const WHATSAPP_RE = /^\+229\s?(\d{2}\s?){4}$/;
 const VALID_CODES = new Set(SPECIALTIES.map((s) => s.code));
@@ -113,6 +114,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         title: 'Nouveau dossier',
         body: `${nom} ${prenom} vient de déposer un dossier (${created.reference}).`,
         url: '/admin/dossiers',
+        type: DOSSIER_CREATED,
+        dedupeKeyBase: `dossier-created:${created.id}`,
+        data: { dossierId: created.id, reference: created.reference },
       });
     } catch (err) {
       log.warn('dossiers: notifyAdmins failed', { err: String(err) });

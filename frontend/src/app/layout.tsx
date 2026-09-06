@@ -41,10 +41,52 @@ const ibmPlexMono = IBM_Plex_Mono({
   display: 'swap',
 });
 
+const SITE_URL = 'https://www.educbenin.info';
+const SITE_DESCRIPTION =
+  "Educ Bénin accompagne les médecins candidats aux 27 spécialités de la FSS : rassemblement des pièces, authentification de diplôme, inscription en ligne et dépôt du dossier — avec un suivi clair à chaque étape. Service indépendant, sans affiliation avec la FSS ni l'UAC.";
+
 export const metadata: Metadata = {
-  title: 'Educ Bénin',
-  description:
-    "Accompagnement du dossier de probatoire spécialité — FSS / UAC. Service indépendant, sans affiliation avec la FSS ni l'UAC.",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: 'Educ Bénin — Accompagnement du dossier de probatoire spécialité FSS/UAC',
+    template: '%s | Educ Bénin',
+  },
+  description: SITE_DESCRIPTION,
+  keywords: [
+    'Educ Bénin',
+    'probatoire spécialité',
+    'dossier de probatoire',
+    'FSS UAC',
+    'FSS Bénin',
+    'UAC Bénin',
+    'authentification de diplôme',
+    'inscription CUO-SIGAN',
+    'D.E.S. FSS',
+    'spécialité médicale Bénin',
+    'Cotonou',
+  ],
+  authors: [{ name: 'Educ Bénin' }],
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'fr_FR',
+    siteName: 'Educ Bénin',
+    url: SITE_URL,
+    title: 'Educ Bénin — Accompagnement du dossier de probatoire spécialité FSS/UAC',
+    description: SITE_DESCRIPTION,
+    images: [{ url: '/logo/lockup-dark.svg', width: 512, height: 512, alt: 'Educ Bénin' }],
+  },
+  twitter: {
+    card: 'summary',
+    title: 'Educ Bénin — Accompagnement du dossier de probatoire spécialité FSS/UAC',
+    description: SITE_DESCRIPTION,
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({

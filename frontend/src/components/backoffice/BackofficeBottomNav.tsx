@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDossiersUnreadCount } from '@/lib/useDossiersUnreadCount';
 
 // BO_BOTTOM_NAV / BO_MORE_ITEMS — educbenin-prototype.html. "Se déconnecter"
 // calls the real /api/auth/logout (via AuthContext.logout) instead of just
@@ -41,6 +42,7 @@ export function BackofficeBottomNav() {
   const pathname = usePathname();
   const router = useRouter();
   const { logout } = useAuth();
+  const dossiersUnread = useDossiersUnreadCount();
 
   async function handleLogout() {
     setOpen(false);
@@ -57,7 +59,14 @@ export function BackofficeBottomNav() {
             href={item.href}
             className={`p-bn-item${pathname === item.href ? ' on' : ''}`}
           >
-            <span className="ic">{item.icon}</span>
+            <span className="ic">
+              {item.icon}
+              {item.key === 'dossiers' && dossiersUnread > 0 && (
+                <span className="nav-badge nav-badge-icon">
+                  {dossiersUnread > 99 ? '99+' : dossiersUnread}
+                </span>
+              )}
+            </span>
             <span>{item.label}</span>
           </Link>
         ))}
@@ -95,6 +104,9 @@ export function BackofficeBottomNav() {
             <Link key={item.key} href={item.href} onClick={() => setOpen(false)}>
               <span className="ic">{item.icon}</span>
               {item.label}
+              {item.key === 'dossiers' && dossiersUnread > 0 && (
+                <span className="nav-badge">{dossiersUnread > 99 ? '99+' : dossiersUnread}</span>
+              )}
             </Link>
           ))}
           <div className="sep" />

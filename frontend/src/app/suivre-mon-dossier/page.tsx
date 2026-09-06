@@ -2,9 +2,17 @@
 // "3. Suivre mon dossier". Contenu et structure reproduits à la lettre depuis
 // docs/design-reference/educbenin-prototype.html.
 
+import type { Metadata } from 'next';
 import { PublicNav } from '@/components/public/PublicNav';
 import { PublicBottomNav } from '@/components/public/PublicBottomNav';
 import { TrackingDemo } from '@/components/suivi/TrackingDemo';
+
+export const metadata: Metadata = {
+  title: 'Suivre mon dossier',
+  description:
+    "Retrouvez votre dossier de probatoire spécialité via votre référence et votre numéro WhatsApp, et suivez son état d'avancement étape par étape.",
+  alternates: { canonical: '/suivre-mon-dossier' },
+};
 
 export default function SuiviPage() {
   return (
