@@ -23,10 +23,9 @@ import {
   VERIFICATION_CODE_REGEX,
   setAuthCookies,
   setCsrfCookie,
-  createAccessToken,
-  createRefreshToken,
   timingSafeCompare,
 } from '@/lib/server/auth';
+import { issueSessionTokens } from '@/lib/server/auth/sessions';
 
 const Body = z.object({
   email: zEmail,
@@ -159,13 +158,11 @@ export async function POST(req: NextRequest): Promise<Response> {
       throw err;
     }
 
-    const access = await createAccessToken({
-      sub: user.id,
-      email: user.email,
-      tokenVersion: user.tokenVersion,
-    });
-    const refresh = await createRefreshToken(user.id, user.tokenVersion);
-    await setAuthCookies(access, refresh);
+    const { accessToken, refreshToken } = await issueSessionTokens(
+      { id: user.id, email: user.email, tokenVersion: user.tokenVersion },
+      req,
+    );
+    await setAuthCookies(accessToken, refreshToken);
     await setCsrfCookie();
 
     log.info('verify-email success', { userId: user.id });

@@ -18,8 +18,13 @@ vi.mock('@/lib/server/auth', async () => {
   };
 });
 
+vi.mock('@/lib/server/auth/sessions', () => ({
+  touchOrRejectSession: vi.fn(),
+}));
+
 import { acquireRefreshLock } from '@/lib/server/auth/refresh-lock';
 import { verifyRefreshToken, REFRESH_COOKIE_NAME } from '@/lib/server/auth';
+import { touchOrRejectSession } from '@/lib/server/auth/sessions';
 import { POST } from './route';
 import { NextRequest } from 'next/server';
 
@@ -41,7 +46,9 @@ beforeEach(() => {
   releaseSpy.mockClear();
   vi.mocked(acquireRefreshLock).mockReset();
   vi.mocked(verifyRefreshToken).mockReset();
+  vi.mocked(touchOrRejectSession).mockReset();
   vi.mocked(acquireRefreshLock).mockResolvedValue(releaseSpy);
+  vi.mocked(touchOrRejectSession).mockResolvedValue(true);
 });
 
 describe('POST /api/auth/refresh', () => {
@@ -168,5 +175,22 @@ describe('POST /api/auth/refresh', () => {
     // Refresh-lock never acquired (we 403 before D-20).
     expect(acquireRefreshLock).not.toHaveBeenCalled();
     expect(releaseSpy).not.toHaveBeenCalled();
+  });
+
+  it('Test 9: revoked/missing session — 401 INVALID_REFRESH, no rotation, no lock acquired', async () => {
+    vi.mocked(verifyRefreshToken).mockResolvedValue({ sub: 'u1', tokenVersion: 0, sid: 'sess_1' });
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: 'u1',
+      email: 'a@b.com',
+      tokenVersion: 0,
+    } as never);
+    vi.mocked(touchOrRejectSession).mockResolvedValue(false);
+
+    const res = await POST(makeReq('valid'));
+
+    expect(res.status).toBe(401);
+    expect((await res.json()).error).toBe('INVALID_REFRESH');
+    expect(__cookieStore.has('app-token')).toBe(false);
+    expect(acquireRefreshLock).not.toHaveBeenCalled();
   });
 });

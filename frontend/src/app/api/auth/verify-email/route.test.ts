@@ -9,6 +9,13 @@ import { NextRequest } from 'next/server';
 // Cookies mock MUST be installed at module level so vi.mock auto-hoists.
 mockNextCookies();
 
+// Session creation is exercised in sessions.test.ts — here it's a black box.
+vi.mock('@/lib/server/auth/sessions', () => ({
+  issueSessionTokens: vi
+    .fn()
+    .mockResolvedValue({ accessToken: 'mock-access', refreshToken: 'mock-refresh' }),
+}));
+
 import { POST } from './route';
 
 function makeReq(body: unknown): NextRequest {

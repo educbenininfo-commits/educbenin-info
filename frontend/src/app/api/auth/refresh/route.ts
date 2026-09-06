@@ -38,6 +38,7 @@ import {
   verifyRefreshToken,
 } from '@/lib/server/auth';
 import { acquireRefreshLock } from '@/lib/server/auth/refresh-lock';
+import { touchOrRejectSession } from '@/lib/server/auth/sessions';
 import { prisma } from '@/lib/server/prisma';
 import { makeRequestContext, withRequestContext } from '@/lib/server/observability/request-context';
 
@@ -89,6 +90,18 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
+    // Session revocation check — the enforcement point WR-06's own comment
+    // above anticipated ("add per-jti revocation tracking and check it
+    // inside verifyRefreshToken"). A revoked/missing session (logged out
+    // from Paramètres → Sessions actives, or a pre-session-tracking token)
+    // forces a fresh login instead of silently rotating forever.
+    if (!(await touchOrRejectSession(payload.sid, user.id))) {
+      return NextResponse.json(
+        { error: 'INVALID_REFRESH', message: 'Session revoked or expired.' },
+        { status: 401, headers: { 'x-request-id': ctx.requestId } },
+      );
+    }
+
     // D-20 — single-flight: only one rotation in flight per user.
     const release = await acquireRefreshLock(user.id);
     if (!release) {
@@ -103,8 +116,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         sub: user.id,
         email: user.email,
         tokenVersion: user.tokenVersion,
+        ...(payload.sid ? { sid: payload.sid } : {}),
       });
-      const refreshToken = await createRefreshToken(user.id, user.tokenVersion);
+      const refreshToken = await createRefreshToken(user.id, user.tokenVersion, payload.sid);
       await setAuthCookies(accessToken, refreshToken);
       await setCsrfCookie();
       return NextResponse.json(

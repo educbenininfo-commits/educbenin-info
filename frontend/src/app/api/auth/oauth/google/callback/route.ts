@@ -25,12 +25,8 @@ import { OAuth2RequestError } from 'arctic';
 import { cookies } from 'next/headers';
 import { tryCreateGoogleProvider, decodeIdToken } from '@/lib/server/oauth/google';
 import { redirectToAuthError, isSameOriginNext } from '@/lib/server/oauth/error-redirect';
-import {
-  setAuthCookies,
-  setCsrfCookie,
-  createAccessToken,
-  createRefreshToken,
-} from '@/lib/server/auth';
+import { setAuthCookies, setCsrfCookie } from '@/lib/server/auth';
+import { issueSessionTokens } from '@/lib/server/auth/sessions';
 import { prisma } from '@/lib/server/prisma';
 import { createNotification } from '@/lib/server/notifications';
 import { welcomeNotification } from '@/lib/server/notifications/templates';
@@ -179,13 +175,11 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       log.error('oauth.callback: user disappeared after create', { userId });
       return redirectToAuthError('OAUTH_GENERIC', redirectOpts);
     }
-    const access = await createAccessToken({
-      sub: u.id,
-      email: u.email,
-      tokenVersion: u.tokenVersion,
-    });
-    const refresh = await createRefreshToken(u.id, u.tokenVersion);
-    await setAuthCookies(access, refresh);
+    const { accessToken, refreshToken } = await issueSessionTokens(
+      { id: u.id, email: u.email, tokenVersion: u.tokenVersion },
+      req,
+    );
+    await setAuthCookies(accessToken, refreshToken);
     await setCsrfCookie();
 
     // D-03: welcome notification on first OAuth account creation.

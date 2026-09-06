@@ -131,6 +131,13 @@ export interface TokenPayload {
   email: string;
   /** Bumped on password change so old tokens are rejected. */
   tokenVersion?: number;
+  /**
+   * Stable per-device Session id (see lib/server/auth/sessions.ts) — the
+   * SAME value across every refresh-token rotation for one login, unlike
+   * a per-token jti. Lets refresh reject one revoked session without
+   * bumping tokenVersion (which would log out every device at once).
+   */
+  sid?: string;
 }
 
 export async function hashPassword(plain: string): Promise<string> {
@@ -149,8 +156,12 @@ export async function createAccessToken(payload: TokenPayload): Promise<string> 
     .sign(JWT_SECRET_BYTES);
 }
 
-export async function createRefreshToken(sub: string, tokenVersion: number = 0): Promise<string> {
-  return new SignJWT({ sub, type: 'refresh', tokenVersion })
+export async function createRefreshToken(
+  sub: string,
+  tokenVersion: number = 0,
+  sid?: string,
+): Promise<string> {
+  return new SignJWT({ sub, type: 'refresh', tokenVersion, ...(sid ? { sid } : {}) })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(REFRESH_TOKEN_EXPIRY)
@@ -170,7 +181,7 @@ export async function verifyToken(token: string): Promise<TokenPayload | null> {
 
 export async function verifyRefreshToken(
   token: string,
-): Promise<{ sub: string; tokenVersion: number } | null> {
+): Promise<{ sub: string; tokenVersion: number; sid?: string } | null> {
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET_BYTES);
     const tokenType = (payload as Record<string, unknown>).type;
@@ -178,7 +189,8 @@ export async function verifyRefreshToken(
     const sub = payload.sub as string | undefined;
     if (!sub) return null;
     const tokenVersion = (payload as Record<string, unknown>).tokenVersion as number | undefined;
-    return { sub, tokenVersion: tokenVersion ?? 0 };
+    const sid = (payload as Record<string, unknown>).sid as string | undefined;
+    return { sub, tokenVersion: tokenVersion ?? 0, ...(sid ? { sid } : {}) };
   } catch {
     return null;
   }

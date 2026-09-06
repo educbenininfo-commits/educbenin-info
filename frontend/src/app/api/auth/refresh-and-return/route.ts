@@ -29,6 +29,7 @@ import {
   verifyRefreshToken,
 } from '@/lib/server/auth';
 import { acquireRefreshLock } from '@/lib/server/auth/refresh-lock';
+import { touchOrRejectSession } from '@/lib/server/auth/sessions';
 import { prisma } from '@/lib/server/prisma';
 import { makeRequestContext, withRequestContext } from '@/lib/server/observability/request-context';
 
@@ -68,6 +69,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     if (!user || user.tokenVersion !== payload.tokenVersion || user.status === 'SUSPENDED') {
       return loginRedirect(req, next);
     }
+    if (!(await touchOrRejectSession(payload.sid, user.id))) {
+      return loginRedirect(req, next);
+    }
 
     const release = await acquireRefreshLock(user.id);
     if (!release) {
@@ -84,8 +88,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         sub: user.id,
         email: user.email,
         tokenVersion: user.tokenVersion,
+        ...(payload.sid ? { sid: payload.sid } : {}),
       });
-      const refreshToken = await createRefreshToken(user.id, user.tokenVersion);
+      const refreshToken = await createRefreshToken(user.id, user.tokenVersion, payload.sid);
       await setAuthCookies(accessToken, refreshToken);
       await setCsrfCookie();
     } finally {

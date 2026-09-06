@@ -17,13 +17,8 @@ export const runtime = 'nodejs';
 import 'server-only';
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
-import {
-  createAccessToken,
-  createRefreshToken,
-  setAuthCookies,
-  setCsrfCookie,
-  verifyPassword,
-} from '@/lib/server/auth';
+import { setAuthCookies, setCsrfCookie, verifyPassword } from '@/lib/server/auth';
+import { issueSessionTokens } from '@/lib/server/auth/sessions';
 import { isLockedOut, recordFailure, recordSuccess } from '@/lib/server/auth/lockout';
 import { dummyBcryptCompare } from '@/lib/server/auth/dummy-bcrypt';
 import { createEmailLimiter } from '@/lib/server/middleware/rate-limit-by-email';
@@ -165,12 +160,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // 8. Reset failure count and issue cookies.
     await recordSuccess(email);
 
-    const accessToken = await createAccessToken({
-      sub: user.id,
-      email: user.email,
-      tokenVersion: user.tokenVersion,
-    });
-    const refreshToken = await createRefreshToken(user.id, user.tokenVersion);
+    const { accessToken, refreshToken } = await issueSessionTokens(
+      { id: user.id, email: user.email, tokenVersion: user.tokenVersion },
+      req,
+    );
     await setAuthCookies(accessToken, refreshToken);
     await setCsrfCookie();
 

@@ -29,10 +29,14 @@ vi.mock('@/lib/server/auth', async () => {
     ...actual,
     setAuthCookies: vi.fn(),
     setCsrfCookie: vi.fn().mockResolvedValue('csrf-token'),
-    createAccessToken: vi.fn().mockResolvedValue('access-jwt'),
-    createRefreshToken: vi.fn().mockResolvedValue('refresh-jwt'),
   };
 });
+// Session creation is exercised in sessions.test.ts — here it's a black box.
+vi.mock('@/lib/server/auth/sessions', () => ({
+  issueSessionTokens: vi
+    .fn()
+    .mockResolvedValue({ accessToken: 'access-jwt', refreshToken: 'refresh-jwt' }),
+}));
 
 import {
   tryCreateGoogleProvider,

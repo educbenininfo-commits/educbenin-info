@@ -28,6 +28,13 @@ vi.mock('@/lib/server/auth', async () => {
   };
 });
 
+// Session creation is exercised in sessions.test.ts — here it's a black box.
+vi.mock('@/lib/server/auth/sessions', () => ({
+  issueSessionTokens: vi
+    .fn()
+    .mockResolvedValue({ accessToken: 'mock-access', refreshToken: 'mock-refresh' }),
+}));
+
 import { isLockedOut, recordFailure, recordSuccess } from '@/lib/server/auth/lockout';
 import { dummyBcryptCompare } from '@/lib/server/auth/dummy-bcrypt';
 import { verifyPassword } from '@/lib/server/auth';

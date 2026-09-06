@@ -9,7 +9,14 @@ export const runtime = 'nodejs';
 
 import 'server-only';
 import { NextResponse, type NextRequest } from 'next/server';
-import { clearAuthCookies, clearCsrfCookie, verifyCsrf } from '@/lib/server/auth';
+import {
+  REFRESH_COOKIE_NAME,
+  clearAuthCookies,
+  clearCsrfCookie,
+  verifyCsrf,
+  verifyRefreshToken,
+} from '@/lib/server/auth';
+import { revokeSession } from '@/lib/server/auth/sessions';
 import { makeRequestContext, withRequestContext } from '@/lib/server/observability/request-context';
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
@@ -19,6 +26,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     if (csrfFail) {
       csrfFail.headers.set('x-request-id', ctx.requestId);
       return csrfFail;
+    }
+
+    // Best-effort — revoke this device's Session row so a previously
+    // exfiltrated refresh token can't outlive an explicit logout. Never
+    // blocks the actual cookie-clearing below on failure.
+    try {
+      const refreshCookie = req.cookies.get(REFRESH_COOKIE_NAME)?.value;
+      const payload = refreshCookie ? await verifyRefreshToken(refreshCookie) : null;
+      if (payload) await revokeSession(payload.sid, payload.sub);
+    } catch {
+      // ignore — logout must succeed regardless
     }
 
     await clearAuthCookies();
