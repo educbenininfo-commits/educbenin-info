@@ -70,6 +70,22 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const [admin, setAdmin] = useState<AdminMe['admin'] | null>(null);
   const [checked, setChecked] = useState(false);
 
+  // Swap the single <link rel="manifest"> to the back-office one for as
+  // long as any /admin/* page is mounted, restoring the public one on
+  // unmount. Next.js's manifest.ts special file is root-only (no nested
+  // per-segment override), so this is what actually makes "installer
+  // l'app" from inside the back-office open straight back into the
+  // back-office instead of the public homepage — without touching what
+  // candidates get when they install from the public site.
+  useEffect(() => {
+    const link = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
+    const previousHref = link?.getAttribute('href') ?? '/manifest.webmanifest';
+    link?.setAttribute('href', '/admin-manifest.webmanifest');
+    return () => {
+      link?.setAttribute('href', previousHref);
+    };
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     void (async () => {
