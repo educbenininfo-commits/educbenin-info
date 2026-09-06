@@ -3,6 +3,7 @@ import { IBM_Plex_Sans, IBM_Plex_Mono, Source_Serif_4 } from 'next/font/google';
 import './globals.css';
 import { ToastProvider } from '@/contexts/ToastContext';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { InstallPrompt } from '@/components/pwa/InstallPrompt';
 
 // Educ Bénin design system (docs/design-reference/DESIGN-SPEC.md — Fondations
 // de design > Typographie): IBM Plex Sans for body/UI, Source Serif 4 for all
@@ -50,6 +51,7 @@ export default function RootLayout({
         <ToastProvider>
           <AuthProvider>{children}</AuthProvider>
         </ToastProvider>
+        <InstallPrompt />
       </body>
     </html>
   );

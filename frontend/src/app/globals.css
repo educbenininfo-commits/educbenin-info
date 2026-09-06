@@ -35,7 +35,11 @@
 body {
   color: var(--prod-ink);
   font-family:
-    var(--font-sans), system-ui, -apple-system, 'Segoe UI', sans-serif;
+    var(--font-sans),
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 h1,
@@ -1207,6 +1211,18 @@ button {
   color: var(--prod-ink-faint);
   width: 260px;
 }
+input.bo-search {
+  font-family: inherit;
+  color: var(--prod-ink);
+  background: var(--prod-surface);
+  outline: none;
+}
+input.bo-search::placeholder {
+  color: var(--prod-ink-faint);
+}
+input.bo-search:focus {
+  border-color: var(--prod-primary);
+}
 .bo-user {
   display: flex;
   align-items: center;
@@ -1936,5 +1952,122 @@ table.dtable tr:last-child td {
   }
   .pay-field-row {
     grid-template-columns: 1fr;
+  }
+}
+
+/* PWA install prompt — floating dismissible button + instructional modal
+   (components/pwa/InstallPrompt.tsx). z-index 70 sits above the dossier
+   modal (41) and the mobile bottom nav. */
+.pwa-fab {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.pwa-fab-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 18px;
+  border-radius: 999px;
+  border: none;
+  background: var(--prod-primary);
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 8px 24px -6px rgba(79, 70, 229, 0.55);
+}
+.pwa-fab-btn:hover {
+  background: var(--prod-primary-dark);
+}
+.pwa-fab-btn img {
+  border-radius: 4px;
+}
+.pwa-fab-close {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--prod-border);
+  background: var(--prod-surface);
+  color: var(--prod-ink-muted);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+.pwa-fab-close:hover {
+  background: var(--prod-surface-2);
+}
+.pwa-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(20, 15, 60, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.pwa-modal {
+  width: 100%;
+  max-width: 360px;
+  background: var(--prod-surface);
+  border-radius: 18px;
+  padding: 28px 24px 24px;
+  text-align: center;
+  box-shadow: 0 30px 70px -20px rgba(20, 15, 60, 0.45);
+}
+.pwa-modal-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  margin: 0 auto 14px;
+  display: block;
+}
+.pwa-modal-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--prod-primary);
+}
+.pwa-modal-title {
+  margin: 8px 0 20px;
+  font-size: 19px;
+}
+.pwa-modal-steps {
+  list-style: none;
+  margin: 0 0 20px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: left;
+}
+.pwa-modal-steps li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 13.5px;
+  color: var(--prod-ink-muted);
+}
+.pwa-step-icn {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--prod-surface-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+}
+@media (max-width: 640px) {
+  .pwa-fab {
+    right: 14px;
+    bottom: 74px;
   }
 }
