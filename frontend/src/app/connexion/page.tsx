@@ -7,7 +7,7 @@
 // something "le produit réel devra bien sûr implémenter" — per product
 // decision this session, this form calls the starter's real
 // /api/auth/login (and the Google button links to the real OAuth start
-// route). Demo values ("agent@educbenin.bj" / dots) are shown as
+// route). Demo values ("agent@educbenin.info" / dots) are shown as
 // placeholders, not pre-filled values — same "real blank form" principle
 // applied throughout the public screens.
 
@@ -58,11 +58,13 @@ export default function ConnexionPage() {
           justifyContent: 'space-between',
         }}
       >
-        <div className="p-logo" style={{ color: '#fff' }}>
-          <span className="mark" style={{ background: 'rgba(255,255,255,.18)' }}>
-            EB
-          </span>
-          Educ Bénin
+        <div className="p-logo">
+          <img
+            src="/logo/lockup-dark.svg"
+            alt="Educ Bénin"
+            height={32}
+            style={{ height: 32, width: 'auto' }}
+          />
         </div>
         <div>
           <div className="eyebrow" style={{ color: '#F4D98A' }}>
@@ -97,7 +99,7 @@ export default function ConnexionPage() {
                 type="email"
                 required
                 autoComplete="email"
-                placeholder="agent@educbenin.bj"
+                placeholder="agent@educbenin.info"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />

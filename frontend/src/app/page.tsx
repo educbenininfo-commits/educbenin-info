@@ -165,7 +165,12 @@ export default function Home() {
           <div className="footer-grid">
             <div>
               <div className="p-logo" style={{ marginBottom: 10 }}>
-                <span className="mark">EB</span>Educ Bénin
+                <img
+                  src="/logo/lockup-light.svg"
+                  alt="Educ Bénin"
+                  height={28}
+                  style={{ height: 28, width: 'auto' }}
+                />
               </div>
               <p style={{ fontSize: 12.5, color: 'var(--prod-ink-muted)', maxWidth: '34ch' }}>
                 Service indépendant d&rsquo;accompagnement administratif. Educ Bénin n&rsquo;est ni
@@ -187,7 +192,6 @@ export default function Home() {
             <div>
               <h6>Contact</h6>
               <span className="footer-text">WhatsApp Educ Bénin</span>
-              <span className="footer-text">contact@educbenin.bj</span>
             </div>
           </div>
           <div className="legal-line">

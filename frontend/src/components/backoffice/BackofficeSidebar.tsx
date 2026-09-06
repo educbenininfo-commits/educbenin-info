@@ -10,7 +10,12 @@ export function BackofficeSidebar() {
   return (
     <aside className="bo-side">
       <div className="bo-brand">
-        <span className="mark">EB</span>Educ Bénin
+        <img
+          src="/logo/lockup-dark.svg"
+          alt="Educ Bénin"
+          height={26}
+          style={{ height: 26, width: 'auto' }}
+        />
       </div>
       {BACKOFFICE_NAV.map((item) => (
         <Link

@@ -1,5 +1,5 @@
 // BO_NAV — educbenin-prototype.html. Real routes are prefixed with /admin
-// (the prototype's urlMap put these on a separate back.educbenin.bj
+// (the prototype's urlMap put these on a separate back.educbenin.info
 // subdomain, which this project isn't setting up — a plain path prefix
 // avoids colliding with the public /specialites route instead).
 

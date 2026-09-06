@@ -18,7 +18,12 @@ export function PublicNav({ active }: { active: string }) {
     <div className="nav-bleed">
       <div className="p-nav pw">
         <Link href="/" className="p-logo">
-          <span className="mark">EB</span>Educ Bénin
+          <img
+            src="/logo/lockup-light.svg"
+            alt="Educ Bénin"
+            height={32}
+            style={{ height: 32, width: 'auto' }}
+          />
         </Link>
         <div className="p-links">
           {LINKS.map((link) => (
