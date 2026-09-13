@@ -18,12 +18,16 @@ vi.mock('@/lib/server/admin/audit', () => ({
 vi.mock('@/lib/server/outbox', () => ({
   enqueueOutbox: vi.fn().mockResolvedValue({ id: 'outbox_1' }),
 }));
+vi.mock('@/lib/server/outbox/drain-now', () => ({
+  drainOutboxNow: vi.fn().mockResolvedValue(undefined),
+}));
 
 import { requireModulePermission } from '@/lib/server/middleware/require-module-permission';
 import { enforceAdminRateLimit } from '@/lib/server/middleware/rate-limit-by-userid';
 import { verifyCsrf } from '@/lib/server/auth';
 import { logAdminAction } from '@/lib/server/admin/audit';
 import { enqueueOutbox } from '@/lib/server/outbox';
+import { drainOutboxNow } from '@/lib/server/outbox/drain-now';
 import { POST, GET } from './route';
 import { seedSuperadmin, seedAdmin } from '@/test-utils/admin-fixtures';
 
@@ -32,6 +36,7 @@ const mockRateLimit = vi.mocked(enforceAdminRateLimit);
 const mockVerifyCsrf = vi.mocked(verifyCsrf);
 const mockLogAdminAction = vi.mocked(logAdminAction);
 const mockEnqueueOutbox = vi.mocked(enqueueOutbox);
+const mockDrainOutboxNow = vi.mocked(drainOutboxNow);
 
 const superadminUser = seedSuperadmin({ id: 'superadmin_1', email: 'superadmin@test.local' });
 const superadminCtx = {
@@ -175,6 +180,9 @@ describe('POST /api/admin/invites', () => {
       expect.anything(),
       expect.objectContaining({ actorId: 'superadmin_1', action: 'admin.invite_sent' }),
     );
+    // Immediate best-effort send — the daily-only cron would otherwise
+    // leave this queued for up to 24h (see drain-now.ts).
+    expect(mockDrainOutboxNow).toHaveBeenCalledTimes(1);
   });
 });
 

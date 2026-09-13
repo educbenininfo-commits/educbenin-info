@@ -24,6 +24,7 @@ import { isBanned } from '@/lib/server/auth/banned-passwords';
 import { isPwned } from '@/lib/server/auth/hibp';
 import { dummyBcryptCompare } from '@/lib/server/auth/dummy-bcrypt';
 import { enqueueOutbox } from '@/lib/server/outbox';
+import { drainOutboxNow } from '@/lib/server/outbox/drain-now';
 
 const PASSWORD_MIN = Number(process.env.AUTH_PASSWORD_MIN_LENGTH ?? 10);
 const VERIFICATION_TTL_MS = Number(process.env.AUTH_VERIFICATION_TTL_MIN ?? 15) * 60 * 1000;
@@ -107,6 +108,11 @@ export async function POST(req: NextRequest): Promise<Response> {
     });
     if (existing) {
       await dummyBcryptCompare(password);
+      // Matches the new-user branch's drainOutboxNow() call below (see its
+      // comment) so both branches keep paying the same "extra" cost —
+      // preserves D-22 timing parity instead of only slowing down the
+      // genuine new-user branch.
+      await drainOutboxNow();
       log.info('signup duplicate (enumeration-resist)');
       const res = NextResponse.json({ ok: true }, { status: 201 });
       res.headers.set('x-request-id', ctx.requestId);
@@ -140,6 +146,11 @@ export async function POST(req: NextRequest): Promise<Response> {
         },
       });
     });
+
+    // Best-effort immediate send (see drain-now.ts) — scheduled crons only
+    // run once a day on this project's Vercel plan (see vercel.json);
+    // without this a new signup would wait up to 24h for their code.
+    await drainOutboxNow();
 
     log.info('signup new user');
     const res = NextResponse.json({ ok: true }, { status: 201 });

@@ -12,6 +12,9 @@ import { NextRequest } from 'next/server';
 vi.mock('@/lib/server/outbox', () => ({
   enqueueOutbox: vi.fn().mockResolvedValue({ id: 'outbox-1' }),
 }));
+vi.mock('@/lib/server/outbox/drain-now', () => ({
+  drainOutboxNow: vi.fn().mockResolvedValue(undefined),
+}));
 vi.mock('@/lib/server/auth/dummy-bcrypt', () => ({
   dummyBcryptCompare: vi.fn().mockResolvedValue(undefined),
 }));
@@ -23,6 +26,7 @@ import { POST } from './route';
 import { dummyBcryptCompare } from '@/lib/server/auth/dummy-bcrypt';
 import { isPwned } from '@/lib/server/auth/hibp';
 import { enqueueOutbox } from '@/lib/server/outbox';
+import { drainOutboxNow } from '@/lib/server/outbox/drain-now';
 
 function makeReq(body: unknown): NextRequest {
   // Build init inline so optional fields (body) aren't typed as `T | undefined`,
@@ -71,6 +75,7 @@ describe('POST /api/auth/signup', () => {
     const outboxArg = (enqueueOutbox as unknown as ReturnType<typeof vi.fn>).mock.calls[0]?.[1];
     expect(outboxArg?.kind).toBe('email.verification_code');
     expect(outboxArg?.payload?.to).toBe('new@example.com');
+    expect(drainOutboxNow).toHaveBeenCalledTimes(1);
   });
 
   it('returns identical 201 + dummy-bcrypts on existing email (enumeration-resist)', async () => {
@@ -87,6 +92,10 @@ describe('POST /api/auth/signup', () => {
     expect(prismaMock.user.create).not.toHaveBeenCalled();
     expect(prismaMock.verificationCode.create).not.toHaveBeenCalled();
     expect(enqueueOutbox).not.toHaveBeenCalled();
+    // Timing parity (D-22): still calls drainOutboxNow() on the duplicate
+    // branch even though nothing was actually enqueued, so both branches
+    // pay the same "extra" cost.
+    expect(drainOutboxNow).toHaveBeenCalledTimes(1);
   });
 
   it('rejects banned passwords with PASSWORD_BANNED before user lookup', async () => {

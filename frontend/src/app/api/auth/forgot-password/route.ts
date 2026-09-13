@@ -28,6 +28,7 @@ import { log } from '@/lib/server/observability/log';
 import { generateVerificationCode } from '@/lib/server/auth';
 import { dummyBcryptCompare } from '@/lib/server/auth/dummy-bcrypt';
 import { enqueueOutbox } from '@/lib/server/outbox';
+import { drainOutboxNow } from '@/lib/server/outbox/drain-now';
 
 const VERIFICATION_TTL_MS = Number(process.env.AUTH_VERIFICATION_TTL_MIN ?? 15) * 60 * 1000;
 
@@ -108,6 +109,14 @@ export async function POST(req: NextRequest): Promise<Response> {
     } else {
       log.info('forgot-password no-user (enumeration-resist)');
     }
+
+    // Best-effort immediate send (see drain-now.ts) — called on BOTH branches,
+    // not just when a code was actually issued, so the two branches keep
+    // paying the same "extra" cost and the CR-01 timing floor below still
+    // holds. Scheduled crons only run once a day on this project's Vercel
+    // plan (see vercel.json); without this, a real reset code would sit
+    // queued for up to 24h.
+    await drainOutboxNow();
 
     // CR-01 — wall-clock floor: pad to TARGET_LATENCY_MS so residual jitter
     // (Neon cold-start, outbox latency spikes) cannot reveal the branch.

@@ -26,6 +26,7 @@ import { makeRequestContext, withRequestContext } from '@/lib/server/observabili
 import { log } from '@/lib/server/observability/log';
 import { generateVerificationCode } from '@/lib/server/auth';
 import { enqueueOutbox } from '@/lib/server/outbox';
+import { drainOutboxNow } from '@/lib/server/outbox/drain-now';
 
 const VERIFICATION_TTL_MS = Number(process.env.AUTH_VERIFICATION_TTL_MIN ?? 15) * 60 * 1000;
 
@@ -112,6 +113,14 @@ export async function POST(req: NextRequest): Promise<Response> {
       // No user, OR already verified — log without leaking which case it is.
       log.info('resend-verification: noop branch (enumeration-resist)');
     }
+
+    // Best-effort immediate send (see drain-now.ts), called on both branches
+    // for the same reason as signup/forgot-password: keeps both branches'
+    // cost profile similar instead of only slowing down the real-code
+    // branch. Scheduled crons only run once a day on this project's Vercel
+    // plan (see vercel.json); without this, a resend would sit queued for
+    // up to 24h — defeating the point of a resend button.
+    await drainOutboxNow();
 
     const res = NextResponse.json({ ok: true }, { status: 200 });
     res.headers.set('x-request-id', ctx.requestId);

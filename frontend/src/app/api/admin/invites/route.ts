@@ -24,6 +24,7 @@ import { logAdminAction } from '@/lib/server/admin/audit';
 import { enforceAdminRateLimit } from '@/lib/server/middleware/rate-limit-by-userid';
 import { makeRequestContext, withRequestContext } from '@/lib/server/observability/request-context';
 import { enqueueOutbox } from '@/lib/server/outbox';
+import { drainOutboxNow } from '@/lib/server/outbox/drain-now';
 import { zEmail } from '@/lib/server/zod-helpers';
 
 const INVITE_TTL_MS = 10 * 60 * 1000;
@@ -122,6 +123,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
       return created;
     });
+
+    // Best-effort immediate send — the scheduled outbox/email-queue crons
+    // only run once a day on this project's Vercel plan (see vercel.json),
+    // so without this an invitee would wait up to 24h. See drain-now.ts.
+    await drainOutboxNow();
 
     return NextResponse.json(
       { id: invite.id, email: invite.email, expiresAt: invite.expiresAt.toISOString() },
