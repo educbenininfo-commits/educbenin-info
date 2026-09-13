@@ -33,9 +33,17 @@ vi.mock('@/lib/server/auth', async () => {
 });
 // Session creation is exercised in sessions.test.ts — here it's a black box.
 vi.mock('@/lib/server/auth/sessions', () => ({
-  issueSessionTokens: vi
-    .fn()
-    .mockResolvedValue({ accessToken: 'access-jwt', refreshToken: 'refresh-jwt' }),
+  issueSessionTokens: vi.fn().mockResolvedValue({
+    accessToken: 'access-jwt',
+    refreshToken: 'refresh-jwt',
+    sessionId: 'sess-1',
+  }),
+}));
+
+// Admin login/logout notification+audit fan-out — exercised separately in
+// auth-events.test.ts; here it's a black box we just assert is/isn't called.
+vi.mock('@/lib/server/admin/auth-events', () => ({
+  recordAdminAuthEvent: vi.fn().mockResolvedValue(undefined),
 }));
 
 import {
@@ -45,6 +53,7 @@ import {
 } from '@/lib/server/oauth/google';
 import { createNotification } from '@/lib/server/notifications';
 import { setAuthCookies, setCsrfCookie } from '@/lib/server/auth';
+import { recordAdminAuthEvent } from '@/lib/server/admin/auth-events';
 import { GET } from './route';
 
 const mockTryCreate = vi.mocked(tryCreateGoogleProvider);
@@ -52,6 +61,7 @@ const mockDecode = vi.mocked(decodeIdToken);
 const mockCreateNotification = vi.mocked(createNotification);
 const mockSetAuthCookies = vi.mocked(setAuthCookies);
 const mockSetCsrfCookie = vi.mocked(setCsrfCookie);
+const mockRecordAdminAuthEvent = vi.mocked(recordAdminAuthEvent);
 
 // Help TypeScript: `tryCreateGoogleProvider` returns `GoogleProviderHandle | undefined`,
 // so a bare `ReturnType<typeof …>['client']` doesn't narrow. Use the explicit
@@ -202,6 +212,7 @@ describe('GET /api/auth/oauth/google/callback', () => {
         id: 'u-existing',
         email: 'a@b.com',
         tokenVersion: 0,
+        role: 'USER',
       } as never); // re-fetch for token issuance
     prismaMock.oAuthAccount.create.mockResolvedValue({
       id: 'oa-1',
@@ -233,6 +244,8 @@ describe('GET /api/auth/oauth/google/callback', () => {
     expect(mockSetCsrfCookie).toHaveBeenCalledTimes(1);
     // No welcome notification on link path.
     expect(mockCreateNotification).not.toHaveBeenCalled();
+    // USER role — never triggers the admin login/logout fan-out.
+    expect(mockRecordAdminAuthEvent).not.toHaveBeenCalled();
   });
 
   it('D-02 create path: brand-new user → $transaction creates User + OAuthAccount; createNotification dispatched with welcomeNotification', async () => {
@@ -246,6 +259,7 @@ describe('GET /api/auth/oauth/google/callback', () => {
         id: 'u-new',
         email: 'a@b.com',
         tokenVersion: 0,
+        role: 'USER',
       } as never); // re-fetch for token issuance
     prismaMock.user.create.mockResolvedValue({ id: 'u-new' } as never);
     prismaMock.oAuthAccount.create.mockResolvedValue({ id: 'oa-2' } as never);
@@ -282,6 +296,37 @@ describe('GET /api/auth/oauth/google/callback', () => {
         dedupeKey: 'welcome:u-new',
       }),
     );
+    // USER role — never triggers the admin login/logout fan-out.
+    expect(mockRecordAdminAuthEvent).not.toHaveBeenCalled();
+  });
+
+  it('ADMIN via Google: records the admin auth event (login)', async () => {
+    await seedCookie('app-oauth-state', STATE);
+    await seedCookie('app-oauth-pkce', PKCE);
+
+    prismaMock.oAuthAccount.findUnique.mockResolvedValue({ userId: 'u-admin' } as never);
+    prismaMock.user.findUnique.mockResolvedValueOnce({
+      id: 'u-admin',
+      email: 'admin@b.com',
+      name: 'Admin One',
+      tokenVersion: 0,
+      role: 'ADMIN',
+    } as never);
+
+    const res = await GET(makeReq({ code: 'c', state: STATE }));
+    expect(res.status).toBe(302);
+    expect(res.headers.get('location')).not.toContain('/auth/error');
+
+    expect(mockRecordAdminAuthEvent).toHaveBeenCalledTimes(1);
+    expect(mockRecordAdminAuthEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorId: 'u-admin',
+        actorEmail: 'admin@b.com',
+        actorName: 'Admin One',
+        event: 'login',
+        sessionId: 'sess-1',
+      }),
+    );
   });
 
   it('existing OAuth user (provider lookup hits): no User update, no welcome, just 3 cookies', async () => {
@@ -295,6 +340,7 @@ describe('GET /api/auth/oauth/google/callback', () => {
       id: 'u-returning',
       email: 'a@b.com',
       tokenVersion: 0,
+      role: 'USER',
     } as never);
 
     const res = await GET(makeReq({ code: 'c', state: STATE }));
@@ -319,6 +365,7 @@ describe('GET /api/auth/oauth/google/callback', () => {
       id: 'u1',
       email: 'a@b.com',
       tokenVersion: 0,
+      role: 'USER',
     } as never);
 
     const res = await GET(makeReq({ code: 'c', state: STATE }));
@@ -337,6 +384,7 @@ describe('GET /api/auth/oauth/google/callback', () => {
       id: 'u1',
       email: 'a@b.com',
       tokenVersion: 0,
+      role: 'USER',
     } as never);
 
     const res = await GET(makeReq({ code: 'c', state: STATE }));
@@ -354,6 +402,7 @@ describe('GET /api/auth/oauth/google/callback', () => {
       id: 'u1',
       email: 'a@b.com',
       tokenVersion: 0,
+      role: 'USER',
     } as never);
 
     await GET(makeReq({ code: 'c', state: STATE }));

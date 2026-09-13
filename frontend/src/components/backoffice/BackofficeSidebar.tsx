@@ -4,10 +4,13 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { BACKOFFICE_NAV } from '@/lib/backoffice-nav';
 import { useDossiersUnreadCount } from '@/lib/useDossiersUnreadCount';
+import { useBackofficeAdmin } from '@/contexts/BackofficeAdminContext';
 
 export function BackofficeSidebar() {
   const pathname = usePathname();
   const dossiersUnread = useDossiersUnreadCount();
+  const { role } = useBackofficeAdmin();
+  const navItems = BACKOFFICE_NAV.filter((item) => !item.superadminOnly || role === 'SUPERADMIN');
 
   return (
     <aside className="bo-side">
@@ -19,7 +22,7 @@ export function BackofficeSidebar() {
           style={{ height: 26, width: 'auto' }}
         />
       </div>
-      {BACKOFFICE_NAV.map((item) => (
+      {navItems.map((item) => (
         <Link
           key={item.key}
           href={item.href}

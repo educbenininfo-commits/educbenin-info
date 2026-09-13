@@ -90,7 +90,7 @@ async function resolveLocation(ip: string | null): Promise<string | null> {
 export async function issueSessionTokens(
   user: { id: string; email: string; tokenVersion: number },
   req: NextRequest,
-): Promise<{ accessToken: string; refreshToken: string }> {
+): Promise<{ accessToken: string; refreshToken: string; sessionId: string }> {
   const userAgent = req.headers.get('user-agent');
   const ip = extractClientIp(req);
   const location = await resolveLocation(ip);
@@ -107,7 +107,7 @@ export async function issueSessionTokens(
     sid: session.id,
   });
   const refreshToken = await createRefreshToken(user.id, user.tokenVersion, session.id);
-  return { accessToken, refreshToken };
+  return { accessToken, refreshToken, sessionId: session.id };
 }
 
 /**

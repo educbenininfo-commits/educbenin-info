@@ -8,3 +8,9 @@ export const DOSSIER_CREATED = 'DOSSIER_CREATED';
 export const DOSSIER_AUTH_SUBMITTED = 'DOSSIER_AUTH_SUBMITTED';
 
 export const DOSSIER_NOTIFICATION_TYPES = [DOSSIER_CREATED, DOSSIER_AUTH_SUBMITTED] as const;
+
+// Sent to every SUPERADMIN (except the acting account itself) whenever an
+// ADMIN/SUPERADMIN account logs in or out — see
+// lib/server/admin/auth-events.ts.
+export const ADMIN_LOGIN = 'ADMIN_LOGIN';
+export const ADMIN_LOGOUT = 'ADMIN_LOGOUT';

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDossiersUnreadCount } from '@/lib/useDossiersUnreadCount';
+import { useBackofficeAdmin } from '@/contexts/BackofficeAdminContext';
 
 // BO_BOTTOM_NAV / BO_MORE_ITEMS — educbenin-prototype.html. "Se déconnecter"
 // calls the real /api/auth/logout (via AuthContext.logout) instead of just
@@ -36,6 +37,9 @@ const MORE_ITEMS_2 = [
   { key: 'tarifs', href: '/admin/tarifs', icon: '₣', label: 'Tarifs' },
   { key: 'comptes', href: '/admin/comptes-admin', icon: '◎', label: 'Comptes admin & rôles' },
 ];
+const MORE_ITEMS_SUPERADMIN = [
+  { key: 'connexions', href: '/admin/connexions', icon: '⏻', label: 'Connexions' },
+];
 
 export function BackofficeBottomNav() {
   const [open, setOpen] = useState(false);
@@ -43,6 +47,7 @@ export function BackofficeBottomNav() {
   const router = useRouter();
   const { logout } = useAuth();
   const dossiersUnread = useDossiersUnreadCount();
+  const { role } = useBackofficeAdmin();
 
   async function handleLogout() {
     setOpen(false);
@@ -116,6 +121,13 @@ export function BackofficeBottomNav() {
               {item.label}
             </Link>
           ))}
+          {role === 'SUPERADMIN' &&
+            MORE_ITEMS_SUPERADMIN.map((item) => (
+              <Link key={item.key} href={item.href} onClick={() => setOpen(false)}>
+                <span className="ic">{item.icon}</span>
+                {item.label}
+              </Link>
+            ))}
           <div className="sep" />
           <button type="button" onClick={handleLogout}>
             <span className="ic">⇥</span>

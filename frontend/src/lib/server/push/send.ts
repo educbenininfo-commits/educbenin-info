@@ -111,3 +111,91 @@ export async function notifyAdmins(input: NotifyAdminsInput): Promise<void> {
   await createInAppNotifications(input);
   await sendWebPush(input);
 }
+
+export interface NotifySuperadminsInput extends NotifyAdminsInput {
+  /** Skip this user in the fan-out (e.g. don't notify an actor about their own action). */
+  excludeUserId?: string;
+}
+
+async function createSuperadminInAppNotifications(input: NotifySuperadminsInput): Promise<void> {
+  const superadmins = await prisma.user.findMany({
+    where: {
+      role: 'SUPERADMIN',
+      ...(input.excludeUserId ? { id: { not: input.excludeUserId } } : {}),
+    },
+    select: { id: true },
+  });
+
+  await Promise.all(
+    superadmins.map(async (admin) => {
+      try {
+        await createNotification(prisma, {
+          userId: admin.id,
+          type: input.type,
+          title: input.title,
+          body: input.body,
+          ...(input.data ? { data: input.data } : {}),
+          dedupeKey: `${input.dedupeKeyBase}:${admin.id}`,
+        });
+      } catch (err) {
+        log.warn('notifySuperadmins: createNotification failed', {
+          adminId: admin.id,
+          err: String(err),
+        });
+      }
+    }),
+  );
+}
+
+async function sendWebPushToSuperadmins(input: NotifySuperadminsInput): Promise<void> {
+  if (!configureOnce()) return;
+
+  const subscriptions = await prisma.pushSubscription.findMany({
+    where: {
+      user: {
+        role: 'SUPERADMIN',
+        ...(input.excludeUserId ? { id: { not: input.excludeUserId } } : {}),
+      },
+    },
+    select: { id: true, endpoint: true, p256dh: true, auth: true },
+  });
+  if (subscriptions.length === 0) return;
+
+  const body = JSON.stringify({ title: input.title, body: input.body, url: input.url });
+  const staleIds: string[] = [];
+
+  await Promise.all(
+    subscriptions.map(async (sub) => {
+      try {
+        await webpush.sendNotification(
+          {
+            endpoint: sub.endpoint,
+            keys: { p256dh: sub.p256dh, auth: sub.auth },
+          },
+          body,
+        );
+      } catch (err) {
+        const statusCode = (err as { statusCode?: number }).statusCode;
+        if (statusCode === 404 || statusCode === 410) {
+          staleIds.push(sub.id);
+        } else {
+          log.warn('push: send failed', { subscriptionId: sub.id, err: String(err) });
+        }
+      }
+    }),
+  );
+
+  if (staleIds.length > 0) {
+    await prisma.pushSubscription.deleteMany({ where: { id: { in: staleIds } } });
+  }
+}
+
+/**
+ * Best-effort — never throws. SUPERADMIN-only fan-out (vs `notifyAdmins`'s
+ * ADMIN+SUPERADMIN) — used for admin login/logout alerts, where only
+ * SUPERADMIN should be watching other back-office accounts' activity.
+ */
+export async function notifySuperadmins(input: NotifySuperadminsInput): Promise<void> {
+  await createSuperadminInAppNotifications(input);
+  await sendWebPushToSuperadmins(input);
+}

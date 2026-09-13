@@ -30,14 +30,23 @@ vi.mock('@/lib/server/auth', async () => {
 
 // Session creation is exercised in sessions.test.ts — here it's a black box.
 vi.mock('@/lib/server/auth/sessions', () => ({
-  issueSessionTokens: vi
-    .fn()
-    .mockResolvedValue({ accessToken: 'mock-access', refreshToken: 'mock-refresh' }),
+  issueSessionTokens: vi.fn().mockResolvedValue({
+    accessToken: 'mock-access',
+    refreshToken: 'mock-refresh',
+    sessionId: 'sess-1',
+  }),
+}));
+
+// Admin login/logout notification+audit fan-out — exercised separately in
+// auth-events.test.ts; here it's a black box we just assert is/isn't called.
+vi.mock('@/lib/server/admin/auth-events', () => ({
+  recordAdminAuthEvent: vi.fn().mockResolvedValue(undefined),
 }));
 
 import { isLockedOut, recordFailure, recordSuccess } from '@/lib/server/auth/lockout';
 import { dummyBcryptCompare } from '@/lib/server/auth/dummy-bcrypt';
 import { verifyPassword } from '@/lib/server/auth';
+import { recordAdminAuthEvent } from '@/lib/server/admin/auth-events';
 import { POST } from './route';
 import { NextRequest } from 'next/server';
 
@@ -56,6 +65,8 @@ beforeEach(() => {
   vi.mocked(recordSuccess).mockReset();
   vi.mocked(dummyBcryptCompare).mockReset();
   vi.mocked(verifyPassword).mockReset();
+  vi.mocked(recordAdminAuthEvent).mockReset();
+  vi.mocked(recordAdminAuthEvent).mockResolvedValue(undefined);
   vi.mocked(isLockedOut).mockResolvedValue(false);
   vi.mocked(recordFailure).mockResolvedValue({ count: 1, locked: false });
   vi.mocked(recordSuccess).mockResolvedValue(undefined);
@@ -71,6 +82,7 @@ describe('POST /api/auth/login', () => {
       passwordHash: '$2a$12$hashhashhashhashhashhashhashhashhashhashhashhashhashhha',
       emailVerifiedAt: new Date(),
       tokenVersion: 0,
+      role: 'USER',
     } as never);
     vi.mocked(verifyPassword).mockResolvedValue(true);
 
@@ -83,6 +95,35 @@ describe('POST /api/auth/login', () => {
     expect(__cookieStore.has('app-token')).toBe(true);
     expect(__cookieStore.has('app-refresh')).toBe(true);
     expect(__cookieStore.has('app-csrf')).toBe(true);
+    // Regular USER login never triggers the admin login/logout fan-out.
+    expect(recordAdminAuthEvent).not.toHaveBeenCalled();
+  });
+
+  it('Test 10: ADMIN login — records the admin auth event (login)', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: 'u-admin',
+      email: 'admin@b.com',
+      name: 'Admin One',
+      passwordHash: '$2a$12$hashhashhashhashhashhashhashhashhashhashhashhashhashhha',
+      emailVerifiedAt: new Date(),
+      tokenVersion: 0,
+      role: 'ADMIN',
+    } as never);
+    vi.mocked(verifyPassword).mockResolvedValue(true);
+
+    const res = await POST(makeReq({ email: 'admin@b.com', password: 'longenough' }));
+
+    expect(res.status).toBe(200);
+    expect(recordAdminAuthEvent).toHaveBeenCalledTimes(1);
+    expect(recordAdminAuthEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorId: 'u-admin',
+        actorEmail: 'admin@b.com',
+        actorName: 'Admin One',
+        event: 'login',
+        sessionId: 'sess-1',
+      }),
+    );
   });
 
   it('Test 2: no user — INVALID_CREDENTIALS, dummy compare called, no recordFailure', async () => {

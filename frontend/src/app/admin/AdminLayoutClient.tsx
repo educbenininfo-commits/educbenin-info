@@ -41,6 +41,7 @@ const SEARCH_PLACEHOLDERS: Record<string, string> = {
   '/admin/specialites': 'Rechercher une spécialité, une salle…',
   '/admin/tarifs': "Rechercher dans l'historique des tarifs…",
   '/admin/comptes-admin': 'Rechercher un membre…',
+  '/admin/connexions': 'Rechercher une connexion (nom, e-mail)…',
   '/admin/tableau-de-bord': 'Rechercher dans tout le back-office…',
 };
 

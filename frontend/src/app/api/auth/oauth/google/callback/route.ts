@@ -30,6 +30,7 @@ import { issueSessionTokens } from '@/lib/server/auth/sessions';
 import { prisma } from '@/lib/server/prisma';
 import { createNotification } from '@/lib/server/notifications';
 import { welcomeNotification } from '@/lib/server/notifications/templates';
+import { recordAdminAuthEvent } from '@/lib/server/admin/auth-events';
 import { makeRequestContext, withRequestContext } from '@/lib/server/observability/request-context';
 import { log } from '@/lib/server/observability/log';
 
@@ -167,7 +168,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     // ───── Issue session cookies (mirrors verify-email/route.ts) ──────────
     const u = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, tokenVersion: true },
+      select: { id: true, email: true, name: true, tokenVersion: true, role: true },
     });
     if (!u) {
       // Defensive — should never happen since we just created/linked.
@@ -175,7 +176,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       log.error('oauth.callback: user disappeared after create', { userId });
       return redirectToAuthError('OAUTH_GENERIC', redirectOpts);
     }
-    const { accessToken, refreshToken } = await issueSessionTokens(
+    const { accessToken, refreshToken, sessionId } = await issueSessionTokens(
       { id: u.id, email: u.email, tokenVersion: u.tokenVersion },
       req,
     );
@@ -186,6 +187,20 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     // NOTIF-05 invariant — go through createNotification (never prisma.notification.create directly).
     if (isNewUser) {
       await createNotification(prisma, welcomeNotification(u.id, u.email));
+    }
+
+    // Back-office visibility (not USER-role candidates) — best-effort,
+    // never blocks the redirect. See lib/server/admin/auth-events.ts.
+    if (u.role !== 'USER') {
+      await recordAdminAuthEvent({
+        actorId: u.id,
+        actorEmail: u.email,
+        actorName: u.name ?? null,
+        event: 'login',
+        sessionId,
+        ip: req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? null,
+        userAgent: req.headers.get('user-agent'),
+      });
     }
 
     // Consume next cookie (defense-in-depth re-validation against same-origin).

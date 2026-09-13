@@ -3,7 +3,14 @@
 // subdomain, which this project isn't setting up — a plain path prefix
 // avoids colliding with the public /specialites route instead).
 
-export const BACKOFFICE_NAV: { key: string; href: string; icon: string; label: string }[] = [
+export const BACKOFFICE_NAV: {
+  key: string;
+  href: string;
+  icon: string;
+  label: string;
+  /** Hidden from ADMIN — only SUPERADMIN sees this item (e.g. Connexions). */
+  superadminOnly?: boolean;
+}[] = [
   { key: 'dashboard', href: '/admin/tableau-de-bord', icon: '◧', label: 'Tableau de bord' },
   { key: 'dossiers', href: '/admin/dossiers', icon: '▤', label: 'Dossiers' },
   { key: 'rejetes', href: '/admin/dossiers-rejetes', icon: '⊘', label: 'Dossiers rejetés' },
@@ -15,5 +22,12 @@ export const BACKOFFICE_NAV: { key: string; href: string; icon: string; label: s
   },
   { key: 'tarifs', href: '/admin/tarifs', icon: '₣', label: 'Tarifs' },
   { key: 'comptes', href: '/admin/comptes-admin', icon: '◎', label: 'Comptes admin & rôles' },
+  {
+    key: 'connexions',
+    href: '/admin/connexions',
+    icon: '⏻',
+    label: 'Connexions',
+    superadminOnly: true,
+  },
   { key: 'parametres', href: '/admin/parametres', icon: '⚙', label: 'Paramètres' },
 ];

@@ -19,6 +19,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { setAuthCookies, setCsrfCookie, verifyPassword } from '@/lib/server/auth';
 import { issueSessionTokens } from '@/lib/server/auth/sessions';
+import { recordAdminAuthEvent } from '@/lib/server/admin/auth-events';
 import { isLockedOut, recordFailure, recordSuccess } from '@/lib/server/auth/lockout';
 import { dummyBcryptCompare } from '@/lib/server/auth/dummy-bcrypt';
 import { createEmailLimiter } from '@/lib/server/middleware/rate-limit-by-email';
@@ -90,10 +91,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       select: {
         id: true,
         email: true,
+        name: true,
         passwordHash: true,
         emailVerifiedAt: true,
         tokenVersion: true,
         status: true,
+        role: true,
       },
     });
 
@@ -160,12 +163,26 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // 8. Reset failure count and issue cookies.
     await recordSuccess(email);
 
-    const { accessToken, refreshToken } = await issueSessionTokens(
+    const { accessToken, refreshToken, sessionId } = await issueSessionTokens(
       { id: user.id, email: user.email, tokenVersion: user.tokenVersion },
       req,
     );
     await setAuthCookies(accessToken, refreshToken);
     await setCsrfCookie();
+
+    // Back-office visibility (not USER-role candidates) — best-effort,
+    // never blocks the response. See lib/server/admin/auth-events.ts.
+    if (user.role !== 'USER') {
+      await recordAdminAuthEvent({
+        actorId: user.id,
+        actorEmail: user.email,
+        actorName: user.name ?? null,
+        event: 'login',
+        sessionId,
+        ip: req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? null,
+        userAgent: req.headers.get('user-agent'),
+      });
+    }
 
     return NextResponse.json(
       { ok: true, user: { sub: user.id, email: user.email } },

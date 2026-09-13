@@ -18,6 +18,8 @@ import {
 } from '@/lib/server/auth';
 import { revokeSession } from '@/lib/server/auth/sessions';
 import { makeRequestContext, withRequestContext } from '@/lib/server/observability/request-context';
+import { prisma } from '@/lib/server/prisma';
+import { recordAdminAuthEvent } from '@/lib/server/admin/auth-events';
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const ctx = makeRequestContext(req.headers);
@@ -34,7 +36,28 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     try {
       const refreshCookie = req.cookies.get(REFRESH_COOKIE_NAME)?.value;
       const payload = refreshCookie ? await verifyRefreshToken(refreshCookie) : null;
-      if (payload) await revokeSession(payload.sid, payload.sub);
+      if (payload) {
+        const revoked = await revokeSession(payload.sid, payload.sub);
+        if (revoked && payload.sid) {
+          // Back-office visibility (not USER-role candidates) — best-effort.
+          // See lib/server/admin/auth-events.ts.
+          const actor = await prisma.user.findUnique({
+            where: { id: payload.sub },
+            select: { email: true, name: true, role: true },
+          });
+          if (actor && actor.role !== 'USER') {
+            await recordAdminAuthEvent({
+              actorId: payload.sub,
+              actorEmail: actor.email,
+              actorName: actor.name ?? null,
+              event: 'logout',
+              sessionId: payload.sid,
+              ip: req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? null,
+              userAgent: req.headers.get('user-agent'),
+            });
+          }
+        }
+      }
     } catch {
       // ignore — logout must succeed regardless
     }
