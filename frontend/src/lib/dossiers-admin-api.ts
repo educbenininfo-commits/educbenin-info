@@ -49,6 +49,41 @@ export async function addDossierComment(
   return api(`/api/admin/dossiers/${id}/comments`, { method: 'POST', body: { type, text } });
 }
 
+export async function retreatDossier(id: string): Promise<{ dossier: DossierDetail }> {
+  return api(`/api/admin/dossiers/${id}/retreat`, { method: 'POST' });
+}
+
+export async function sendCorrection(id: string): Promise<{ path: string; expiresAt: string }> {
+  return api(`/api/admin/dossiers/${id}/send-correction`, { method: 'POST' });
+}
+
+export async function editDossier(
+  id: string,
+  data: Record<string, unknown>,
+): Promise<{ dossier: DossierDetail }> {
+  return api(`/api/admin/dossiers/${id}/edit`, { method: 'PATCH', body: data });
+}
+
+export interface AuditLogEntry {
+  id: string;
+  actorId: string;
+  action: string;
+  metadata: unknown;
+  createdAt: string;
+}
+
+export async function fetchDossierHistory(id: string): Promise<{ items: AuditLogEntry[] }> {
+  return api(`/api/admin/audit-log?targetType=Dossier&targetId=${id}&limit=50`);
+}
+
+export async function deleteDossier(id: string, confirmReference: string): Promise<{ ok: true }> {
+  return api(`/api/admin/dossiers/${id}`, { method: 'DELETE', body: { confirmReference } });
+}
+
+export function dossierExportUrl(id: string): string {
+  return `${API_URL}/api/admin/dossiers/${id}/export`;
+}
+
 // `api()` (frontend/src/lib/api.ts, PROTECTED) always JSON.stringify()s the
 // body and sets Content-Type: application/json — incompatible with a
 // multipart file upload. This duplicates just the CSRF-cookie lookup

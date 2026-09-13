@@ -22,6 +22,7 @@ import { verifyCsrf } from '@/lib/server/auth';
 import { requireAdmin } from '@/lib/server/middleware';
 import { prisma } from '@/lib/server/prisma';
 import { logAdminAction } from '@/lib/server/admin/audit';
+import { isProtectedSuperadmin } from '@/lib/server/admin/protected-accounts';
 import { enforceAdminRateLimit } from '@/lib/server/middleware/rate-limit-by-userid';
 import { makeRequestContext, withRequestContext } from '@/lib/server/observability/request-context';
 
@@ -34,6 +35,7 @@ type Discriminator =
   | { kind: 'NOT_FOUND' }
   | { kind: 'RESTORE_REQUIRES_SUPERADMIN' }
   | { kind: 'SUSPEND_REQUIRES_SUPERADMIN' }
+  | { kind: 'PROTECTED_ACCOUNT' }
   | { kind: 'OK'; user: { id: string; status: string } };
 
 export async function PATCH(
@@ -74,6 +76,12 @@ export async function PATCH(
           kind: 'OK' as const,
           user: { id: target.id, status: target.status },
         };
+      }
+
+      // The founder/owner account can never be suspended, by anyone.
+      const isSuspendAttempt = parsed.data.status === 'SUSPENDED';
+      if (isSuspendAttempt && isProtectedSuperadmin(target.email)) {
+        return { kind: 'PROTECTED_ACCOUNT' as const };
       }
 
       // SUSPENDED → ACTIVE = restore. Only SUPERADMIN allowed (D-ADMIN-02).
@@ -137,6 +145,12 @@ export async function PATCH(
           message: 'Only a SUPERADMIN can suspend a SUPERADMIN account.',
         },
         { status: 403 },
+      );
+    }
+    if (result.kind === 'PROTECTED_ACCOUNT') {
+      return NextResponse.json(
+        { error: 'PROTECTED_ACCOUNT', message: 'This account can never be suspended.' },
+        { status: 409 },
       );
     }
     return NextResponse.json({ user: result.user }, { status: 200 });

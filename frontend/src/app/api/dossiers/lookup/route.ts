@@ -49,6 +49,11 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         ficheUploaded: true,
         recepisseUploaded: true,
         recepisseUrl: true,
+        comments: {
+          where: { type: 'public' },
+          orderBy: { createdAt: 'asc' },
+          select: { id: true, text: true, createdAt: true },
+        },
       },
     });
     if (!dossier) {
@@ -69,6 +74,11 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       motifRejet: dossier.stage === 0 ? dossier.motifRejet : null,
       ficheUploaded: dossier.ficheUploaded,
       recepisseUrl,
+      comments: dossier.comments.map((c) => ({
+        id: c.id,
+        text: c.text,
+        createdAt: c.createdAt.toISOString(),
+      })),
     });
   });
 }

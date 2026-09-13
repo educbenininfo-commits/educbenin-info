@@ -1,8 +1,13 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { isValidPhoneNumber } from 'libphonenumber-js';
 import { SPECIALTIES } from '@/lib/specialties';
 import { createDossier, DossierApiError } from '@/lib/dossiers-public-api';
+import { CountrySelect } from '@/components/forms/CountrySelect';
+import { CountryPhoneInput } from '@/components/forms/CountryPhoneInput';
+import { UploadHint } from '@/components/forms/UploadHint';
+import { detectDefaultCountry } from '@/lib/countries';
 
 // Multi-step "Faire ma demande" form — DESIGN-SPEC.md section "2. Accompagnement
 // & demande" + educbenin-prototype.html (#stepper / .form-step / #confirmPanel).
@@ -11,11 +16,28 @@ import { createDossier, DossierApiError } from '@/lib/dossiers-public-api';
 // confirmation panel shows the reference the backend generated, not a
 // hardcoded example.
 
-const WHATSAPP_RE = /^\+229\s?(\d{2}\s?){4}$/;
-
 function formatBytes(bytes: number): string {
   const mo = bytes / (1024 * 1024);
   return `${mo.toFixed(1).replace('.', ',')} Mo`;
+}
+
+function submitErrorMessage(err: unknown): string {
+  if (err instanceof DossierApiError) {
+    switch (err.code) {
+      case 'FILE_TOO_LARGE':
+        return 'Votre fichier dépasse 5 Mo. Compressez-le (lien ci-dessus) puis réessayez.';
+      case 'INVALID_MIME':
+      case 'MAGIC_BYTE_MISMATCH':
+        return "Ce fichier n'est pas un PDF valide.";
+      case 'TIMEOUT':
+        return 'La requête a pris trop de temps. Vérifiez votre connexion et réessayez.';
+      case 'VALIDATION_FAILED':
+        return 'Merci de vérifier vos informations — un champ est probablement mal rempli.';
+      default:
+        return "Votre demande n'a pas pu être envoyée. Merci de vérifier vos informations et de réessayer.";
+    }
+  }
+  return 'Impossible de contacter le serveur. Vérifiez votre connexion et réessayez.';
 }
 
 type Step2Errors = { nom?: string; prenom?: string; whatsapp?: string };
@@ -36,6 +58,7 @@ export function DemandForm() {
   const [nom, setNom] = useState('');
   const [prenom, setPrenom] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
+  const [nationalite, setNationalite] = useState(detectDefaultCountry());
   const [step2Errors, setStep2Errors] = useState<Step2Errors>({});
 
   // Step 3
@@ -67,8 +90,8 @@ export function DemandForm() {
     const errors: Step2Errors = {};
     if (!nom.trim()) errors.nom = 'Le nom est requis.';
     if (!prenom.trim()) errors.prenom = 'Le prénom est requis.';
-    if (!WHATSAPP_RE.test(whatsapp.trim())) {
-      errors.whatsapp = 'Format attendu : +229 XX XX XX XX.';
+    if (!whatsapp.trim() || !isValidPhoneNumber(whatsapp.trim())) {
+      errors.whatsapp = 'Numéro invalide — vérifiez l’indicatif et le format.';
     }
     setStep2Errors(errors);
     if (Object.keys(errors).length > 0) return;
@@ -103,6 +126,7 @@ export function DemandForm() {
       form.append('nom', nom.trim());
       form.append('prenom', prenom.trim());
       form.append('whatsapp', whatsapp.trim());
+      form.append('nationalite', nationalite);
       form.append('consent1', String(checks[0]));
       form.append('consent2', String(checks[1]));
       form.append('consent3', String(checks[2]));
@@ -113,11 +137,7 @@ export function DemandForm() {
       setReference(res.reference);
       setSubmitted(true);
     } catch (err) {
-      setSubmitError(
-        err instanceof DossierApiError
-          ? "Votre demande n'a pas pu être envoyée. Merci de vérifier vos informations et de réessayer."
-          : 'Impossible de contacter le serveur. Vérifiez votre connexion et réessayez.',
-      );
+      setSubmitError(submitErrorMessage(err));
     } finally {
       setSubmitting(false);
     }
@@ -218,12 +238,15 @@ export function DemandForm() {
             </div>
           </div>
           <div className="field">
+            <label>Nationalité</label>
+            <CountrySelect value={nationalite} onChange={setNationalite} />
+          </div>
+          <div className="field">
             <label>Numéro WhatsApp</label>
-            <input
-              placeholder="+229 97 00 00 00"
+            <CountryPhoneInput
               value={whatsapp}
-              onChange={(e) => setWhatsapp(e.target.value)}
-              className={step2Errors.whatsapp ? 'err' : ''}
+              onChange={setWhatsapp}
+              error={Boolean(step2Errors.whatsapp)}
             />
             {step2Errors.whatsapp ? (
               <span className="err-msg">{step2Errors.whatsapp}</span>
@@ -246,6 +269,7 @@ export function DemandForm() {
         <div className="form-step active">
           <div className="field">
             <label>Pièces à fournir (PDF unique)</label>
+            <UploadHint maxMb={5} />
             <div
               className={`dropzone${step3Errors.file ? ' err' : ''}`}
               onClick={() => fileInputRef.current?.click()}

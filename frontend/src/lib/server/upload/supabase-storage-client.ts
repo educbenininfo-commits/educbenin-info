@@ -115,6 +115,41 @@ export async function signedUrl(
 }
 
 /**
+ * Downloads a stored object's bytes — used by the dossier ZIP export. Never
+ * throws: returns `null` on a missing path, unconfigured storage, or a
+ * failed download, so a partially-uploaded dossier still exports whatever
+ * files it does have instead of failing the whole archive.
+ */
+export async function downloadObject(path: string | null | undefined): Promise<Buffer | null> {
+  if (!path) return null;
+  try {
+    const { client, bucket } = getClient();
+    const { data, error } = await client.storage.from(bucket).download(path);
+    if (error || !data) return null;
+    return Buffer.from(await data.arrayBuffer());
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Best-effort delete of a stored object — used when hard-deleting a Dossier
+ * so its files don't linger in the bucket forever. Never throws: a dossier
+ * delete should still succeed even if a given file was already missing or
+ * storage is momentarily unreachable (the DB row is the source of truth for
+ * "does this dossier still exist", not the bucket's contents).
+ */
+export async function deleteObject(path: string | null | undefined): Promise<void> {
+  if (!path) return;
+  try {
+    const { client, bucket } = getClient();
+    await client.storage.from(bucket).remove([path]);
+  } catch {
+    // best-effort — swallow, see doc comment above.
+  }
+}
+
+/**
  * Test-only escape hatch — clears the cached client/bucket so a test can
  * mutate `process.env.SUPABASE_*` and re-trigger lazy init. Never call this
  * from application code.

@@ -272,6 +272,7 @@ describe('/api/admin/users/[id]/role [Wave 2] — role change', () => {
     prismaMock.user.findUnique.mockResolvedValueOnce({
       id: demotable.id,
       role: 'SUPERADMIN',
+      email: demotable.email,
     } as never);
     prismaMock.user.count.mockResolvedValueOnce(2);
     prismaMock.user.update.mockResolvedValueOnce({ id: demotable.id, role: 'ADMIN' } as never);
@@ -332,6 +333,7 @@ describe('/api/admin/users/[id]/role [Wave 2] — role change', () => {
     prismaMock.user.findUnique.mockResolvedValueOnce({
       id: onlyOne.id,
       role: 'SUPERADMIN',
+      email: onlyOne.email,
     } as never);
     prismaMock.user.count.mockResolvedValueOnce(1);
 

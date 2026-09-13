@@ -2,6 +2,9 @@
 
 import { useRef, useState } from 'react';
 import { lookupDossier, uploadFiche, type LookupResult } from '@/lib/dossiers-public-api';
+import { CountryPhoneInput } from '@/components/forms/CountryPhoneInput';
+import { UploadHint } from '@/components/forms/UploadHint';
+import { formatRelativeTime } from '@/lib/dossiers-data';
 
 // DESIGN-SPEC.md section "3. Suivre mon dossier" + educbenin-prototype.html
 // (#trackPick / #timeline / renderTimeline). The prototype's own demo state
@@ -115,11 +118,7 @@ export function TrackingDemo() {
           </div>
           <div className="field" style={{ marginBottom: 0 }}>
             <label>Numéro WhatsApp</label>
-            <input
-              placeholder="+229 97 00 00 00"
-              value={waInput}
-              onChange={(e) => setWaInput(e.target.value)}
-            />
+            <CountryPhoneInput value={waInput} onChange={setWaInput} />
           </div>
         </div>
         {searchError && (
@@ -156,7 +155,8 @@ export function TrackingDemo() {
                   Motif : {dossier?.motifRejet || 'aucun motif communiqué.'}
                 </div>
                 <div className="comment-note">
-                  💬 Merci de nous transmettre les corrections nécessaires via WhatsApp.
+                  💬 Besoin d&rsquo;en savoir plus&nbsp;? Contactez-nous via WhatsApp en précisant
+                  le motif de votre préoccupation.
                 </div>
               </div>
             </div>
@@ -198,6 +198,7 @@ export function TrackingDemo() {
                           </div>
                         ) : (
                           <>
+                            <UploadHint maxMb={10} />
                             <div
                               className="dropzone"
                               style={{ marginTop: 10 }}
@@ -257,6 +258,28 @@ export function TrackingDemo() {
               );
             })
           )}
+        </div>
+      )}
+
+      {/* Public comments from the back-office — always shown, regardless of
+          the dossier's stage or status (previously not fetched/rendered at
+          all, so a comment posted on a rejected or "en attente" dossier
+          never reached the candidate). */}
+      {dossier && dossier.comments.length > 0 && (
+        <div className="timeline" style={{ marginTop: 18 }}>
+          <div className="tl-row">
+            <div className="tl-body" style={{ paddingBottom: 0 }}>
+              <div className="tl-title">Messages de l&rsquo;équipe Educ Bénin</div>
+              {dossier.comments.map((c) => (
+                <div key={c.id} className="comment-note" style={{ marginTop: 10 }}>
+                  💬 {c.text}
+                  <div className="hint" style={{ marginTop: 4 }}>
+                    {formatRelativeTime(c.createdAt)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
     </>

@@ -2,16 +2,20 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import jsPDF from 'jspdf';
 import { invalidateCachePrefix } from '@/lib/useApi';
 import {
   STAGE_NAMES,
   fmtF,
   pillClass,
   displayName,
+  specialtyLabel,
   formatRelativeTime,
   formatDateTime,
   type DossierDetail,
 } from '@/lib/dossiers-data';
+import { findCountry } from '@/lib/countries';
+import { useBackofficeAdmin } from '@/contexts/BackofficeAdminContext';
 import {
   fetchDossierDetail,
   updateDossierPayment,
@@ -19,8 +23,15 @@ import {
   rejectDossier,
   restoreDossier,
   advanceDossier,
+  retreatDossier,
+  sendCorrection,
+  editDossier,
   addDossierComment,
   uploadRecepisse,
+  fetchDossierHistory,
+  deleteDossier,
+  dossierExportUrl,
+  type AuditLogEntry,
 } from '@/lib/dossiers-admin-api';
 
 // #dossierOverlay / openModal / authButtonState / ficheButtonState /
@@ -29,12 +40,9 @@ import {
 // (rendered with `key={id}` by the parent, so every re-open remounts fresh —
 // same effect as the prototype's openModal() resetting tabs/previews/confirm
 // each time) and every action calls the real admin route instead of mutating
-// local state. See Task 22 of
-// docs/superpowers/plans/2026-09-03-dossiers-backend.md for the 3 behavioral
-// gaps this filled in (payment save-on-blur, comment submit buttons, file
-// row sizes).
+// local state.
 
-type AuthButtonState = { enabled: boolean; label: string; title: string };
+type AuthSendButtonState = { enabled: boolean; label: string; title: string };
 type FicheButtonState = { enabled: boolean; title: string };
 type RecepisseButtonState = {
   enabled: boolean;
@@ -43,7 +51,27 @@ type RecepisseButtonState = {
   mode: 'add' | 'view' | 'none';
 };
 
-function authButtonState(d: DossierDetail): AuthButtonState {
+function countryLabel(iso2: string | undefined | null): string {
+  if (!iso2) return '—';
+  const c = findCountry(iso2);
+  return c ? `${c.flag} ${c.nameFr}` : iso2;
+}
+
+// Flag emoji are regional-indicator surrogate pairs that jsPDF's standard
+// (WinAnsi-only) fonts cannot encode — passing them to doc.text() corrupts
+// the whole line's glyph widths, not just the emoji itself. PDF export uses
+// the plain country name only; the emoji stays screen-only via countryLabel.
+function countryLabelPlain(iso2: string | undefined | null): string {
+  if (!iso2) return '—';
+  const c = findCountry(iso2);
+  return c ? c.nameFr : iso2;
+}
+
+// The auth-send button always stays clickable at stage 2, whether this is
+// the first send or a resend — previously it disabled itself and showed
+// only "En attente du candidat" the moment a link was sent, with no way
+// to resend if the candidate never got it or made a mistake.
+function authSendButtonState(d: DossierDetail): AuthSendButtonState {
   if (d.stage !== 2) {
     return {
       enabled: false,
@@ -54,24 +82,14 @@ function authButtonState(d: DossierDetail): AuthButtonState {
           : 'Disponible une fois le dossier à l’étape « Authentification du diplôme en cours ».',
     };
   }
-  if (!d.authSentAt) {
-    return {
-      enabled: true,
-      label: "Envoyer le formulaire d'authentification",
-      title: 'Envoie le lien du formulaire par WhatsApp au candidat.',
-    };
-  }
-  if (d.authSentAt && !d.authSubmittedAt) {
-    return {
-      enabled: false,
-      label: 'En attente du candidat',
-      title: 'Le formulaire a été envoyé ; en attente de soumission par le candidat.',
-    };
-  }
   return {
     enabled: true,
-    label: "Voir le formulaire d'authentification",
-    title: 'Afficher les informations soumises par le candidat.',
+    label: d.authSentAt
+      ? "Renvoyer le formulaire d'authentification"
+      : "Envoyer le formulaire d'authentification",
+    title: d.authSentAt
+      ? 'Envoie un nouveau lien par WhatsApp (le précédent lien cesse de fonctionner).'
+      : 'Envoie le lien du formulaire par WhatsApp au candidat.',
   };
 }
 
@@ -132,11 +150,170 @@ function KvList({ pairs }: { pairs: [string, string | undefined][] }) {
   );
 }
 
+// Brand tokens (--prod-primary / --prod-ink / --prod-ink-faint / --prod-border,
+// light-mode values from globals.css — PDF is a print artifact, independent of
+// the viewer's OS theme) as plain RGB, since jsPDF has no CSS-variable concept.
+const PDF_PRIMARY: [number, number, number] = [79, 70, 229];
+const PDF_PRIMARY_DARK: [number, number, number] = [55, 48, 163];
+const PDF_INK: [number, number, number] = [30, 27, 51];
+const PDF_INK_FAINT: [number, number, number] = [110, 106, 130];
+const PDF_BORDER: [number, number, number] = [228, 225, 240];
+
+const PDF_MARGIN_X = 16;
+const PDF_PAGE_BOTTOM = 282;
+const PDF_LABEL_WIDTH = 52;
+
+// Rasterizes the small square brand mark (public/logo/mark.svg) to a PNG data
+// URL once per session — jsPDF.addImage() has no native SVG support, and a
+// tiny flat-color mark rasterizes crisply at PDF header size (unlike the
+// full text lockup, which would need real font embedding to stay sharp).
+let logoDataUrlPromise: Promise<string | null> | null = null;
+function loadLogoDataUrl(): Promise<string | null> {
+  if (typeof window === 'undefined') return Promise.resolve(null);
+  logoDataUrlPromise ??= (async () => {
+    try {
+      const res = await fetch('/logo/mark.svg');
+      const svgText = await res.text();
+      const url = URL.createObjectURL(new Blob([svgText], { type: 'image/svg+xml' }));
+      try {
+        return await new Promise<string>((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => {
+            const size = 128;
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+              reject(new Error('2D canvas context unavailable'));
+              return;
+            }
+            ctx.drawImage(img, 0, 0, size, size);
+            resolve(canvas.toDataURL('image/png'));
+          };
+          img.onerror = () => reject(new Error('logo image failed to load'));
+          img.src = url;
+        });
+      } finally {
+        URL.revokeObjectURL(url);
+      }
+    } catch {
+      return null;
+    }
+  })();
+  return logoDataUrlPromise;
+}
+
+async function downloadKvPdf(
+  docTitle: string,
+  reference: string,
+  sections: { heading: string; pairs: [string, string | undefined][] }[],
+  filename: string,
+) {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const contentWidth = pageWidth - PDF_MARGIN_X * 2;
+  const logo = await loadLogoDataUrl();
+
+  function drawHeader() {
+    doc.setFillColor(...PDF_PRIMARY);
+    doc.rect(0, 0, pageWidth, 26, 'F');
+    if (logo) doc.addImage(logo, 'PNG', PDF_MARGIN_X, 6, 14, 14);
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.text('EDUC BÉNIN', PDF_MARGIN_X + 18, 13);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.text('Dossier de probatoire spécialité — FSS/UAC', PDF_MARGIN_X + 18, 19);
+  }
+
+  function drawFooter(pageNum: number, pageCount: number) {
+    doc.setDrawColor(...PDF_BORDER);
+    doc.line(PDF_MARGIN_X, 288, pageWidth - PDF_MARGIN_X, 288);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(...PDF_INK_FAINT);
+    const generated = `Généré depuis le back-office Educ Bénin · ${new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}`;
+    doc.text(generated, PDF_MARGIN_X, 293);
+    doc.text(`Page ${pageNum} / ${pageCount}`, pageWidth - PDF_MARGIN_X, 293, { align: 'right' });
+  }
+
+  drawHeader();
+  let y = 38;
+  doc.setTextColor(...PDF_INK);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.text(docTitle, PDF_MARGIN_X, y);
+  y += 6.5;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9.5);
+  doc.setTextColor(...PDF_PRIMARY_DARK);
+  doc.text(`Réf. ${reference}`, PDF_MARGIN_X, y);
+  y += 9;
+
+  function ensureSpace(nextLineHeight: number) {
+    if (y + nextLineHeight > PDF_PAGE_BOTTOM) {
+      doc.addPage();
+      drawHeader();
+      y = 38;
+    }
+  }
+
+  for (const section of sections) {
+    ensureSpace(14);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10.5);
+    doc.setTextColor(...PDF_PRIMARY_DARK);
+    doc.text(section.heading.toUpperCase(), PDF_MARGIN_X, y);
+    y += 2.5;
+    doc.setDrawColor(...PDF_PRIMARY);
+    doc.line(PDF_MARGIN_X, y, PDF_MARGIN_X + contentWidth, y);
+    y += 6.5;
+
+    for (const [label, rawValue] of section.pairs) {
+      const value = rawValue || '—';
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9.5);
+      const valueLines = doc.splitTextToSize(value, contentWidth - PDF_LABEL_WIDTH);
+      const lineHeight = 5;
+      const blockHeight = Math.max(1, valueLines.length) * lineHeight;
+      ensureSpace(blockHeight);
+
+      doc.setTextColor(...PDF_INK_FAINT);
+      doc.text(label, PDF_MARGIN_X, y);
+      doc.setTextColor(...PDF_INK);
+      doc.setFont('helvetica', 'bold');
+      doc.text(valueLines, PDF_MARGIN_X + PDF_LABEL_WIDTH, y);
+      y += blockHeight + 2;
+    }
+    y += 3;
+  }
+
+  const pageCount = doc.getNumberOfPages();
+  for (let p = 1; p <= pageCount; p++) {
+    doc.setPage(p);
+    drawFooter(p, pageCount);
+  }
+
+  doc.save(filename);
+}
+
 type ConfirmState =
   | { kind: 'avancer' }
+  | { kind: 'reculer' }
   | { kind: 'restaurer' }
   | { kind: 'rejeter'; motif: string }
   | null;
+
+type EditDraft = {
+  nom: string;
+  prenom: string;
+  whatsapp: string;
+  nationalite: string;
+  authEmail: string;
+  authTel: string;
+};
 
 export function DossierModal({
   id,
@@ -149,7 +326,8 @@ export function DossierModal({
 }) {
   const [dossier, setDossier] = useState<DossierDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<'pay' | 'pub' | 'int'>('pay');
+  const [tab, setTab] = useState<'pay' | 'pub' | 'int' | 'hist'>('pay');
+  const [demandePreviewOpen, setDemandePreviewOpen] = useState(false);
   const [authPreviewOpen, setAuthPreviewOpen] = useState(false);
   const [fichePreviewOpen, setFichePreviewOpen] = useState(false);
   const [recepissePreviewOpen, setRecepissePreviewOpen] = useState(false);
@@ -160,7 +338,18 @@ export function DossierModal({
   const [publicComment, setPublicComment] = useState('');
   const [internalComment, setInternalComment] = useState('');
   const [commentSubmitting, setCommentSubmitting] = useState(false);
+  const [history, setHistory] = useState<AuditLogEntry[] | null>(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editDraft, setEditDraft] = useState<EditDraft | null>(null);
+  const [correctionSending, setCorrectionSending] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const recepisseInputRef = useRef<HTMLInputElement>(null);
+  const { role: myRole } = useBackofficeAdmin();
+  const isSuperadmin = myRole === 'SUPERADMIN';
 
   async function load() {
     setLoading(true);
@@ -180,6 +369,21 @@ export function DossierModal({
     // eslint.config.mjs, so no disable directive is needed here.)
   }, [id]);
 
+  async function loadHistory() {
+    setHistoryLoading(true);
+    try {
+      const res = await fetchDossierHistory(id);
+      setHistory(res.items);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
+
+  function selectTab(next: 'pay' | 'pub' | 'int' | 'hist') {
+    setTab(next);
+    if (next === 'hist' && history === null) void loadHistory();
+  }
+
   if (loading || !dossier) {
     return (
       <div className="overlay show">
@@ -192,40 +396,80 @@ export function DossierModal({
     );
   }
 
-  const auth = authButtonState(dossier);
+  const authSend = authSendButtonState(dossier);
   const fiche = ficheButtonState(dossier);
   const recepisse = recepisseButtonState(dossier);
   const canReject = dossier.stage >= 1 && dossier.stage <= 4;
   const canRestore = dossier.stage === 0;
   const canAdvance = dossier.stage >= 1 && dossier.stage <= 4;
+  const canRetreat = dossier.stage >= 2 && dossier.stage <= 5;
+  const canSendCorrection = dossier.stage === 1 || dossier.stage === 2;
+  const isPendingCandidate =
+    dossier.stage === 2 && Boolean(dossier.authSentAt) && !dossier.authSubmittedAt;
   const totalDue = dossier.montant + (dossier.montantSupplement ?? 0);
   const reste = Math.max(totalDue - dossier.paye, 0);
 
-  async function handleAuthClick() {
-    if (!auth.enabled || !dossier) return;
-    if (!dossier.authSentAt) {
-      setActionError(null);
-      setActionLoading(true);
-      try {
-        const res = await sendAuthForm(dossier.id);
-        const url = `${window.location.origin}/authentification-diplome/${res.token}`;
-        const message = `Bonjour, votre dossier ${dossier.reference} est en cours de traitement chez Educ Bénin. Merci de compléter le formulaire d'authentification de votre diplôme via ce lien : ${url}`;
-        const digits = dossier.whatsapp.replace(/\D/g, '');
-        window.open(
-          `https://wa.me/${digits}?text=${encodeURIComponent(message)}`,
-          '_blank',
-          'noopener,noreferrer',
-        );
-        await load();
-        onChanged();
-      } catch {
-        setActionError("Impossible d'envoyer le formulaire d'authentification.");
-      } finally {
-        setActionLoading(false);
-      }
-      return;
+  async function handleAuthSendClick() {
+    if (!authSend.enabled || !dossier) return;
+    setActionError(null);
+    setActionLoading(true);
+    try {
+      const res = await sendAuthForm(dossier.id);
+      const url = `${window.location.origin}/authentification-diplome/${res.token}`;
+      const message = `Bonjour, votre dossier ${dossier.reference} est en cours de traitement chez Educ Bénin. Merci de compléter le formulaire d'authentification de votre diplôme via ce lien : ${url}`;
+      const digits = dossier.whatsapp.replace(/\D/g, '');
+      window.open(
+        `https://wa.me/${digits}?text=${encodeURIComponent(message)}`,
+        '_blank',
+        'noopener,noreferrer',
+      );
+      await load();
+      onChanged();
+    } catch {
+      setActionError("Impossible d'envoyer le formulaire d'authentification.");
+    } finally {
+      setActionLoading(false);
     }
-    setAuthPreviewOpen((v) => !v);
+  }
+
+  async function handleSendCorrection() {
+    if (!dossier) return;
+    setActionError(null);
+    setCorrectionSending(true);
+    try {
+      const res = await sendCorrection(dossier.id);
+      const url = `${window.location.origin}${res.path}`;
+      const message = `Bonjour, une correction est nécessaire sur votre dossier ${dossier.reference} chez Educ Bénin. Merci de la faire via ce lien : ${url}`;
+      const digits = dossier.whatsapp.replace(/\D/g, '');
+      window.open(
+        `https://wa.me/${digits}?text=${encodeURIComponent(message)}`,
+        '_blank',
+        'noopener,noreferrer',
+      );
+      await load();
+      invalidateCachePrefix('/api/admin/dossiers');
+      onChanged();
+    } catch {
+      setActionError('Impossible de renvoyer ce dossier pour correction.');
+    } finally {
+      setCorrectionSending(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!dossier) return;
+    setDeleteBusy(true);
+    setDeleteError(null);
+    try {
+      await deleteDossier(dossier.id, deleteConfirmText.trim());
+      invalidateCachePrefix('/api/admin/dossiers');
+      onChanged();
+      onClose();
+    } catch {
+      setDeleteError('Suppression impossible — vérifiez que la référence saisie est exacte.');
+    } finally {
+      setDeleteBusy(false);
+    }
   }
 
   async function commitPaye() {
@@ -301,6 +545,22 @@ export function DossierModal({
       setActionLoading(false);
     }
   }
+  async function confirmRetreat() {
+    if (!dossier) return;
+    setActionError(null);
+    setActionLoading(true);
+    try {
+      const res = await retreatDossier(dossier.id);
+      setDossier(res.dossier);
+      invalidateCachePrefix('/api/admin/dossiers');
+      onChanged();
+      setConfirm(null);
+    } catch {
+      setActionError('Impossible de revenir à l’étape précédente.');
+    } finally {
+      setActionLoading(false);
+    }
+  }
   async function confirmRestore() {
     if (!dossier) return;
     setActionError(null);
@@ -332,6 +592,112 @@ export function DossierModal({
     } finally {
       setActionLoading(false);
     }
+  }
+
+  function startEditing() {
+    if (!dossier) return;
+    setEditDraft({
+      nom: dossier.nom,
+      prenom: dossier.prenom,
+      whatsapp: dossier.whatsapp,
+      nationalite: dossier.nationalite ?? '',
+      authEmail: dossier.authFormData?.email ?? '',
+      authTel: dossier.authFormData?.tel ?? '',
+    });
+    setEditing(true);
+  }
+
+  async function saveEdit() {
+    if (!dossier || !editDraft) return;
+    setActionError(null);
+    setActionLoading(true);
+    try {
+      const patch: Record<string, unknown> = {
+        nom: editDraft.nom.trim(),
+        prenom: editDraft.prenom.trim(),
+        whatsapp: editDraft.whatsapp.trim(),
+      };
+      if (editDraft.nationalite) patch.nationalite = editDraft.nationalite;
+      if (dossier.authFormData) {
+        patch.authFormData = { email: editDraft.authEmail.trim(), tel: editDraft.authTel.trim() };
+      }
+      const res = await editDossier(dossier.id, patch);
+      setDossier(res.dossier);
+      invalidateCachePrefix('/api/admin/dossiers');
+      onChanged();
+      setEditing(false);
+    } catch {
+      setActionError('Impossible d’enregistrer ces corrections.');
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  function downloadDemandePdf() {
+    if (!dossier) return;
+    void downloadKvPdf(
+      'Informations de la demande',
+      dossier.reference,
+      [
+        {
+          heading: 'Informations de la demande',
+          pairs: [
+            ['Nom', dossier.nom],
+            ['Prénom(s)', dossier.prenom],
+            ['WhatsApp', dossier.whatsapp],
+            ['Nationalité', countryLabelPlain(dossier.nationalite)],
+            ['Spécialité(s)', specialtyLabel(dossier.specialtyCodes)],
+          ],
+        },
+      ],
+      `demande-${dossier.reference}.pdf`,
+    );
+  }
+
+  function downloadAuthPdf() {
+    if (!dossier?.authFormData) return;
+    const d = dossier.authFormData;
+    void downloadKvPdf(
+      'Authentification de diplôme — réponses soumises',
+      dossier.reference,
+      [
+        {
+          heading: 'Informations personnelles',
+          pairs: [
+            ['Nom', d.nom],
+            ['Prénom(s)', d.prenom],
+            ['Date de naissance', d.naissance],
+            ['Lieu de naissance', d.lieuNaissance],
+            ['Nationalité', countryLabelPlain(d.nationalite)],
+            ['Adresse actuelle', d.adresse],
+            ["Pièce d'identité", `${d.piece} · ${d.pieceRef}`],
+            ['E-mail', d.email],
+            ['Téléphone', d.tel],
+          ],
+        },
+        {
+          heading: 'Diplôme du Baccalauréat',
+          pairs: [
+            ['Institution', d.bac.institution],
+            ['E-mail institution', d.bac.email],
+            ["Année d'obtention", d.bac.annee],
+            ["Pays d'obtention", countryLabelPlain(d.bac.pays)],
+            ['Adresse institution', d.bac.adresse],
+          ],
+        },
+        {
+          heading: 'Diplôme du Doctorat',
+          pairs: [
+            ['Institution', d.doctorat.institution],
+            ['E-mail institution', d.doctorat.email],
+            ["Année d'obtention", d.doctorat.annee],
+            ["Pays d'obtention", countryLabelPlain(d.doctorat.pays)],
+            ['Adresse institution', d.doctorat.adresse],
+          ],
+        },
+      ],
+      `authentification-${dossier.reference}.pdf`,
+    );
   }
 
   return (
@@ -372,6 +738,26 @@ export function DossierModal({
               <span className={`pill ${pillClass(dossier.stage)}`}>
                 {STAGE_NAMES[dossier.stage]}
               </span>
+              {dossier.correctionRequestedAt && (
+                <span
+                  className="pill"
+                  style={{
+                    marginLeft: 6,
+                    background: 'var(--prod-warning-tint)',
+                    color: 'var(--prod-warning)',
+                  }}
+                >
+                  Dossier MAJ
+                </span>
+              )}
+              {isPendingCandidate && (
+                <span
+                  className="pill"
+                  style={{ marginLeft: 6, background: 'var(--prod-surface-2)' }}
+                >
+                  En attente du candidat
+                </span>
+              )}
             </div>
           </div>
 
@@ -406,18 +792,48 @@ export function DossierModal({
                 type="button"
                 className="btn btn-outline btn-sm"
                 title="Corriger une information saisie par le candidat."
+                onClick={startEditing}
               >
                 Modifier
               </button>
               <button
                 type="button"
-                className={`btn btn-outline btn-sm${auth.enabled ? '' : ' is-disabled'}`}
-                disabled={!auth.enabled || actionLoading}
-                title={auth.title}
-                onClick={handleAuthClick}
+                className="btn btn-outline btn-sm"
+                onClick={() => setDemandePreviewOpen((v) => !v)}
               >
-                {auth.label}
+                Voir la demande
               </button>
+              <button
+                type="button"
+                className={`btn btn-outline btn-sm${canSendCorrection ? '' : ' is-disabled'}`}
+                disabled={!canSendCorrection || correctionSending}
+                title={
+                  canSendCorrection
+                    ? 'Renvoie au candidat le formulaire de cette étape, pré-rempli, pour correction.'
+                    : 'Disponible aux étapes Demande et Authentification.'
+                }
+                onClick={handleSendCorrection}
+              >
+                {correctionSending ? 'Envoi…' : 'Renvoyer pour correction'}
+              </button>
+              <button
+                type="button"
+                className={`btn btn-outline btn-sm${authSend.enabled ? '' : ' is-disabled'}`}
+                disabled={!authSend.enabled || actionLoading}
+                title={authSend.title}
+                onClick={handleAuthSendClick}
+              >
+                {authSend.label}
+              </button>
+              {dossier.authFormData && (
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  onClick={() => setAuthPreviewOpen((v) => !v)}
+                >
+                  Voir le formulaire d&rsquo;authentification
+                </button>
+              )}
               <button
                 type="button"
                 className={`btn btn-outline btn-sm${fiche.enabled ? '' : ' is-disabled'}`}
@@ -451,9 +867,122 @@ export function DossierModal({
               />
             </div>
 
+            {editing && editDraft && (
+              <div className="preview-box show" style={{ marginTop: 10 }}>
+                <div style={{ fontWeight: 700, fontSize: 12.5, marginBottom: 8 }}>
+                  Modifier les informations du dossier
+                </div>
+                <div className="row2">
+                  <div className="field">
+                    <label>Nom</label>
+                    <input
+                      value={editDraft.nom}
+                      onChange={(e) => setEditDraft({ ...editDraft, nom: e.target.value })}
+                    />
+                  </div>
+                  <div className="field">
+                    <label>Prénom(s)</label>
+                    <input
+                      value={editDraft.prenom}
+                      onChange={(e) => setEditDraft({ ...editDraft, prenom: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="field">
+                  <label>WhatsApp</label>
+                  <input
+                    value={editDraft.whatsapp}
+                    onChange={(e) => setEditDraft({ ...editDraft, whatsapp: e.target.value })}
+                  />
+                </div>
+                {dossier.authFormData && (
+                  <div className="row2">
+                    <div className="field">
+                      <label>E-mail (formulaire d&rsquo;authentification)</label>
+                      <input
+                        value={editDraft.authEmail}
+                        onChange={(e) => setEditDraft({ ...editDraft, authEmail: e.target.value })}
+                      />
+                    </div>
+                    <div className="field">
+                      <label>Téléphone (formulaire d&rsquo;authentification)</label>
+                      <input
+                        value={editDraft.authTel}
+                        onChange={(e) => setEditDraft({ ...editDraft, authTel: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    disabled={actionLoading}
+                    onClick={saveEdit}
+                  >
+                    Enregistrer
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    onClick={() => setEditing(false)}
+                  >
+                    Annuler
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className={`preview-box${demandePreviewOpen ? ' show' : ''}`}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 2,
+                }}
+              >
+                <div style={{ fontWeight: 700, fontSize: 12.5 }}>Informations de la demande</div>
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  onClick={downloadDemandePdf}
+                >
+                  Télécharger en PDF
+                </button>
+              </div>
+              <KvList
+                pairs={[
+                  ['Nom', dossier.nom],
+                  ['Prénom(s)', dossier.prenom],
+                  ['WhatsApp', dossier.whatsapp],
+                  ['Nationalité', countryLabel(dossier.nationalite)],
+                  ['Spécialité(s)', specialtyLabel(dossier.specialtyCodes)],
+                ]}
+              />
+            </div>
+
             <div className={`preview-box${authPreviewOpen ? ' show' : ''}`}>
-              <div style={{ fontWeight: 700, fontSize: 12.5, marginBottom: 2 }}>
-                Formulaire d&rsquo;authentification de diplôme — réponses soumises
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 2,
+                }}
+              >
+                <div style={{ fontWeight: 700, fontSize: 12.5 }}>
+                  Formulaire d&rsquo;authentification de diplôme — réponses soumises
+                </div>
+                {dossier.authFormData && (
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    onClick={downloadAuthPdf}
+                  >
+                    Télécharger en PDF
+                  </button>
+                )}
               </div>
               <dl>
                 <dt>N° de dossier (pré-rempli)</dt>
@@ -479,7 +1008,7 @@ export function DossierModal({
                       ['Prénom(s)', dossier.authFormData.prenom],
                       ['Date de naissance', dossier.authFormData.naissance],
                       ['Lieu de naissance', dossier.authFormData.lieuNaissance],
-                      ['Nationalité', dossier.authFormData.nationalite],
+                      ['Nationalité', countryLabel(dossier.authFormData.nationalite)],
                       ['Adresse actuelle', dossier.authFormData.adresse],
                       [
                         "Pièce d'identité",
@@ -506,7 +1035,7 @@ export function DossierModal({
                       ['Institution', dossier.authFormData.bac.institution],
                       ['E-mail institution', dossier.authFormData.bac.email],
                       ["Année d'obtention", dossier.authFormData.bac.annee],
-                      ["Pays d'obtention", dossier.authFormData.bac.pays],
+                      ["Pays d'obtention", countryLabel(dossier.authFormData.bac.pays)],
                       ['Adresse institution', dossier.authFormData.bac.adresse],
                     ]}
                   />
@@ -527,17 +1056,44 @@ export function DossierModal({
                       ['Institution', dossier.authFormData.doctorat.institution],
                       ['E-mail institution', dossier.authFormData.doctorat.email],
                       ["Année d'obtention", dossier.authFormData.doctorat.annee],
-                      ["Pays d'obtention", dossier.authFormData.doctorat.pays],
+                      ["Pays d'obtention", countryLabel(dossier.authFormData.doctorat.pays)],
                       ['Adresse institution', dossier.authFormData.doctorat.adresse],
                     ]}
                   />
-                  {dossier.diplomaUrl && (
-                    <div style={{ marginTop: 10, display: 'flex', gap: 10 }}>
-                      <a href={dossier.diplomaUrl} target="_blank" rel="noopener noreferrer">
-                        📎 Documents à authentifier (Bac + Doctorat)
+                  <div style={{ marginTop: 10, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    {dossier.diplomaBacUrl && (
+                      <a href={dossier.diplomaBacUrl} target="_blank" rel="noopener noreferrer">
+                        📎 Diplôme Bac
                       </a>
-                    </div>
-                  )}
+                    )}
+                    {dossier.diplomaDoctoratUrl && (
+                      <a
+                        href={dossier.diplomaDoctoratUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        📎 Diplôme Doctorat
+                      </a>
+                    )}
+                    {dossier.diplomaBacTranslatedUrl && (
+                      <a
+                        href={dossier.diplomaBacTranslatedUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        📎 Traduction Bac
+                      </a>
+                    )}
+                    {dossier.diplomaDoctoratTranslatedUrl && (
+                      <a
+                        href={dossier.diplomaDoctoratTranslatedUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        📎 Traduction Doctorat
+                      </a>
+                    )}
+                  </div>
                 </>
               ) : (
                 <dl>
@@ -587,23 +1143,30 @@ export function DossierModal({
               <button
                 type="button"
                 className={tab === 'pay' ? 'on' : ''}
-                onClick={() => setTab('pay')}
+                onClick={() => selectTab('pay')}
               >
                 Paiement
               </button>
               <button
                 type="button"
                 className={tab === 'pub' ? 'on' : ''}
-                onClick={() => setTab('pub')}
+                onClick={() => selectTab('pub')}
               >
                 Commentaires publics
               </button>
               <button
                 type="button"
                 className={tab === 'int' ? 'on' : ''}
-                onClick={() => setTab('int')}
+                onClick={() => selectTab('int')}
               >
                 Commentaires internes
+              </button>
+              <button
+                type="button"
+                className={tab === 'hist' ? 'on' : ''}
+                onClick={() => selectTab('hist')}
+              >
+                Historique
               </button>
             </div>
 
@@ -649,6 +1212,10 @@ export function DossierModal({
             )}
             {tab === 'pub' && (
               <div className="tabpane on">
+                <p className="hint" style={{ marginBottom: 10 }}>
+                  Visible par le candidat sur sa page de suivi, quelle que soit l&rsquo;étape ou le
+                  statut du dossier.
+                </p>
                 {dossier.comments
                   .filter((c) => c.type === 'public')
                   .map((c) => (
@@ -723,6 +1290,22 @@ export function DossierModal({
                 </button>
               </div>
             )}
+            {tab === 'hist' && (
+              <div className="tabpane on">
+                {historyLoading ? (
+                  <p className="hint">Chargement…</p>
+                ) : !history || history.length === 0 ? (
+                  <p className="hint">Aucune action enregistrée pour ce dossier.</p>
+                ) : (
+                  history.map((h) => (
+                    <div key={h.id} className="bubble int" style={{ marginBottom: 8 }}>
+                      <strong>{h.action}</strong>
+                      <div className="meta">{formatDateTime(h.createdAt)}</div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </div>
 
           {confirm && (
@@ -737,6 +1320,29 @@ export function DossierModal({
                       className="btn btn-primary btn-sm"
                       disabled={actionLoading}
                       onClick={() => void confirmAdvance()}
+                    >
+                      Confirmer
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-outline btn-sm"
+                      onClick={() => setConfirm(null)}
+                    >
+                      Annuler
+                    </button>
+                  </div>
+                </>
+              )}
+              {confirm.kind === 'reculer' && (
+                <>
+                  Revenir de <strong>« {STAGE_NAMES[dossier.stage]} »</strong> à{' '}
+                  <strong>« {STAGE_NAMES[Math.max(dossier.stage - 1, 1)]} »</strong> ?
+                  <div className="go">
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      disabled={actionLoading}
+                      onClick={() => void confirmRetreat()}
                     >
                       Confirmer
                     </button>
@@ -834,6 +1440,19 @@ export function DossierModal({
           </button>
           <button
             type="button"
+            className={`btn btn-outline btn-sm${canRetreat ? '' : ' is-disabled'}`}
+            disabled={!canRetreat}
+            title={
+              canRetreat
+                ? 'Revenir à l’étape précédente.'
+                : 'Disponible à partir de l’étape « Authentification du diplôme en cours ».'
+            }
+            onClick={() => canRetreat && setConfirm({ kind: 'reculer' })}
+          >
+            ← Étape précédente
+          </button>
+          <button
+            type="button"
             className={`btn btn-primary btn-sm${canAdvance ? '' : ' is-disabled'}`}
             disabled={!canAdvance}
             title={
@@ -847,8 +1466,85 @@ export function DossierModal({
           >
             {dossier.stage === 5 ? 'Dossier finalisé ✓' : 'Faire passer à l’étape suivante →'}
           </button>
+          {isSuperadmin && (
+            <>
+              <a
+                className="btn btn-outline btn-sm"
+                href={dossierExportUrl(dossier.id)}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Télécharge un .zip avec toutes les informations et tous les fichiers de ce dossier."
+              >
+                Télécharger le dossier (.zip)
+              </a>
+              <button
+                type="button"
+                className="btn btn-danger-outline btn-sm"
+                title="Suppression définitive et irréversible du dossier."
+                onClick={() => {
+                  setDeleteConfirmText('');
+                  setDeleteError(null);
+                  setDeleteModalOpen(true);
+                }}
+              >
+                Supprimer définitivement
+              </button>
+            </>
+          )}
         </div>
       </div>
+
+      {deleteModalOpen && (
+        <div
+          className="overlay show"
+          onClick={(e) => e.target === e.currentTarget && !deleteBusy && setDeleteModalOpen(false)}
+        >
+          <div className="modal" style={{ maxWidth: 440 }}>
+            <div className="modal-head">
+              <h3>Supprimer le dossier {dossier.reference}</h3>
+              <button type="button" className="x" onClick={() => setDeleteModalOpen(false)}>
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <p className="err-msg" style={{ marginBottom: 12 }}>
+                Cette action est irréversible : le dossier, ses commentaires et tous ses fichiers
+                seront définitivement supprimés.
+              </p>
+              <div className="field">
+                <label>
+                  Pour confirmer, saisissez exactement la référence :{' '}
+                  <strong>{dossier.reference}</strong>
+                </label>
+                <input
+                  type="text"
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  autoFocus
+                />
+              </div>
+              {deleteError && <p className="err-msg">{deleteError}</p>}
+            </div>
+            <div className="modal-foot">
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={() => setDeleteModalOpen(false)}
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger-outline"
+                disabled={deleteConfirmText.trim() !== dossier.reference || deleteBusy}
+                onClick={handleDelete}
+              >
+                {deleteBusy ? 'Suppression…' : 'Supprimer définitivement'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -11,6 +11,7 @@ import {
   type DossierListItem,
 } from '@/lib/dossiers-data';
 import { restoreDossier } from '@/lib/dossiers-admin-api';
+import { DossierModal } from './DossierModal';
 
 interface DossiersResponse {
   items: DossierListItem[];
@@ -22,6 +23,7 @@ export function RejectedDossiersList() {
   const query = searchParams.get('q') ?? '';
   const [restoringId, setRestoringId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
 
   const { data, loading, refresh } = useApi<DossiersResponse>('/api/admin/dossiers?stage=0');
   const items = data?.items ?? [];
@@ -78,7 +80,7 @@ export function RejectedDossiersList() {
             </tr>
           ) : (
             visibleItems.map((d) => (
-              <tr key={d.id}>
+              <tr key={d.id} onClick={() => setOpenId(d.id)} style={{ cursor: 'pointer' }}>
                 <td>
                   {displayName(d.nom, d.prenom)} · {d.reference}
                 </td>
@@ -90,7 +92,10 @@ export function RejectedDossiersList() {
                     type="button"
                     className={`btn btn-outline btn-sm${restoringId === d.id ? ' is-disabled' : ''}`}
                     disabled={restoringId === d.id}
-                    onClick={() => void handleRestore(d.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void handleRestore(d.id);
+                    }}
                   >
                     {restoringId === d.id ? 'Restauration…' : 'Restaurer'}
                   </button>
@@ -100,6 +105,15 @@ export function RejectedDossiersList() {
           )}
         </tbody>
       </table>
+
+      {openId && (
+        <DossierModal
+          key={openId}
+          id={openId}
+          onClose={() => setOpenId(null)}
+          onChanged={() => void refresh()}
+        />
+      )}
     </div>
   );
 }

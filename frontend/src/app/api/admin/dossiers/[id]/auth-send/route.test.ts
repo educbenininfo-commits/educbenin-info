@@ -50,6 +50,7 @@ describe('POST /api/admin/dossiers/[id]/auth-send', () => {
       reference: 'EB-202609-001',
       stage: 2,
       authSentAt: null,
+      authSubmittedAt: null,
     } as never);
     prismaMock.dossier.update.mockResolvedValueOnce({} as never);
 
@@ -83,6 +84,7 @@ describe('POST /api/admin/dossiers/[id]/auth-send', () => {
       reference: 'EB-202609-001',
       stage: 1,
       authSentAt: null,
+      authSubmittedAt: null,
     } as never);
     const res = await POST(makeReq('d1'), paramsOf('d1'));
     expect(res.status).toBe(409);
@@ -90,16 +92,26 @@ describe('POST /api/admin/dossiers/[id]/auth-send', () => {
     expect(prismaMock.dossier.update).not.toHaveBeenCalled();
   });
 
-  it('returns 409 ALREADY_SENT when authSentAt is already set', async () => {
+  it('allows a resend when authSentAt is already set, clearing authSubmittedAt', async () => {
     prismaMock.dossier.findUnique.mockResolvedValueOnce({
       id: 'd1',
       reference: 'EB-202609-001',
       stage: 2,
       authSentAt: new Date(),
+      authSubmittedAt: new Date(),
     } as never);
+    prismaMock.dossier.update.mockResolvedValueOnce({} as never);
+
     const res = await POST(makeReq('d1'), paramsOf('d1'));
-    expect(res.status).toBe(409);
-    expect((await res.json()).error).toBe('ALREADY_SENT');
+    expect(res.status).toBe(200);
+
+    const updateArg = prismaMock.dossier.update.mock.calls[0]?.[0];
+    expect(updateArg?.data?.authSubmittedAt).toBeNull();
+
+    expect(mockLogAdminAction).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ action: 'dossier.auth_resend' }),
+    );
   });
 
   it('returns 404 DOSSIER_NOT_FOUND for an unknown id', async () => {

@@ -98,3 +98,44 @@ export function resetPasswordEmail(args: ResetPasswordEmailArgs): EmailTemplate 
     text: `Your password reset code is ${args.code}. It expires ${ttl}. If you did not request this, ignore this email.`,
   };
 }
+
+export interface AdminInvitationEmailArgs {
+  email: string;
+  link: string;
+  /** Optional ISO-8601 expiry; falls back to "bientôt" wording when omitted. */
+  expiresAt?: string;
+  roleLabel: string; // e.g. "Super administrateur" | "Administrateur" | "Support"
+}
+
+/**
+ * Admin back-office invitation — French, unlike the two generic auth emails
+ * above (those are starter-template leftovers, English by default per D-15;
+ * this one is Educ Bénin-specific content and follows the rest of the
+ * product's language). The link always points at the same confirmation
+ * page (`/invitation/[token]`) regardless of email provider — the page
+ * itself branches on whether the address is Gmail, not this email.
+ */
+export function adminInvitationEmail(args: AdminInvitationEmailArgs): EmailTemplate {
+  const link = htmlEscape(args.link);
+  const roleLabel = htmlEscape(args.roleLabel);
+  const ttl = ttlWordingFr(args.expiresAt);
+  return {
+    subject: 'Invitation au back-office Educ Bénin',
+    html: `<p>Bonjour,</p><p>Vous avez été invité(e) à rejoindre le back-office Educ Bénin en tant que <strong>${roleLabel}</strong>.</p><p><a href="${link}">Confirmer l'invitation</a></p><p>Ce lien expire ${ttl}. Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.</p>`,
+    text: `Vous avez été invité(e) à rejoindre le back-office Educ Bénin en tant que ${args.roleLabel}. Confirmez votre invitation : ${args.link} — ce lien expire ${ttl}. Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.`,
+  };
+}
+
+/** French wording for the same floor-rounded TTL logic as ttlWording(). */
+function ttlWordingFr(expiresAtIso: string | undefined): string {
+  if (!expiresAtIso) return 'bientôt';
+  const expiresMs = Date.parse(expiresAtIso);
+  if (Number.isNaN(expiresMs)) return 'bientôt';
+  const remainingMs = expiresMs - Date.now();
+  if (remainingMs <= 0) return 'bientôt';
+  const minutes = Math.floor(remainingMs / 60_000);
+  if (minutes < 1) return 'dans moins d’une minute';
+  if (minutes < 60) return `dans ${minutes} minute${minutes === 1 ? '' : 's'}`;
+  const hours = Math.floor(minutes / 60);
+  return `dans ${hours} heure${hours === 1 ? '' : 's'}`;
+}

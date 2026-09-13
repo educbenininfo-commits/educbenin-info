@@ -22,6 +22,7 @@ import { verifyCsrf } from '@/lib/server/auth';
 import { requireSuperadmin } from '@/lib/server/middleware';
 import { prisma } from '@/lib/server/prisma';
 import { logAdminAction } from '@/lib/server/admin/audit';
+import { isProtectedSuperadmin } from '@/lib/server/admin/protected-accounts';
 import { enforceAdminRateLimit } from '@/lib/server/middleware/rate-limit-by-userid';
 import { makeRequestContext, withRequestContext } from '@/lib/server/observability/request-context';
 
@@ -32,6 +33,7 @@ const Body = z.object({
 type Discriminator =
   | { kind: 'NOT_FOUND' }
   | { kind: 'LAST_SUPERADMIN' }
+  | { kind: 'PROTECTED_ACCOUNT' }
   | { kind: 'OK'; user: { id: string; role: string } };
 
 export async function PATCH(
@@ -61,9 +63,14 @@ export async function PATCH(
     const result: Discriminator = await prisma.$transaction(async (tx) => {
       const target = await tx.user.findUnique({
         where: { id },
-        select: { id: true, role: true },
+        select: { id: true, role: true, email: true },
       });
       if (!target) return { kind: 'NOT_FOUND' as const };
+
+      // The founder/owner account can never be demoted, by anyone.
+      if (isProtectedSuperadmin(target.email) && parsed.data.role !== 'SUPERADMIN') {
+        return { kind: 'PROTECTED_ACCOUNT' as const };
+      }
 
       // CF-09 / Pitfall 1: COUNT + UPDATE in same tx prevents the race where
       // two concurrent demotions both see count=2 and both succeed.
@@ -100,6 +107,12 @@ export async function PATCH(
     if (result.kind === 'LAST_SUPERADMIN') {
       return NextResponse.json(
         { error: 'LAST_SUPERADMIN', message: 'Refuse to demote the last SUPERADMIN.' },
+        { status: 409 },
+      );
+    }
+    if (result.kind === 'PROTECTED_ACCOUNT') {
+      return NextResponse.json(
+        { error: 'PROTECTED_ACCOUNT', message: 'This account can never be demoted.' },
         { status: 409 },
       );
     }

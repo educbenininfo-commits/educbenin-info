@@ -27,7 +27,7 @@ export async function POST(
   const { id } = await ctx.params;
   const dossier = await prisma.dossier.findUnique({
     where: { id },
-    select: { id: true, reference: true, stage: true, authSentAt: true },
+    select: { id: true, reference: true, stage: true, authSentAt: true, authSubmittedAt: true },
   });
   if (!dossier) {
     return NextResponse.json({ error: 'DOSSIER_NOT_FOUND' }, { status: 404 });
@@ -35,9 +35,13 @@ export async function POST(
   if (dossier.stage !== 2) {
     return NextResponse.json({ error: 'WRONG_STAGE' }, { status: 409 });
   }
-  if (dossier.authSentAt) {
-    return NextResponse.json({ error: 'ALREADY_SENT' }, { status: 409 });
-  }
+  // No more hard "already sent" block — an admin can resend at any point
+  // while the dossier sits at this stage (e.g. the candidate's browser
+  // failed to submit, or a mistake needs correcting). `authFormData` from
+  // any prior submission is left untouched so the candidate's next visit
+  // pre-fills from it; only `authSubmittedAt` is cleared so the state
+  // machine treats this as pending again.
+  const isResend = Boolean(dossier.authSentAt);
 
   const token = randomBytes(32).toString('base64url');
   const now = new Date();
@@ -45,12 +49,17 @@ export async function POST(
 
   await prisma.dossier.update({
     where: { id },
-    data: { authToken: token, authTokenExpiresAt, authSentAt: now },
+    data: {
+      authToken: token,
+      authTokenExpiresAt,
+      authSentAt: now,
+      authSubmittedAt: null,
+    },
   });
 
   await logAdminAction(prisma, {
     actorId: auth.admin.id,
-    action: 'dossier.auth_send',
+    action: isResend ? 'dossier.auth_resend' : 'dossier.auth_send',
     targetType: 'Dossier',
     targetId: id,
     metadata: { reference: dossier.reference },

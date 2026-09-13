@@ -25,7 +25,7 @@ function makeForm(overrides: Record<string, string | File | string[]> = {}): For
   const base: Record<string, string | File | string[]> = {
     nom: 'AMOUSSOU',
     prenom: 'Koffi',
-    whatsapp: '+229 97 00 00 00',
+    whatsapp: '+22997000000',
     specialtyCodes: ['PED'],
     consent1: 'true',
     consent2: 'true',
@@ -82,7 +82,8 @@ describe('POST /api/dossiers', () => {
         reference: 'EB-202609-001',
         nom: 'AMOUSSOU',
         prenom: 'Koffi',
-        whatsapp: '+229 97 00 00 00',
+        whatsapp: '+22997000000',
+        nationalite: null,
         specialtyCodes: ['PED'],
       },
     });

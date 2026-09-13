@@ -13,14 +13,15 @@ export type AuthForm = {
   prenom: string;
   naissance: string;
   lieuNaissance: string;
-  nationalite: string;
+  nationalite: string; // ISO2 country code, see lib/countries.ts
   adresse: string;
   piece: string;
   pieceRef: string;
   email: string;
-  tel: string;
+  tel: string; // E.164
   bac: { institution: string; email: string; annee: string; pays: string; adresse: string };
   doctorat: { institution: string; email: string; annee: string; pays: string; adresse: string };
+  diplomeNonFrancais: boolean;
 };
 
 export type DossierComment = {
@@ -38,10 +39,12 @@ export type DossierListItem = {
   nom: string;
   prenom: string;
   whatsapp: string;
+  nationalite: string | null;
   specialtyCodes: string[];
   stage: 0 | 1 | 2 | 3 | 4 | 5;
   stageChangedAt: string;
   motifRejet: string | null;
+  correctionRequestedAt: string | null;
 };
 
 export type DossierDetail = DossierListItem & {
@@ -52,7 +55,12 @@ export type DossierDetail = DossierListItem & {
   authSentAt: string | null;
   authSubmittedAt: string | null;
   authFormData: AuthForm | null;
-  diplomaUrl: string | null;
+  diplomaBacUrl: string | null;
+  diplomaDoctoratUrl: string | null;
+  diplomaBacTranslatedUrl: string | null;
+  diplomaDoctoratTranslatedUrl: string | null;
+  correctionToken: string | null;
+  correctionTokenExpiresAt: string | null;
   ficheUploaded: boolean;
   ficheUrl: string | null;
   recepisseUploaded: boolean;

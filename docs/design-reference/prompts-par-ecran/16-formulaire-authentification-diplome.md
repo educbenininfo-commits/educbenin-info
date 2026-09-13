@@ -56,3 +56,33 @@ Comportement backend attendu :
   token.
 
 Si un détail n'est pas couvert ici, demande-moi avant de décider toi-même.
+
+## Addendum (évolution du produit après la première implémentation)
+
+- Juste avant la section "Informations personnelles", un bandeau bien visible : "⚠️ Les nom
+  et prénom saisis ci-dessous doivent être strictement conformes à ceux inscrits sur votre
+  diplôme."
+- Le libellé "Institution (établissement étatique)" devient "Institution étatique délivrant ce
+  diplôme" (Bac et Doctorat).
+- Sous le titre de chaque section diplôme, ajouter : "Si votre diplôme n'est pas rédigé en
+  français, faites-le traduire par le ministère des Affaires étrangères de votre pays avant de
+  le soumettre."
+- Une case à cocher bien visible : "Cocher cette case si l'original de votre diplôme n'est pas
+  en français, afin d'ajouter les documents traduits." Cochée, elle révèle deux champs upload
+  supplémentaires (traduction du Bac, traduction du Doctorat), obligatoires dans ce cas. Total :
+  2 uploads obligatoires (Bac, Doctorat) + jusqu'à 2 de plus si la case est cochée — jamais un
+  seul PDF combiné.
+- Champs nationalité/pays d'obtention (personnel + Bac + Doctorat) : menu déroulant pays avec
+  drapeau (`CountrySelect`), pré-rempli selon le pays détecté du navigateur. Champ téléphone :
+  indicatif+drapeau en menu déroulant + numéro nationalisé (`CountryPhoneInput`), stocké en
+  E.164. Champ date de naissance : sélecteur calendrier stylé (`DatePicker`), toujours au format
+  JJ/MM/AAAA en sortie.
+- Chaque upload affiche la taille max (5 Mo) et un lien "Compresser un PDF trop volumineux →"
+  vers ilovepdf.com/fr/compresser_pdf (nouvel onglet).
+- Un lien déjà envoyé reste réutilisable : le back-office peut renvoyer ce même lien (nouveau
+  token, même dossier) à tout moment — la soumission déjà faite par le candidat, si elle existe,
+  pré-remplit alors le formulaire pour qu'il corrige plutôt que de tout resaisir.
+- Champs obligatoires non remplis à la soumission : surlignés en rouge, plutôt qu'un seul
+  message d'erreur générique. Les erreurs serveur (lien expiré, déjà soumis, fichier trop
+  volumineux, format invalide…) affichent chacune un message spécifique au lieu d'un message
+  générique unique.

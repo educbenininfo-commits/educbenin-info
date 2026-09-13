@@ -17,13 +17,18 @@ import { notifyAdmins } from '@/lib/server/push/send';
 import { log } from '@/lib/server/observability/log';
 import { DOSSIER_CREATED } from '@/lib/notification-types';
 
-const WHATSAPP_RE = /^\+229\s?(\d{2}\s?){4}$/;
+// General E.164 shape ("+" + 7-15 digits) — was hardcoded to Bénin's
+// "+229 XX XX XX XX" with a mandatory space; the candidate-facing form now
+// accepts any country via CountryPhoneInput (lib/countries.ts), which
+// always emits plain E.164 (no spaces).
+const WHATSAPP_RE = /^\+[1-9]\d{6,14}$/;
 const VALID_CODES = new Set(SPECIALTIES.map((s) => s.code));
 
 const Fields = z.object({
   nom: z.string().trim().min(1),
   prenom: z.string().trim().min(1),
   whatsapp: z.string().trim().regex(WHATSAPP_RE),
+  nationalite: z.string().trim().min(1).optional(), // ISO2 country code, see lib/countries.ts
   specialtyCodes: z
     .array(z.string())
     .min(1)
@@ -60,6 +65,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       nom: form.get('nom'),
       prenom: form.get('prenom'),
       whatsapp: form.get('whatsapp'),
+      nationalite: form.get('nationalite') ?? undefined,
       specialtyCodes: form.getAll('specialtyCodes'),
       consent1: form.get('consent1'),
       consent2: form.get('consent2'),
@@ -81,12 +87,19 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const { nom, prenom, whatsapp, specialtyCodes } = parsed.data;
+    const { nom, prenom, whatsapp, nationalite, specialtyCodes } = parsed.data;
 
     const created = await prisma.$transaction(async (tx) => {
       const reference = await generateReference(tx);
       return tx.dossier.create({
-        data: { reference, nom, prenom, whatsapp, specialtyCodes },
+        data: {
+          reference,
+          nom,
+          prenom,
+          whatsapp,
+          nationalite: nationalite ?? null,
+          specialtyCodes,
+        },
       });
     });
 

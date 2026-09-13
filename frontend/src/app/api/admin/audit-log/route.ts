@@ -10,6 +10,8 @@
 //   ?actor       — exact match on actorId
 //   ?action      — exact match on the dotted-string action key (e.g. "user.role_change")
 //   ?targetType  — exact match on the targetType column (e.g. "User", "Withdrawal")
+//   ?targetId    — exact match on the targetId column (e.g. a Dossier id, for a
+//                  per-record "Historique" view)
 //   ?since       — ISO 8601 string → createdAt >= since
 //   ?until       — ISO 8601 string → createdAt <= until
 //   ?cursor      — opaque base64 cursor from a prior page's nextCursor
@@ -52,6 +54,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     const actor = url.searchParams.get('actor');
     const action = url.searchParams.get('action');
     const targetType = url.searchParams.get('targetType');
+    const targetId = url.searchParams.get('targetId');
     const since = parseDate(url.searchParams.get('since'));
     const until = parseDate(url.searchParams.get('until'));
     const cursor = decodeCursor(url.searchParams.get('cursor'));
@@ -68,6 +71,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       ...(actor ? { actorId: actor } : {}),
       ...(action ? { action } : {}),
       ...(targetType ? { targetType } : {}),
+      ...(targetId ? { targetId } : {}),
       ...(createdAtFilter ? { createdAt: createdAtFilter } : {}),
       ...cursorWhere(cursor),
     };

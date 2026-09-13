@@ -13,7 +13,8 @@ export type OutboxEvent =
   | NotificationPaymentReceivedEvent
   | EmailPaymentConfirmationEvent
   | EmailVerificationCodeEvent
-  | EmailPasswordResetEvent;
+  | EmailPasswordResetEvent
+  | EmailAdminInvitationEvent;
 
 export interface NotificationPaymentReceivedEvent {
   kind: 'notification.payment_received';
@@ -58,6 +59,22 @@ export interface EmailPasswordResetEvent {
     to: string;
     code: string;
     expiresAt: string;
+  };
+}
+
+/**
+ * Emitted by POST /api/admin/invites; consumed by the email-queue cron
+ * (which calls adminInvitationEmail() to render). `link` is the full
+ * `/invitation/[token]` URL, built at the route (not the dispatcher) since
+ * the route already knows APP_URL and the request origin.
+ */
+export interface EmailAdminInvitationEvent {
+  kind: 'email.admin_invitation';
+  payload: {
+    to: string;
+    link: string;
+    expiresAt: string;
+    roleLabel: string;
   };
 }
 

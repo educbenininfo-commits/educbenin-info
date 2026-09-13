@@ -8,10 +8,12 @@ function item(overrides: Partial<DossierListItem> = {}): DossierListItem {
     nom: 'DOSSOU',
     prenom: 'Horace',
     whatsapp: '+229 97 00 00 00',
+    nationalite: null,
     specialtyCodes: [],
     stage: 1,
     stageChangedAt: new Date().toISOString(),
     motifRejet: null,
+    correctionRequestedAt: null,
     ...overrides,
   };
 }

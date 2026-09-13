@@ -166,6 +166,15 @@ async function dispatchEvent(deps: OutboxDispatcherDeps, event: OutboxEvent): Pr
       await deps.emailQueue.enqueue({ to, subject: tpl.subject, html: tpl.html });
       return;
     }
+    case 'email.admin_invitation': {
+      // Emitted by POST /api/admin/invites (Comptes admin & rôles).
+      if (!deps.emailQueue) throw new Error('email queue not configured');
+      const { adminInvitationEmail } = await import('../auth/email-templates');
+      const { to, link, expiresAt, roleLabel } = event.payload;
+      const tpl = adminInvitationEmail({ email: to, link, expiresAt, roleLabel });
+      await deps.emailQueue.enqueue({ to, subject: tpl.subject, html: tpl.html });
+      return;
+    }
     default: {
       // Exhaustive check — TS will yell if we add a new variant and forget it.
       const _exhaustive: never = event;

@@ -28,6 +28,7 @@ describe('GET /api/dossiers/lookup', () => {
       ficheUploaded: false,
       recepisseUploaded: false,
       recepisseUrl: null,
+      comments: [],
     } as never);
 
     const res = await GET(makeReq('reference=EB-202609-001&whatsapp=%2B229+97+00+00+00'));
@@ -39,6 +40,7 @@ describe('GET /api/dossiers/lookup', () => {
       motifRejet: null,
       ficheUploaded: false,
       recepisseUrl: null,
+      comments: [],
     });
     expect(prismaMock.dossier.findFirst).toHaveBeenCalledWith({
       where: { reference: 'EB-202609-001', whatsapp: '+229 97 00 00 00' },
@@ -54,6 +56,7 @@ describe('GET /api/dossiers/lookup', () => {
       ficheUploaded: false,
       recepisseUploaded: false,
       recepisseUrl: null,
+      comments: [],
     } as never);
 
     const res = await GET(makeReq('reference=EB-202609-002&whatsapp=%2B229+97+00+00+00'));
@@ -68,6 +71,7 @@ describe('GET /api/dossiers/lookup', () => {
       ficheUploaded: true,
       recepisseUploaded: true,
       recepisseUrl: 'dossiers/x/recepisse',
+      comments: [],
     } as never);
 
     const res = await GET(makeReq('reference=EB-202609-003&whatsapp=%2B229+97+00+00+00'));

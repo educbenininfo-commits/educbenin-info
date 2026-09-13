@@ -87,6 +87,15 @@ export function DossiersList() {
                 </div>
               </div>
               <div className="meta">
+                {d.correctionRequestedAt && (
+                  <span
+                    className="pill"
+                    style={{ background: 'var(--prod-warning-tint)', color: 'var(--prod-warning)' }}
+                    title="Une correction a été demandée au candidat — en attente de sa mise à jour."
+                  >
+                    Dossier MAJ
+                  </span>
+                )}
                 <span className={`pill ${pillClass(d.stage)}`}>{STAGE_NAMES[d.stage]}</span>
                 <span className="days">{formatElapsed(d.stage, d.stageChangedAt)}</span>
                 <span className="chev">›</span>

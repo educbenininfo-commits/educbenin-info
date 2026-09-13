@@ -31,6 +31,17 @@ model User {
   // refused with 403 ACCOUNT_SUSPENDED. Mutated via /api/admin/users/[id]/status
   // (ADMIN can suspend; only SUPERADMIN can restore).
   status            String    @default("ACTIVE") // ACTIVE | SUSPENDED
+  // Cosmetic-only sub-label for an ADMIN row (never read for access control —
+  // SUPERADMIN/ADMIN rank alone still gates everything via requireAdmin).
+  // Lets the back-office show "Administrateur" vs "Support" for two ADMIN-rank
+  // members with different default module permissions. Null for USER/SUPERADMIN.
+  adminLabel        String?   // ADMIN | SUPPORT
+  // Per-module permission grid for the Comptes admin & rôles screen. Only
+  // consulted for role=ADMIN (a SUPERADMIN always has full access regardless
+  // of this field's contents) via requireModulePermission(). Shape:
+  // { dossiers, dossiersRejetes, specialites, tarifs, comptesAdmin }, each
+  // "manage" | "read" | "none".
+  modulePermissions Json?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
@@ -42,6 +53,7 @@ model User {
   withdrawals       Withdrawal[]
   oauthAccounts     OAuthAccount[]
   adminActions      AdminAction[]
+  invitesSent       AdminInvite[]
 
   // Multi-tenancy is opt-in per project: by default no resource is org-scoped.
   // Apps that need it (marketplace, B2B SaaS, classifieds) wire owner relations
@@ -133,6 +145,33 @@ model AdminAction {
   @@index([actorId, createdAt])
   @@index([action, createdAt])
   @@index([targetType, targetId])
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// Admin invitations — Comptes admin & rôles screen.
+//
+// A single row per invitation attempt. No `User` is created at send time —
+// only at confirmation (POST /api/admin/invites/[token]/confirm) — so that a
+// Gmail invitee cannot silently log in via "Sign in with Google" (which links
+// by email with no other check) before actually clicking the confirmation
+// link. `token` is opaque (randomBytes(32).base64url, same pattern as
+// Dossier.authToken) and expires 10 minutes after creation, never extended.
+model AdminInvite {
+  id                String    @id @default(cuid())
+  email             String
+  role              String // ADMIN | SUPERADMIN — applied to the User row at confirmation
+  adminLabel        String? // ADMIN | SUPPORT — cosmetic, see User.adminLabel
+  modulePermissions Json?
+  invitedByUserId   String
+  invitedBy         User      @relation(fields: [invitedByUserId], references: [id], onDelete: Restrict)
+  token             String    @unique
+  expiresAt         DateTime
+  consumedAt        DateTime?
+  revokedAt         DateTime?
+  createdAt         DateTime  @default(now())
+
+  @@index([email])
+  @@index([token])
 }
 
 // ───────────────────────────────────────────────────────────────────────
@@ -388,21 +427,39 @@ model Dossier {
   id        String @id @default(cuid())
   reference String @unique // "EB-202609-001" — see frontend/src/lib/server/dossiers/reference.ts
 
-  nom      String
-  prenom   String
-  whatsapp String // "+229 XX XX XX XX", as typed by the candidate
+  nom         String
+  prenom      String
+  whatsapp    String // E.164, e.g. "+22997000000" — see components/forms/CountryPhoneInput.tsx
+  nationalite String? // ISO2 country code, e.g. "BJ" — see lib/countries.ts
 
   specialtyCodes String[] // codes from frontend/src/lib/specialties.ts, e.g. ["ANR","CAR"]
   stage          Int      @default(1) // 0=rejeté, 1..5 — see STAGE_NAMES in frontend/src/lib/dossiers-data.ts
 
   pieceJointeUrl String? // initial dossier PDF — Supabase Storage path (private bucket), not a URL despite the field name; signed URLs are minted on read (see lib/server/upload/supabase-storage-client.ts)
 
-  authToken          String?   @unique // random, generated on "Envoyer" — never the reference itself
+  authToken          String?   @unique // random, generated on "Envoyer"/"Renvoyer" — never the reference itself
   authTokenExpiresAt DateTime?
   authSentAt         DateTime?
-  authSubmittedAt    DateTime? // set for real when the candidate submits /authentification-diplome/[token]
-  authFormData       Json? // same shape as the existing frontend `AuthForm` type
-  diplomaUrl         String? // single combined Bac+Doctorat PDF — candidate uploads one file, not two (storage path, see pieceJointeUrl note above)
+  authSubmittedAt    DateTime? // set when the candidate submits /authentification-diplome/[token]; cleared back to null on a resend so the state machine treats the resubmission as pending again
+  authFormData       Json? // same shape as the existing frontend `AuthForm` type — kept across a resend so the candidate's re-visit can be pre-filled
+
+  // Diploma uploads — one field per document. Was a single combined
+  // Bac+Doctorat PDF (`diplomaUrl`); split back into separate required
+  // uploads per product decision, plus two conditional translated
+  // versions when the checkbox "diplôme non francophone" is ticked.
+  diplomaBacUrl                String? // storage path, see pieceJointeUrl note above
+  diplomaDoctoratUrl           String?
+  diplomaBacTranslatedUrl      String?
+  diplomaDoctoratTranslatedUrl String?
+
+  // Correction workflow — an admin can resend whichever form matches the
+  // dossier's current stage (Demande at stage 1, Authentification at
+  // stage 2), pre-filled with the data already on file. Non-null while a
+  // correction is outstanding; the "Dossier MAJ" pill in the back-office
+  // list reads this. Cleared back to null once the candidate resubmits.
+  correctionRequestedAt   DateTime?
+  correctionToken         String?   @unique // stage-1 (Demande) correction link only — stage-2 reuses authToken
+  correctionTokenExpiresAt DateTime?
 
   ficheUploaded Boolean @default(false)
   ficheUrl      String? // storage path, see pieceJointeUrl note above

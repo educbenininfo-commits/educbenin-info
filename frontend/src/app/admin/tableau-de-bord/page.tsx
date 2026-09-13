@@ -23,7 +23,8 @@ import {
   type DossierListItem,
 } from '@/lib/dossiers-data';
 import { SPECIALTIES } from '@/lib/specialties';
-import { TARIFS_HISTORIQUE, ADMIN_MEMBERS } from '@/lib/backoffice-static-data';
+import { TARIFS_HISTORIQUE } from '@/lib/backoffice-static-data';
+import type { TeamResponse } from '@/lib/admin-team-api';
 
 interface EnAttenteRow {
   id: string;
@@ -94,6 +95,10 @@ export default function TableauDeBordPage() {
     '/api/admin/dossiers?stage=0',
     { skip: !query },
   );
+  // 403s silently for a plain ADMIN (Comptes admin is SUPERADMIN-only) — the
+  // hook just resolves to `data: null`, so this section of the search simply
+  // stays empty for them rather than crashing the page.
+  const { data: teamRes } = useApi<TeamResponse>('/api/admin/team', { skip: !query });
 
   if (query) {
     const matchingDossiers = (dossiersRes?.items ?? []).filter((d) =>
@@ -113,7 +118,9 @@ export default function TableauDeBordPage() {
         h.regle.toLowerCase().includes(query) ||
         h.statut.toLowerCase().includes(query),
     );
-    const matchingMembers = ADMIN_MEMBERS.filter((m) => m.name.toLowerCase().includes(query));
+    const matchingMembers = (teamRes?.members ?? []).filter(
+      (m) => m.email.toLowerCase().includes(query) || (m.name ?? '').toLowerCase().includes(query),
+    );
 
     const qs = `?q=${encodeURIComponent(rawQuery)}`;
     const searching = (dossiersLoading && !dossiersRes) || (rejetesLoading && !rejetesRes);
@@ -222,12 +229,12 @@ export default function TableauDeBordPage() {
             <h3>Comptes admin &amp; rôles ({matchingMembers.length})</h3>
             {matchingMembers.map((m) => (
               <Link
-                key={m.name}
+                key={m.id}
                 href={`/admin/comptes-admin${qs}`}
                 className="alert-row"
                 style={{ display: 'flex' }}
               >
-                <span>{m.name}</span>
+                <span>{m.name ?? m.email}</span>
               </Link>
             ))}
           </div>

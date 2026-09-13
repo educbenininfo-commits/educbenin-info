@@ -14,6 +14,8 @@ export default function robots(): MetadataRoute.Robots {
         '/settings',
         '/auth/',
         '/authentification-diplome/',
+        '/corriger-ma-demande/',
+        '/invitation/',
       ],
     },
     sitemap: `${SITE_URL}/sitemap.xml`,
