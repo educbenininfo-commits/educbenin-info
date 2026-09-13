@@ -1,2 +1,16 @@
 packages:
   - 'frontend'
+
+# Security-audit floors for transitive-only dependencies pulled in by build
+# tooling (@sentry/webpack-plugin's webpack/schema-utils/ajv chain, plus a
+# few others) — not our direct deps, but `pnpm audit --prod --audit-level=high`
+# in CI fails the build if they resolve below a patched version. Revisit/
+# trim this list whenever the packages that pull them in (mainly
+# @sentry/nextjs) bump past a version that already resolves these safely on
+# its own.
+overrides:
+  fast-uri: '>=3.1.6'
+  brace-expansion: '>=5.0.9'
+  browserslist: '>=4.28.7'
+  nanoid: '>=3.3.18'
+  postcss: '>=8.5.18'
