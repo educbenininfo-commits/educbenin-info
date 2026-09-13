@@ -34,6 +34,7 @@ export function InviteMemberModal({
   onSent: () => void;
 }) {
   const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
   const [role, setRole] = useState<RoleChoice>('ADMIN');
   const [perms, setPerms] = useState<ModulePermissions>(defaultsFor('ADMIN'));
   const [submitting, setSubmitting] = useState(false);
@@ -55,6 +56,7 @@ export function InviteMemberModal({
     try {
       await sendInvite({
         email: email.trim(),
+        ...(name.trim() ? { name: name.trim() } : {}),
         role: role === 'SUPPORT' ? 'ADMIN' : role,
         ...(role !== 'SUPERADMIN' ? { adminLabel: role === 'SUPPORT' ? 'SUPPORT' : 'ADMIN' } : {}),
         modulePermissions: perms,
@@ -92,6 +94,20 @@ export function InviteMemberModal({
               <div className="hint">
                 Une adresse Gmail permet une connexion directe avec Google après confirmation ;
                 toute autre adresse devra définir un mot de passe.
+              </div>
+            </div>
+
+            <div className="field">
+              <label>Nom (optionnel)</label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Ex. Administration"
+                maxLength={120}
+              />
+              <div className="hint">
+                Nom affiché pour ce compte (utile pour une boîte mail partagée par exemple).
               </div>
             </div>
 

@@ -100,12 +100,14 @@ export async function POST(
               adminLabel: invite.adminLabel,
               modulePermissions: invitePerms,
               status: 'ACTIVE',
+              ...(invite.name ? { name: invite.name } : {}),
               ...(passwordHash ? { passwordHash } : {}),
             },
           })
         : await tx.user.create({
             data: {
               email: invite.email,
+              name: invite.name,
               role: invite.role,
               adminLabel: invite.adminLabel,
               modulePermissions: invitePerms,

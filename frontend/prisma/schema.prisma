@@ -159,6 +159,8 @@ model AdminAction {
 model AdminInvite {
   id                String    @id @default(cuid())
   email             String
+  name              String? // display name for the invitee (e.g. "Administration",
+  // a shared team mailbox rather than a person) — applied to User.name at confirmation
   role              String // ADMIN | SUPERADMIN — applied to the User row at confirmation
   adminLabel        String? // ADMIN | SUPPORT — cosmetic, see User.adminLabel
   modulePermissions Json?

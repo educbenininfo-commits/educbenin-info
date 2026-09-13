@@ -146,6 +146,7 @@ export function TeamList() {
     try {
       await sendInvite({
         email: inv.email,
+        ...(inv.name ? { name: inv.name } : {}),
         role: inv.role,
         adminLabel: inv.adminLabel,
         ...(inv.modulePermissions ? { modulePermissions: inv.modulePermissions } : {}),
@@ -160,7 +161,7 @@ export function TeamList() {
   }
 
   const visibleMembers = members.filter((m) => matchesQuery(m.name, m.email, query));
-  const visibleInvites = pendingInvites.filter((i) => matchesQuery(null, i.email, query));
+  const visibleInvites = pendingInvites.filter((i) => matchesQuery(i.name, i.email, query));
 
   return (
     <>
@@ -381,9 +382,9 @@ export function TeamList() {
                 {visibleInvites.map((inv) => (
                   <tr key={inv.inviteId} style={{ opacity: 0.85 }}>
                     <td>
-                      {inv.email}
+                      {inv.name ?? inv.email}
                       <div className="hint" style={{ fontSize: 11 }}>
-                        Invitation envoyée
+                        {inv.name ? inv.email : 'Invitation envoyée'}
                       </div>
                     </td>
                     <td>{roleLabel(inv.role, inv.adminLabel)}</td>

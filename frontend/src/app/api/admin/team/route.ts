@@ -44,6 +44,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         select: {
           id: true,
           email: true,
+          name: true,
           role: true,
           adminLabel: true,
           modulePermissions: true,
@@ -57,6 +58,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     const pendingInvites = invites.map((inv) => ({
       inviteId: inv.id,
       email: inv.email,
+      name: inv.name,
       role: inv.role,
       adminLabel: inv.adminLabel,
       modulePermissions: inv.modulePermissions,

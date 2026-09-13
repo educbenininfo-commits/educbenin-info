@@ -57,6 +57,7 @@ export interface TeamMember {
 export interface PendingInvite {
   inviteId: string;
   email: string;
+  name: string | null;
   role: BackofficeRole;
   adminLabel: AdminLabel;
   modulePermissions: ModulePermissions | null;
@@ -75,6 +76,7 @@ export function fetchTeam(): Promise<TeamResponse> {
 
 export function sendInvite(data: {
   email: string;
+  name?: string;
   role: BackofficeRole;
   adminLabel?: AdminLabel;
   modulePermissions?: ModulePermissions;

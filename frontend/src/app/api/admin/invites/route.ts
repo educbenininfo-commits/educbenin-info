@@ -39,6 +39,7 @@ const ModulePermissionsSchema = z.object({
 
 const Body = z.object({
   email: zEmail,
+  name: z.string().trim().min(1).max(120).optional(),
   role: z.enum(['ADMIN', 'SUPERADMIN']),
   adminLabel: z.enum(['ADMIN', 'SUPPORT']).optional(),
   modulePermissions: ModulePermissionsSchema.optional(),
@@ -68,7 +69,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         { status: 400 },
       );
     }
-    const { email, role, adminLabel, modulePermissions } = parsed.data;
+    const { email, name, role, adminLabel, modulePermissions } = parsed.data;
 
     if (role === 'SUPERADMIN' && auth.admin.role !== 'SUPERADMIN') {
       return NextResponse.json(
@@ -98,6 +99,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       const created = await tx.adminInvite.create({
         data: {
           email,
+          name: name ?? null,
           role,
           adminLabel: adminLabel ?? null,
           ...(modulePermissions ? { modulePermissions } : {}),
@@ -118,7 +120,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         action: 'admin.invite_sent',
         targetType: 'AdminInvite',
         targetId: created.id,
-        metadata: { email, role, adminLabel: adminLabel ?? null },
+        metadata: { email, name: name ?? null, role, adminLabel: adminLabel ?? null },
       });
 
       return created;
@@ -151,6 +153,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       select: {
         id: true,
         email: true,
+        name: true,
         role: true,
         adminLabel: true,
         modulePermissions: true,
