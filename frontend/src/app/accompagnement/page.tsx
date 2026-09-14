@@ -1,107 +1,109 @@
-// Écran Accompagnement & demande — docs/design-reference/DESIGN-SPEC.md,
-// section "2. Accompagnement & demande". Contenu et structure reproduits à
-// la lettre depuis docs/design-reference/educbenin-prototype.html.
+// Écran "Accompagnement (vue d'ensemble)" — hub listant TOUS les
+// accompagnements disponibles, toutes écoles confondues, pour ne jamais
+// avoir à tout lister dans le menu principal (05-accompagnement-hub.md).
+// Remplace l'ancien /accompagnement (le formulaire D.E.S., relocalisé
+// inchangé vers /fss/des). force-dynamic : catégories/tarifs viennent du
+// back-office.
+export const dynamic = 'force-dynamic';
 
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { PublicNav } from '@/components/public/PublicNav';
 import { PublicBottomNav } from '@/components/public/PublicBottomNav';
-import { DemandForm } from '@/components/accompagnement/DemandForm';
+import { DisclaimerBar } from '@/components/public/DisclaimerBar';
+import { PublicFooter } from '@/components/public/PublicFooter';
+import { listEcolesForGrid } from '@/lib/server/schools/queries';
+import {
+  CATEGORIE_FSS_LICENCE_ID,
+  CATEGORIE_FSS_DES_ID,
+  CATEGORIE_FSS_MASTER_ID,
+  CATEGORIE_INMES_CYCLE1_ID,
+  CATEGORIE_INMES_CYCLE2_ID,
+} from '@/lib/server/schools/reference-ids';
 
 export const metadata: Metadata = {
-  title: 'Accompagnement & demande de dossier',
+  title: 'Tous les accompagnements disponibles',
   description:
-    'Pièces à fournir, tarif, et formulaire de demande en 3 étapes pour votre dossier de probatoire spécialité FSS/UAC — spécialité, informations personnelles, pièces & envoi.',
+    'Vue d’ensemble de tous les accompagnements Educ Bénin, toutes écoles confondues — chaque carte ouvre directement la demande correspondante.',
   alternates: { canonical: '/accompagnement' },
 };
 
-const PIECES: { id: string; content: React.ReactNode }[] = [
-  {
-    id: 'demande-doyen',
-    content: 'Demande manuscrite ou saisie adressée au Doyen de la FSS (spécialité, année, e-mail)',
-  },
-  {
-    id: 'lettre-vice-recteur',
-    content:
-      'Lettre manuscrite ou saisie adressée au Vice-Recteur des Affaires Académiques de l’UAC',
-  },
-  {
-    id: 'extrait-naissance',
-    content: 'Copie légalisée ou certifiée de l’extrait / certificat de naissance',
-  },
-  { id: 'nationalite', content: 'Copie légalisée ou certifiée du certificat de nationalité' },
-  { id: 'bac', content: 'Copie légalisée ou certifiée du diplôme de Baccalauréat' },
-  {
-    id: 'doctorat',
-    content: 'Copie légalisée ou certifiée du diplôme de Doctorat en Médecine',
-  },
-  { id: 'cv', content: 'Curriculum vitae détaillé' },
-  {
-    id: 'releves',
-    content: (
-      <>
-        Relevés de notes de la 1<sup>re</sup> à la 7<sup>e</sup> année, légalisés ou certifiés
-      </>
-    ),
-  },
-  { id: 'releve-bac', content: 'Relevé de notes du Baccalauréat, légalisé ou certifié' },
-];
+// Maps each Categorie to the demand-form route hosting its "Faire une
+// demande" button — see the ecoleSlug()-based routing convention in
+// PublicNav's doc comment (/fss/licence, /fss/des, /fss/master,
+// /inmes/cycle-1, /inmes/cycle-2).
+const DEMAND_HREF: Record<string, string> = {
+  [CATEGORIE_FSS_LICENCE_ID]: '/fss/licence',
+  [CATEGORIE_FSS_DES_ID]: '/fss/des',
+  [CATEGORIE_FSS_MASTER_ID]: '/fss/master',
+  [CATEGORIE_INMES_CYCLE1_ID]: '/inmes/cycle-1',
+  [CATEGORIE_INMES_CYCLE2_ID]: '/inmes/cycle-2',
+};
 
-export default function AccompagnementPage() {
+export default async function AccompagnementHubPage() {
+  const ecoles = await listEcolesForGrid();
+
   return (
     <div className="prod">
       <PublicNav active="accompagnement" />
       <PublicBottomNav active="accompagnement" />
+      <DisclaimerBar />
 
       <div className="page-head pw">
         <div className="k">Accompagnement</div>
-        <h1>Dépôt du dossier de probatoire spécialité</h1>
+        <h1>Tous les accompagnements disponibles</h1>
         <p>
-          Nous rassemblons, vérifions et déposons votre dossier auprès de la FSS, et accompagnons
-          l&rsquo;authentification de vos diplômes.
+          Choisissez la situation qui vous concerne : chaque carte ouvre directement la demande
+          correspondante, avec ses pièces à fournir et son tarif.
         </p>
       </div>
 
-      <div className="section pw">
-        <div className="two-col" style={{ alignItems: 'start' }}>
-          <div className="doc-card">
-            <h3>Pièces à fournir — un seul document PDF</h3>
-            <ol>
-              {PIECES.map((piece) => (
-                <li key={piece.id}>{piece.content}</li>
-              ))}
-            </ol>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div className="callout warn">
-              <span className="icn">⚠</span>
-              <span>
-                <strong>Plusieurs spécialités ?</strong> Les pièces 1 et 2 doivent être établies
-                pour chaque spécialité demandée, sous peine de rejet du dossier.
-              </span>
-            </div>
-            <div
-              className="price-box"
-              style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}
-            >
-              <div style={{ fontSize: 12.5, color: 'var(--prod-ink-muted)' }}>À partir de</div>
-              <div className="amt">
-                50 000 <span className="cur">FCFA / spécialité</span>
+      <div className="pw content-pad">
+        {ecoles.map((ecole) => (
+          <div key={ecole.id} className="section-bleed" style={{ marginBottom: 0 }}>
+            <div className="section pw" style={{ paddingLeft: 0, paddingRight: 0 }}>
+              <h2>
+                {ecole.nom} — {ecole.description ?? ecole.nom}
+              </h2>
+              <p className="sub">{ecole.categories.map((c) => c.description).join(' ')}</p>
+              <div className="cat-grid">
+                {ecole.categories.map((cat) => {
+                  const href = DEMAND_HREF[cat.id];
+                  if (!href) return null;
+                  return (
+                    <div key={cat.id} className="cat-card">
+                      <span className="eyebrow-pill">
+                        {ecole.nom} · {cat.libelle}
+                      </span>
+                      <h3>{cat.libelle}</h3>
+                      <p>{cat.description}</p>
+                      {cat.tarifDepart != null && (
+                        <div className="price-line">
+                          À partir de{' '}
+                          <strong>{cat.tarifDepart.toLocaleString('fr-FR')} FCFA</strong>
+                        </div>
+                      )}
+                      <Link href={href} className="btn btn-primary btn-sm">
+                        Faire une demande
+                      </Link>
+                    </div>
+                  );
+                })}
               </div>
-              <div style={{ fontSize: 11.5, color: 'var(--prod-ink-faint)' }}>
-                Tarif multi-spécialités communiqué avant confirmation.
-              </div>
             </div>
           </div>
+        ))}
+
+        <div className="callout info" style={{ marginTop: 8 }}>
+          <span className="icn">ⓘ</span>
+          <span>
+            Vous ne trouvez pas votre établissement ou votre filière ?{' '}
+            <Link href="/#suggestion">Suggérez-le nous depuis la page d&rsquo;accueil</Link>.
+          </span>
         </div>
       </div>
 
-      <div className="section-bleed">
-        <div className="section pw">
-          <h2>Faire ma demande</h2>
-          <p className="sub">3 étapes, environ 5 minutes.</p>
-          <DemandForm />
-        </div>
-      </div>
+      <PublicFooter />
     </div>
   );
 }

@@ -9,6 +9,7 @@
 // suggestion). #kpiBlockFinance and the chart/payment-breakdown panels stay
 // example data per spec §2/§10 — no financial ledger exists yet.
 
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useApi } from '@/lib/useApi';
@@ -23,8 +24,10 @@ import {
   type DossierListItem,
 } from '@/lib/dossiers-data';
 import { SPECIALTIES } from '@/lib/specialties';
-import { TARIFS_HISTORIQUE } from '@/lib/backoffice-static-data';
 import type { TeamResponse } from '@/lib/admin-team-api';
+import type { TarifsResponse, TarifBaremeRow } from '@/lib/admin-tarifs-api';
+import { useBackofficeAdmin } from '@/contexts/BackofficeAdminContext';
+import { fetchMaintenanceState, setMaintenanceMode } from '@/lib/admin-maintenance-api';
 
 interface EnAttenteRow {
   id: string;
@@ -72,10 +75,52 @@ interface DossiersResponse {
   counts: Record<string, number>;
 }
 
+function tarifPrixLabel(b: TarifBaremeRow): string {
+  if (b.mode === 'unique') return b.montantUnique != null ? fmtF2(b.montantUnique) : '—';
+  const n = b.montants ? Object.keys(b.montants).length : 0;
+  return `Personnalisé (${n} catégorie${n > 1 ? 's' : ''})`;
+}
+
 export default function TableauDeBordPage() {
   const searchParams = useSearchParams();
   const rawQuery = searchParams.get('q') ?? '';
   const query = rawQuery.trim().toLowerCase();
+
+  // "Mode maintenance" toggle — SUPERADMIN only (see
+  // /api/admin/maintenance's own comment for why this bypasses the regular
+  // per-module permission grid). Rewritten in front of every public page by
+  // middleware.ts, in production only.
+  const { role } = useBackofficeAdmin();
+  const isSuperadmin = role === 'SUPERADMIN';
+  const [maintenance, setMaintenance] = useState<boolean | null>(null);
+  const [maintenanceConfirm, setMaintenanceConfirm] = useState(false);
+  const [maintenanceBusy, setMaintenanceBusy] = useState(false);
+  const [maintenanceError, setMaintenanceError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isSuperadmin) return;
+    let cancelled = false;
+    void fetchMaintenanceState().then((res) => {
+      if (!cancelled) setMaintenance(res.enabled);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isSuperadmin]);
+
+  async function toggleMaintenance() {
+    setMaintenanceBusy(true);
+    setMaintenanceError(null);
+    try {
+      const res = await setMaintenanceMode(!maintenance);
+      setMaintenance(res.enabled);
+      setMaintenanceConfirm(false);
+    } catch {
+      setMaintenanceError('Impossible de changer le mode maintenance.');
+    } finally {
+      setMaintenanceBusy(false);
+    }
+  }
 
   // useApi's cache is shared by URL — these two calls hit the exact same
   // cache entries DossiersList/RejectedDossiersList use, so searching from
@@ -99,6 +144,7 @@ export default function TableauDeBordPage() {
   // hook just resolves to `data: null`, so this section of the search simply
   // stays empty for them rather than crashing the page.
   const { data: teamRes } = useApi<TeamResponse>('/api/admin/team', { skip: !query });
+  const { data: tarifsRes } = useApi<TarifsResponse>('/api/admin/tarifs', { skip: !query });
 
   if (query) {
     const matchingDossiers = (dossiersRes?.items ?? []).filter((d) =>
@@ -111,11 +157,11 @@ export default function TableauDeBordPage() {
         s.salle.toLowerCase().includes(query) ||
         s.date.includes(query),
     );
-    const matchingTarifs = TARIFS_HISTORIQUE.filter(
+    const matchingTarifs = (tarifsRes?.history ?? []).filter(
       (h) =>
-        h.depuis.includes(query) ||
-        h.prix.toLowerCase().includes(query) ||
-        h.regle.toLowerCase().includes(query) ||
+        tarifPrixLabel(h).toLowerCase().includes(query) ||
+        new Date(h.effectiveFrom).toLocaleDateString('fr-FR').includes(query) ||
+        (h.regleSpecialitesAdditionnelles ?? '').toLowerCase().includes(query) ||
         h.statut.toLowerCase().includes(query),
     );
     const matchingMembers = (teamRes?.members ?? []).filter(
@@ -144,7 +190,8 @@ export default function TableauDeBordPage() {
         )}
         {nothingFound && (
           <p className="hint" style={{ marginTop: 16 }}>
-            Aucun résultat dans Dossiers, Dossiers rejetés, Spécialités, Tarifs ou Comptes admin.
+            Aucun résultat dans Dossiers, Dossiers rejetés, École &amp; WhatsApp, Tarifs ou Comptes
+            admin.
           </p>
         )}
 
@@ -188,11 +235,11 @@ export default function TableauDeBordPage() {
 
         {matchingSpecialites.length > 0 && (
           <div className="panel" style={{ marginTop: 18 }}>
-            <h3>Spécialités &amp; WhatsApp ({matchingSpecialites.length})</h3>
+            <h3>École &amp; WhatsApp ({matchingSpecialites.length})</h3>
             {matchingSpecialites.map((s) => (
               <Link
                 key={s.code}
-                href={`/admin/specialites${qs}`}
+                href={`/admin/ecole-whatsapp${qs}`}
                 className="alert-row"
                 style={{ display: 'flex' }}
               >
@@ -208,13 +255,14 @@ export default function TableauDeBordPage() {
             <h3>Tarifs ({matchingTarifs.length})</h3>
             {matchingTarifs.map((h) => (
               <Link
-                key={h.depuis}
+                key={h.id}
                 href={`/admin/tarifs${qs}`}
                 className="alert-row"
                 style={{ display: 'flex' }}
               >
                 <span>
-                  {h.prix} — en vigueur depuis {h.depuis}
+                  {tarifPrixLabel(h)} — en vigueur depuis{' '}
+                  {new Date(h.effectiveFrom).toLocaleDateString('fr-FR')}
                 </span>
                 <span className={`pill ${h.statut === 'Actif' ? 'ok' : 'neutral'}`}>
                   {h.statut}
@@ -245,7 +293,64 @@ export default function TableauDeBordPage() {
 
   return (
     <>
-      <h3 className="bo-h1">Tableau de bord</h3>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 10,
+        }}
+      >
+        <h3 className="bo-h1" style={{ marginBottom: 0 }}>
+          Tableau de bord
+        </h3>
+
+        {isSuperadmin && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            {maintenance !== null && (
+              <span className={`pill ${maintenance ? 'danger' : 'ok'}`}>
+                {maintenance ? 'Site en maintenance' : 'Site en ligne'}
+              </span>
+            )}
+            {maintenanceConfirm ? (
+              <>
+                <span className="hint">
+                  {maintenance
+                    ? 'Remettre le site en ligne ?'
+                    : 'Mettre le site public en maintenance ?'}
+                </span>
+                <button
+                  type="button"
+                  className={`btn btn-sm ${maintenance ? 'btn-outline' : 'btn-danger-outline'}`}
+                  disabled={maintenanceBusy}
+                  onClick={() => void toggleMaintenance()}
+                >
+                  {maintenanceBusy ? 'Un instant…' : 'Confirmer'}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  disabled={maintenanceBusy}
+                  onClick={() => setMaintenanceConfirm(false)}
+                >
+                  Annuler
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                className={`btn btn-sm ${maintenance ? 'btn-outline' : 'btn-danger-outline'}`}
+                disabled={maintenance === null}
+                onClick={() => setMaintenanceConfirm(true)}
+              >
+                {maintenance ? 'Désactiver le mode maintenance' : 'Activer le mode maintenance'}
+              </button>
+            )}
+            {maintenanceError && <span className="err-msg">{maintenanceError}</span>}
+          </div>
+        )}
+      </div>
 
       <div className="dash-kpis">
         <div id="kpiBlockGeneral">

@@ -184,6 +184,61 @@ button {
   font-weight: 600;
 }
 
+/* ---- public nav "École / Faculté" dropdown ----
+   Hover-only reveal, no JS: the trigger link and the panel share one
+   hoverable box. `padding-bottom`/`margin-bottom` on the wrapper extend its
+   hit area down to meet the panel with no visual gap, so moving the mouse
+   from the link to the panel never triggers mouseleave (the bug this fixes
+   if reintroduced: a gap here makes the panel flicker closed before the
+   cursor reaches it). Click on the trigger navigates immediately (plain
+   <Link>) — hover state is fully independent of it. */
+.p-nav-dropdown {
+  position: relative;
+  padding-bottom: 14px;
+  margin-bottom: -14px;
+}
+.p-nav-dropdown > a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.p-nav-dropdown-caret {
+  font-size: 9px;
+  color: var(--prod-ink-faint);
+}
+.p-nav-dropdown-panel {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 300px;
+  background: var(--prod-surface);
+  border: 1px solid var(--prod-border);
+  border-radius: 13px;
+  box-shadow: 0 20px 45px -20px rgba(20, 15, 60, 0.35);
+  padding: 8px;
+  z-index: 30;
+}
+.p-nav-dropdown:hover .p-nav-dropdown-panel,
+.p-nav-dropdown:focus-within .p-nav-dropdown-panel {
+  display: block;
+}
+.p-nav-dropdown-panel a {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--prod-ink);
+  text-decoration: none;
+  white-space: normal;
+  line-height: 1.4;
+}
+.p-nav-dropdown-panel a:hover,
+.p-nav-dropdown-panel a:focus-visible {
+  background: var(--prod-surface-2);
+}
+
 /* ---- buttons ---- */
 .btn {
   display: inline-flex;
@@ -1493,6 +1548,136 @@ input.bo-search:focus {
   border: 1px solid var(--prod-border);
 }
 
+/* ---- École cards (Toutes les écoles / Accompagnement hub) — extension
+   multi-écoles, 2026-09. New pattern, not in the original DESIGN-SPEC.md
+   (added after the initial locked design) — reuses existing tokens only. */
+.ecole-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  margin-top: 24px;
+}
+.ecole-card {
+  border: 1px solid var(--prod-border);
+  border-radius: 14px;
+  padding: 24px;
+  background: var(--prod-surface);
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+.ecole-card:hover {
+  border-color: var(--prod-primary);
+  box-shadow: 0 8px 24px -12px rgba(79, 70, 229, 0.35);
+}
+.ecole-card .badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--prod-primary-tint);
+  color: var(--prod-primary-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+  margin-bottom: 14px;
+}
+.ecole-card h3 {
+  font-size: 17px;
+  margin-bottom: 8px;
+}
+.ecole-card p {
+  font-size: 13px;
+  color: var(--prod-ink-muted);
+  line-height: 1.55;
+  margin-bottom: 14px;
+}
+.ecole-card .tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.ecole-card .cta {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--prod-primary-dark);
+}
+
+/* ---- Catégorie cards (École — FSS/INMeS pages + Accompagnement hub) */
+.cat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 18px;
+  margin-top: 20px;
+}
+.cat-card {
+  border: 1px solid var(--prod-border);
+  border-radius: 14px;
+  padding: 22px;
+  background: var(--prod-surface);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.cat-card.featured {
+  border-color: var(--prod-primary);
+  background: var(--prod-primary-tint);
+}
+.cat-card .eyebrow-pill {
+  align-self: flex-start;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--prod-surface-2);
+  color: var(--prod-ink-muted);
+}
+.cat-card.featured .eyebrow-pill {
+  background: var(--prod-primary);
+  color: #fff;
+}
+.cat-card h3 {
+  font-size: 16px;
+}
+.cat-card p {
+  font-size: 13px;
+  color: var(--prod-ink-muted);
+  line-height: 1.55;
+  flex: 1;
+}
+.cat-card .price-line {
+  font-size: 12.5px;
+  color: var(--prod-ink-muted);
+}
+.cat-card .price-line strong {
+  color: var(--prod-ink);
+  font-size: 14px;
+}
+
+/* ---- Simple filière list (Master FSS, "dossier"-type categories — no
+   date/heure/salle) ---- */
+.filiere-simple-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-top: 16px;
+}
+.filiere-simple-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--prod-border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 13.5px;
+}
+
 /* ---- back-office mobile bottom nav (own bg color per Fondations, otherwise
    identical mechanics to .p-bottomnav) ---- */
 .bo-bottomnav {
@@ -1596,6 +1781,95 @@ input.bo-search:focus {
   font-size: 13px;
   border: 1px dashed var(--prod-border);
   border-radius: 11px;
+}
+
+/* ---- Liste/Grille toggle — composant transverse (14-liste-grille-toggle.md),
+   appliqué à Dossiers, Suggestions, École & WhatsApp, historique Tarifs. ---- */
+.lg-toggle {
+  display: inline-flex;
+  border: 1px solid var(--prod-border);
+  border-radius: 9px;
+  overflow: hidden;
+  flex: none;
+}
+.lg-toggle button {
+  padding: 8px 16px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  background: var(--prod-surface);
+  color: var(--prod-ink-muted);
+  border: none;
+  cursor: pointer;
+}
+.lg-toggle button + button {
+  border-left: 1px solid var(--prod-border);
+}
+.lg-toggle button.on {
+  background: var(--prod-primary);
+  color: #fff;
+}
+
+/* ---- École/Catégorie badge — Dossiers (10), École & WhatsApp (11), Tarifs
+   (13). Indigo pour tout ce qui est FSS, violet-gris pour tout ce qui est
+   INMeS — jamais vert (réservé aux statuts de suivi, voir .pill.ok). ---- */
+.badge-ecole {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.badge-ecole.fss {
+  background: var(--prod-primary-tint);
+  color: var(--prod-primary-dark);
+}
+.badge-ecole.inmes {
+  background: #ece9f7;
+  color: #55507a;
+}
+:root[data-theme='dark'] .badge-ecole.inmes,
+:root:not([data-theme='light']) .badge-ecole.inmes {
+  background: #322f47;
+  color: #c9c4e6;
+}
+
+/* ---- Generic back-office grid-card view (Grille mode) — Dossiers,
+   Suggestions, École & WhatsApp, historique Tarifs. Cards are clickable
+   exactly like their table-row equivalent. ---- */
+.bo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+.bo-card {
+  border: 1px solid var(--prod-border);
+  border-radius: 12px;
+  padding: 16px;
+  background: var(--prod-surface);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.bo-card:hover {
+  border-color: var(--prod-primary);
+}
+.bo-card .bo-card-title {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.bo-card .bo-card-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--prod-ink-muted);
+}
+.bo-card .bo-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 /* ---- back-office tables ---- */
@@ -2225,4 +2499,78 @@ table.dtable tr:last-child td {
     right: 14px;
     bottom: 74px;
   }
+}
+
+/* Site-wide "mode maintenance" interstitial (app/maintenance/page.tsx). */
+.maint-page {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--prod-page);
+}
+.maint-card {
+  max-width: 440px;
+  width: 100%;
+  background: var(--prod-surface);
+  border: 1px solid var(--prod-border);
+  border-radius: 20px;
+  padding: 36px 32px;
+  text-align: center;
+  box-shadow: 0 20px 50px -20px rgba(30, 27, 51, 0.18);
+}
+.maint-badge {
+  display: inline-block;
+  margin: 20px 0 14px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--prod-primary-tint);
+  color: var(--prod-primary-dark);
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.maint-card h1 {
+  margin: 0 0 12px;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--prod-ink);
+}
+.maint-card p {
+  margin: 0 0 10px;
+  color: var(--prod-ink-muted);
+  line-height: 1.6;
+  font-size: 14.5px;
+}
+.maint-sub {
+  color: var(--prod-ink-faint) !important;
+  font-size: 13px !important;
+}
+.maint-contact {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid var(--prod-border);
+}
+.maint-contact-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--prod-primary-dark);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.maint-contact-item:hover {
+  text-decoration: underline;
+}
+.maint-contact-item svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }

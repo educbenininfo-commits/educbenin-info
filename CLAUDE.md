@@ -222,3 +222,15 @@ RÈGLES STRICTES pour toute tâche touchant l'interface d'Educ Bénin :
    validation absente, etc.), le signaler explicitement plutôt que d'inventer un comportement
     — plusieurs points sont volontairement laissés ouverts dans le document (voir ses sections
   « Récapitulatif des points à trancher »).
+
+## Extension multi-écoles (2026-09)
+
+Ce projet a reçu une extension multi-écoles après son lancement initial (qui ne couvrait que
+la FSS/D.E.S.). Les prompts et captures de cette extension se trouvent dans le dossier
+`prompts-extension-multi-ecoles/` et son sous-dossier `screenshots/`, fournis avec cette
+extension. Deux écoles existent désormais : FSS (catégories Médecine & Pharmacie, D.E.S.,
+Master) et INMeS (Cycle I, Cycle II). Le mot "Suggérer" (jamais "Signaler") est utilisé
+partout côté site public pour proposer une école ou une filière manquante ; côté back-office,
+l'écran correspondant s'appelle "Suggestions" (jamais "Signalements"). Les tarifs affichés
+partout dans l'application proviennent d'une seule source de vérité, l'écran back-office
+Tarifs — aucun montant ne doit être codé en dur ailleurs.

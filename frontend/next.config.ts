@@ -38,6 +38,13 @@ const config: NextConfig = {
       },
     ];
   },
+  // /specialites was absorbed into École — FSS (extension multi-écoles,
+  // 2026-09) — 03-ecole-fss.md: "l'ancienne page unique centrée D.E.S. et
+  // l'ancien menu Spécialités, tous deux supprimés". Permanent redirect so
+  // old bookmarks/search-engine links land on the new page instead of 404.
+  async redirects() {
+    return [{ source: '/specialites', destination: '/fss', permanent: true }];
+  },
 };
 
 // Sentry build-time wrapper. Uploads source maps when SENTRY_AUTH_TOKEN +

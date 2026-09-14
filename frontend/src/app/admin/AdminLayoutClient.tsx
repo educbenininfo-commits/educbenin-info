@@ -38,7 +38,8 @@ interface AdminMe {
 const SEARCH_PLACEHOLDERS: Record<string, string> = {
   '/admin/dossiers': 'Rechercher un dossier (nom, référence, WhatsApp)…',
   '/admin/dossiers-rejetes': 'Rechercher un dossier rejeté…',
-  '/admin/specialites': 'Rechercher une spécialité, une salle…',
+  '/admin/suggestions': 'Rechercher une suggestion…',
+  '/admin/ecole-whatsapp': 'Rechercher une école, une filière…',
   '/admin/tarifs': "Rechercher dans l'historique des tarifs…",
   '/admin/comptes-admin': 'Rechercher un membre…',
   '/admin/connexions': 'Rechercher une connexion (nom, e-mail)…',

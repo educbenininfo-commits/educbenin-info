@@ -13,6 +13,7 @@ vi.mock('@/lib/server/upload/uploadPublicFile', () => ({
 import { POST } from './route';
 import { generateReference } from '@/lib/server/dossiers/reference';
 import { uploadPublicFile } from '@/lib/server/upload/uploadPublicFile';
+import { ECOLE_FSS_ID, CATEGORIE_FSS_DES_ID } from '@/lib/server/schools/reference-ids';
 
 const mockUploadPublicFile = vi.mocked(uploadPublicFile);
 
@@ -85,6 +86,8 @@ describe('POST /api/dossiers', () => {
         whatsapp: '+22997000000',
         nationalite: null,
         specialtyCodes: ['PED'],
+        ecoleId: ECOLE_FSS_ID,
+        categorieId: CATEGORIE_FSS_DES_ID,
       },
     });
     expect(mockUploadPublicFile).toHaveBeenCalledWith(

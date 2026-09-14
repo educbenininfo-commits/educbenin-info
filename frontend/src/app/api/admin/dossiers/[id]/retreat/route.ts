@@ -11,6 +11,7 @@ import { enforceAdminRateLimit } from '@/lib/server/middleware/rate-limit-by-use
 import { prisma } from '@/lib/server/prisma';
 import { logAdminAction } from '@/lib/server/admin/audit';
 import { withSignedFileUrls } from '@/lib/server/dossiers/resolve-file-urls';
+import { prevStageFor } from '@/lib/dossiers-data';
 
 export async function POST(
   req: NextRequest,
@@ -28,7 +29,7 @@ export async function POST(
   const { id } = await ctx.params;
   const dossier = await prisma.dossier.findUnique({
     where: { id },
-    select: { id: true, reference: true, stage: true },
+    select: { id: true, reference: true, stage: true, nationalite: true },
   });
   if (!dossier) {
     return NextResponse.json({ error: 'DOSSIER_NOT_FOUND' }, { status: 404 });
@@ -39,7 +40,9 @@ export async function POST(
     return NextResponse.json({ error: 'WRONG_STAGE' }, { status: 409 });
   }
 
-  const previousStage = Math.max(dossier.stage - 1, 1);
+  // National (Béninois) candidates skip stage 2 going backward too — see
+  // lib/dossiers-data.ts's prevStageFor doc comment.
+  const previousStage = prevStageFor(dossier.stage, dossier.nationalite);
   const updated = await prisma.dossier.update({
     where: { id },
     data: { stage: previousStage, stageChangedAt: new Date() },

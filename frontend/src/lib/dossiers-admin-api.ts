@@ -5,8 +5,14 @@ import type { DossierDetail, DossierListItem, DossierComment } from './dossiers-
 
 export async function fetchDossiers(
   stage: 'all' | 0 | 1 | 2 | 3 | 4 | 5,
-): Promise<{ items: DossierListItem[]; counts: Record<string, number> }> {
-  return api(`/api/admin/dossiers?stage=${stage}`);
+  ecoleId: string = 'all',
+): Promise<{
+  items: DossierListItem[];
+  counts: Record<string, number>;
+  ecoles: { id: string; nom: string }[];
+  ecoleCounts: Record<string, number>;
+}> {
+  return api(`/api/admin/dossiers?stage=${stage}&ecoleId=${encodeURIComponent(ecoleId)}`);
 }
 
 export async function fetchDossierDetail(id: string): Promise<{ dossier: DossierDetail }> {

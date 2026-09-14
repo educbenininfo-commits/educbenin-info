@@ -1,15 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
+import { fetchPublicEcoles, type PublicEcole } from '@/lib/ecoles-public-api';
+import { ecoleSlug } from '@/lib/ecole-display';
 
-// Mobile bottom nav + "more" sheet for public pages (DESIGN-SPEC.md > Fondations
-// "Barre de menu mobile du bas" + "Feuille plus (bottom sheet)", and per-screen
-// "Responsive / mobile differences" > PUBLIC_NAV / PUBLIC_MORE_ITEMS in
-// educbenin-prototype.html). Icons are the exact literal glyphs from the
-// prototype (rendered as text, not SVG assets — that's how the source renders
-// them too). Only visible under 760px (globals.css `.p-bottomnav`).
+// Mobile bottom nav + "more" sheet for public pages — extension
+// multi-écoles, 2026-09 (16-menu-mobile-bandeau.md). Only visible under
+// 760px (globals.css `.p-bottomnav`). Labels here MUST stay the single
+// source of truth alongside the desktop nav (PublicNav.tsx) — the École
+// list is fetched the same way (GET /api/ecoles, client-side) so a school
+// added later appears in both without a second place to update.
 
 const NAV_ITEMS: { key: string; href: string; icon: string; label: string }[] = [
   { key: 'home', href: '/', icon: '⌂', label: 'Accueil' },
@@ -17,30 +19,25 @@ const NAV_ITEMS: { key: string; href: string; icon: string; label: string }[] = 
 ];
 
 const NAV_ITEMS_AFTER_MORE: { key: string; href: string; icon: string; label: string }[] = [
-  { key: 'specialites', href: '/specialites', icon: '◧', label: 'Spécialités' },
+  { key: 'ecole-toutes', href: '/ecoles', icon: '◧', label: 'École' },
   { key: 'suivi', href: '/suivre-mon-dossier', icon: '◔', label: 'Suivi' },
-];
-
-const MORE_ITEMS: { key: string; href: string; icon: string; label: string; sep?: false }[] = [
-  { key: 'home', href: '/', icon: '⌂', label: 'Accueil' },
-  { key: 'accompagnement', href: '/accompagnement', icon: '✎', label: 'Accompagnement' },
-  { key: 'specialites', href: '/specialites', icon: '◧', label: 'Spécialités' },
-  { key: 'suivi', href: '/suivre-mon-dossier', icon: '◔', label: 'Suivre mon dossier' },
-];
-
-const MORE_ITEMS_LEGAL: { key: string; href: string; icon: string; label: string }[] = [
-  { key: 'mentions', href: '/mentions-legales', icon: '§', label: 'Mentions légales' },
-  { key: 'cgv', href: '/cgu-cgv', icon: '§', label: 'CGU / CGV' },
-  {
-    key: 'confidentialite',
-    href: '/confidentialite',
-    icon: '§',
-    label: 'Politique de confidentialité',
-  },
 ];
 
 export function PublicBottomNav({ active }: { active: string }) {
   const [open, setOpen] = useState(false);
+  const [ecoles, setEcoles] = useState<PublicEcole[]>([]);
+  const ecoleActive = active === 'ecole-toutes' || active.startsWith('ecole-');
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    void fetchPublicEcoles().then((items) => {
+      if (!cancelled) setEcoles(items);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
 
   return (
     <>
@@ -68,7 +65,7 @@ export function PublicBottomNav({ active }: { active: string }) {
           <Link
             key={item.key}
             href={item.href}
-            className={`p-bn-item${item.key === active ? ' on' : ''}`}
+            className={`p-bn-item${item.key === active || (item.key === 'ecole-toutes' && ecoleActive) ? ' on' : ''}`}
           >
             <span className="ic">{item.icon}</span>
             <span>{item.label}</span>
@@ -91,23 +88,29 @@ export function PublicBottomNav({ active }: { active: string }) {
             Menu Educ Bénin
             <ThemeToggle />
           </div>
-          {MORE_ITEMS.map((item) => (
-            <Link key={item.key} href={item.href} onClick={() => setOpen(false)}>
-              <span className="ic">{item.icon}</span>
-              {item.label}
+          <Link href="/" onClick={() => setOpen(false)}>
+            <span className="ic">⌂</span>
+            Accueil
+          </Link>
+          <div className="sep" />
+          <Link href="/ecoles" onClick={() => setOpen(false)}>
+            <span className="ic">◧</span>
+            Toutes les écoles
+          </Link>
+          {ecoles.map((ecole) => (
+            <Link key={ecole.id} href={`/${ecoleSlug(ecole.nom)}`} onClick={() => setOpen(false)}>
+              <span className="ic">▫</span>
+              École — {ecole.nom}
             </Link>
           ))}
           <div className="sep" />
-          {MORE_ITEMS_LEGAL.map((item) => (
-            <Link key={item.key} href={item.href} onClick={() => setOpen(false)}>
-              <span className="ic">{item.icon}</span>
-              {item.label}
-            </Link>
-          ))}
-          <div className="sep" />
-          <Link href="/connexion" onClick={() => setOpen(false)}>
-            <span className="ic">⇥</span>
-            Accès back-office
+          <Link href="/accompagnement" onClick={() => setOpen(false)}>
+            <span className="ic">✎</span>
+            Accompagnement (toutes les demandes)
+          </Link>
+          <Link href="/suivre-mon-dossier" onClick={() => setOpen(false)}>
+            <span className="ic">◔</span>
+            Suivre mon dossier
           </Link>
         </div>
       </div>

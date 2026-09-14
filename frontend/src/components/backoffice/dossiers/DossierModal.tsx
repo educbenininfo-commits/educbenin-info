@@ -12,6 +12,9 @@ import {
   specialtyLabel,
   formatRelativeTime,
   formatDateTime,
+  isNationalCandidate,
+  nextStageFor,
+  prevStageFor,
   type DossierDetail,
 } from '@/lib/dossiers-data';
 import { findCountry } from '@/lib/countries';
@@ -42,7 +45,7 @@ import {
 // each time) and every action calls the real admin route instead of mutating
 // local state.
 
-type AuthSendButtonState = { enabled: boolean; label: string; title: string };
+type AuthSendButtonState = { enabled: boolean; hidden: boolean; label: string; title: string };
 type FicheButtonState = { enabled: boolean; title: string };
 type RecepisseButtonState = {
   enabled: boolean;
@@ -71,10 +74,19 @@ function countryLabelPlain(iso2: string | undefined | null): string {
 // the first send or a resend — previously it disabled itself and showed
 // only "En attente du candidat" the moment a link was sent, with no way
 // to resend if the candidate never got it or made a mistake.
+// 10-backoffice-dossiers.md: "Authentification du diplôme" only applies to
+// foreign candidates — a national (Béninois) dossier never passes through
+// stage 2 at all (see nextStageFor/prevStageFor), so the button has
+// nothing to do for it and is hidden entirely rather than shown disabled
+// with a misleading "already handled" label.
 function authSendButtonState(d: DossierDetail): AuthSendButtonState {
+  if (isNationalCandidate(d.nationalite)) {
+    return { enabled: false, hidden: true, label: '', title: '' };
+  }
   if (d.stage !== 2) {
     return {
       enabled: false,
+      hidden: false,
       label: d.stage > 2 ? 'Authentification déjà traitée' : "Formulaire d'authentification",
       title:
         d.stage > 2
@@ -84,6 +96,7 @@ function authSendButtonState(d: DossierDetail): AuthSendButtonState {
   }
   return {
     enabled: true,
+    hidden: false,
     label: d.authSentAt
       ? "Renvoyer le formulaire d'authentification"
       : "Envoyer le formulaire d'authentification",
@@ -816,16 +829,18 @@ export function DossierModal({
               >
                 {correctionSending ? 'Envoi…' : 'Renvoyer pour correction'}
               </button>
-              <button
-                type="button"
-                className={`btn btn-outline btn-sm${authSend.enabled ? '' : ' is-disabled'}`}
-                disabled={!authSend.enabled || actionLoading}
-                title={authSend.title}
-                onClick={handleAuthSendClick}
-              >
-                {authSend.label}
-              </button>
-              {dossier.authFormData && (
+              {!authSend.hidden && (
+                <button
+                  type="button"
+                  className={`btn btn-outline btn-sm${authSend.enabled ? '' : ' is-disabled'}`}
+                  disabled={!authSend.enabled || actionLoading}
+                  title={authSend.title}
+                  onClick={handleAuthSendClick}
+                >
+                  {authSend.label}
+                </button>
+              )}
+              {!authSend.hidden && dossier.authFormData && (
                 <button
                   type="button"
                   className="btn btn-outline btn-sm"
@@ -1313,7 +1328,10 @@ export function DossierModal({
               {confirm.kind === 'avancer' && (
                 <>
                   Confirmer le passage de <strong>« {STAGE_NAMES[dossier.stage]} »</strong> à{' '}
-                  <strong>« {STAGE_NAMES[Math.min(dossier.stage + 1, 5)]} »</strong> ?
+                  <strong>
+                    « {STAGE_NAMES[nextStageFor(dossier.stage, dossier.nationalite)]} »
+                  </strong>{' '}
+                  ?
                   <div className="go">
                     <button
                       type="button"
@@ -1336,7 +1354,10 @@ export function DossierModal({
               {confirm.kind === 'reculer' && (
                 <>
                   Revenir de <strong>« {STAGE_NAMES[dossier.stage]} »</strong> à{' '}
-                  <strong>« {STAGE_NAMES[Math.max(dossier.stage - 1, 1)]} »</strong> ?
+                  <strong>
+                    « {STAGE_NAMES[prevStageFor(dossier.stage, dossier.nationalite)]} »
+                  </strong>{' '}
+                  ?
                   <div className="go">
                     <button
                       type="button"

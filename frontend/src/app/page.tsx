@@ -5,6 +5,8 @@
 import Link from 'next/link';
 import { PublicNav } from '@/components/public/PublicNav';
 import { PublicBottomNav } from '@/components/public/PublicBottomNav';
+import { HowItWorksSection } from '@/components/public/HowItWorksSection';
+import { SuggestionForm } from '@/components/public/SuggestionForm';
 import { EducBeninLogo } from '@/components/theme/EducBeninLogo';
 import { SPECIALTIES } from '@/lib/specialties';
 
@@ -14,30 +16,6 @@ const HERO_TRACK: { label: string; done: boolean; num: string }[] = [
   { label: 'Inscription en ligne', done: false, num: '3' },
   { label: 'Dépôt de dossier en cours', done: false, num: '4' },
   { label: 'Dossier déposé avec succès', done: false, num: '5' },
-];
-
-const STEPS: { n: string; title: string; desc: string }[] = [
-  { n: '01', title: 'Dossier reçu', desc: 'Vous déposez votre demande et vos pièces en un clic.' },
-  {
-    n: '02',
-    title: 'Authentification',
-    desc: "Vous recevez et remplissez le formulaire d'authentification de diplôme.",
-  },
-  {
-    n: '03',
-    title: 'Inscription en ligne',
-    desc: 'Vous vous inscrivez sur le portail CUO-SIGAN de l’UAC.',
-  },
-  {
-    n: '04',
-    title: 'Dépôt en cours',
-    desc: 'Nous déposons votre dossier complet auprès de la FSS.',
-  },
-  {
-    n: '05',
-    title: 'Déposé avec succès',
-    desc: 'Votre récépissé officiel est disponible au téléchargement.',
-  },
 ];
 
 // 6 premières spécialités du tableau SPECIALTIES (ordre exact du prototype —
@@ -120,23 +98,7 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="section-bleed">
-        <div className="section pw">
-          <h2>Comment ça marche</h2>
-          <p className="sub">
-            Cinq étapes, du dépôt de votre demande jusqu&rsquo;au récépissé officiel de la FSS.
-          </p>
-          <div className="steps-grid">
-            {STEPS.map((step) => (
-              <div key={step.n} className="step-card">
-                <div className="n">{step.n}</div>
-                <h5>{step.title}</h5>
-                <p>{step.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      <HowItWorksSection />
 
       <div className="section-bleed">
         <div className="section pw">
@@ -153,9 +115,21 @@ export default function Home() {
             ))}
           </div>
           <div style={{ marginTop: 16 }}>
-            <Link href="/specialites" className="btn btn-ghost btn-sm">
+            <Link href="/fss" className="btn btn-ghost btn-sm">
               Voir les 27 spécialités →
             </Link>
+          </div>
+        </div>
+      </div>
+
+      <div className="section-bleed">
+        <div className="section pw">
+          <div className="callout info">
+            <span className="icn">ⓘ</span>
+            <span>
+              Vous êtes dans un autre établissement de l&rsquo;UAC, ou une autre filière ?{' '}
+              <a href="#suggestion">Suggérez-le nous</a>, nous étudierons son ajout.
+            </span>
           </div>
         </div>
       </div>
@@ -172,10 +146,28 @@ export default function Home() {
                 50 000 <span className="cur">FCFA</span>
               </div>
             </div>
-            <Link href="/accompagnement" className="btn btn-outline btn-sm">
+            <Link href="/fss/des" className="btn btn-outline btn-sm">
               Voir les pièces à fournir
             </Link>
           </div>
+        </div>
+      </div>
+
+      <div className="section-bleed">
+        <div className="section pw">
+          <h2>Suggérer une école ou une filière</h2>
+          <p className="sub">
+            Vous ne trouvez pas votre établissement ou votre filière ? Dites-nous ce qu&rsquo;il
+            vous faut.
+          </p>
+          <SuggestionForm
+            id="suggestion"
+            title="Suggérer une école ou une filière"
+            rechercheLabel="École ou filière recherchée"
+            recherchePlaceholder="Ex. : Faculté de Droit — Sciences Politiques"
+            confirmationSubtext="Merci ! Nous reviendrons vers vous si l'école (ou la filière) est ajoutée."
+            companionText="Chaque suggestion est examinée par l'équipe Educ Bénin et suivie depuis le back-office jusqu'à sa résolution."
+          />
         </div>
       </div>
 
@@ -194,8 +186,9 @@ export default function Home() {
             <div>
               <h6>Plateforme</h6>
               <Link href="/accompagnement">Accompagnement</Link>
-              <Link href="/specialites">Spécialités</Link>
+              <Link href="/fss">Spécialités</Link>
               <Link href="/suivre-mon-dossier">Suivre mon dossier</Link>
+              <Link href="/#suggestion">Suggérer une école</Link>
             </div>
             <div>
               <h6>Légal</h6>

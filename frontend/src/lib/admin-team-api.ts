@@ -18,7 +18,7 @@ export const MODULE_KEYS: ModuleKey[] = [
 export const MODULE_LABELS: Record<ModuleKey, string> = {
   dossiers: 'Dossiers',
   dossiersRejetes: 'Rejetés',
-  specialites: 'Spéc. & WhatsApp',
+  specialites: 'École & WhatsApp',
   tarifs: 'Tarifs',
   comptesAdmin: 'Comptes admin',
 };

@@ -6,12 +6,19 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDossiersUnreadCount } from '@/lib/useDossiersUnreadCount';
 import { useBackofficeAdmin } from '@/contexts/BackofficeAdminContext';
+import { BACKOFFICE_NAV } from '@/lib/backoffice-nav';
 
-// BO_BOTTOM_NAV / BO_MORE_ITEMS — educbenin-prototype.html. "Se déconnecter"
-// calls the real /api/auth/logout (via AuthContext.logout) instead of just
-// navigating to the login screen like the prototype — this session wired
-// real authentication for the back-office per product decision.
-
+// BO_BOTTOM_NAV / BO_MORE_ITEMS — educbenin-prototype.html, extended by
+// 16-menu-mobile-bandeau.md. "Se déconnecter" calls the real
+// /api/auth/logout (via AuthContext.logout) instead of just navigating to
+// the login screen like the prototype.
+//
+// The "more" sheet's labels/hrefs all come from the single shared
+// BACKOFFICE_NAV list (lib/backoffice-nav.ts, also used by
+// BackofficeSidebar) — per 16's explicit "un seul jeu de libellés, pas
+// deux maintenus séparément". Only the sheet's two-group split/order is
+// specific to this component; filtering the shared array by key preserves
+// its master order, which already matches the two groups below.
 const BOTTOM_ITEMS = [
   { key: 'dashboard', href: '/admin/tableau-de-bord', icon: '◧', label: 'Bord' },
   { key: 'dossiers', href: '/admin/dossiers', icon: '▤', label: 'Dossiers' },
@@ -21,25 +28,8 @@ const BOTTOM_ITEMS_AFTER_MORE = [
   { key: 'parametres', href: '/admin/parametres', icon: '⚙', label: 'Réglages' },
 ];
 
-const MORE_ITEMS = [
-  { key: 'dashboard', href: '/admin/tableau-de-bord', icon: '◧', label: 'Tableau de bord' },
-  { key: 'dossiers', href: '/admin/dossiers', icon: '▤', label: 'Dossiers' },
-  { key: 'rejetes', href: '/admin/dossiers-rejetes', icon: '⊘', label: 'Dossiers rejetés' },
-  { key: 'parametres', href: '/admin/parametres', icon: '⚙', label: 'Paramètres' },
-];
-const MORE_ITEMS_2 = [
-  {
-    key: 'specialites-admin',
-    href: '/admin/specialites',
-    icon: '☎',
-    label: 'Spécialités & WhatsApp',
-  },
-  { key: 'tarifs', href: '/admin/tarifs', icon: '₣', label: 'Tarifs' },
-  { key: 'comptes', href: '/admin/comptes-admin', icon: '◎', label: 'Comptes admin & rôles' },
-];
-const MORE_ITEMS_SUPERADMIN = [
-  { key: 'connexions', href: '/admin/connexions', icon: '⏻', label: 'Connexions' },
-];
+const SHEET_GROUP_1_KEYS = ['dashboard', 'dossiers', 'rejetes', 'suggestions', 'parametres'];
+const SHEET_GROUP_2_KEYS = ['ecole-whatsapp', 'tarifs', 'comptes'];
 
 export function BackofficeBottomNav() {
   const [open, setOpen] = useState(false);
@@ -48,6 +38,12 @@ export function BackofficeBottomNav() {
   const { logout } = useAuth();
   const dossiersUnread = useDossiersUnreadCount();
   const { role } = useBackofficeAdmin();
+
+  const sheetGroup1 = BACKOFFICE_NAV.filter((item) => SHEET_GROUP_1_KEYS.includes(item.key));
+  const sheetGroup2 = BACKOFFICE_NAV.filter((item) => SHEET_GROUP_2_KEYS.includes(item.key));
+  const sheetSuperadmin = BACKOFFICE_NAV.filter(
+    (item) => item.superadminOnly && role === 'SUPERADMIN',
+  );
 
   async function handleLogout() {
     setOpen(false);
@@ -105,7 +101,7 @@ export function BackofficeBottomNav() {
         <div className="p-moresheet">
           <div className="handle" />
           <div className="title">Menu back-office</div>
-          {MORE_ITEMS.map((item) => (
+          {sheetGroup1.map((item) => (
             <Link key={item.key} href={item.href} onClick={() => setOpen(false)}>
               <span className="ic">{item.icon}</span>
               {item.label}
@@ -115,19 +111,18 @@ export function BackofficeBottomNav() {
             </Link>
           ))}
           <div className="sep" />
-          {MORE_ITEMS_2.map((item) => (
+          {sheetGroup2.map((item) => (
             <Link key={item.key} href={item.href} onClick={() => setOpen(false)}>
               <span className="ic">{item.icon}</span>
               {item.label}
             </Link>
           ))}
-          {role === 'SUPERADMIN' &&
-            MORE_ITEMS_SUPERADMIN.map((item) => (
-              <Link key={item.key} href={item.href} onClick={() => setOpen(false)}>
-                <span className="ic">{item.icon}</span>
-                {item.label}
-              </Link>
-            ))}
+          {sheetSuperadmin.map((item) => (
+            <Link key={item.key} href={item.href} onClick={() => setOpen(false)}>
+              <span className="ic">{item.icon}</span>
+              {item.label}
+            </Link>
+          ))}
           <div className="sep" />
           <button type="button" onClick={handleLogout}>
             <span className="ic">⇥</span>

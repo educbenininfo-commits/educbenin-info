@@ -33,7 +33,7 @@ export type DossierComment = {
   createdAt: string;
 };
 
-export type DossierListItem = {
+type DossierCore = {
   id: string;
   reference: string;
   nom: string;
@@ -47,7 +47,20 @@ export type DossierListItem = {
   correctionRequestedAt: string | null;
 };
 
-export type DossierDetail = DossierListItem & {
+export type DossierListItem = DossierCore & {
+  // Multi-school scope (2026-09) — always present (Ecole/Categorie are
+  // required on Dossier), used for the École/Catégorie badge
+  // (10-backoffice-dossiers.md). Only the list/grid endpoint joins these —
+  // DossierDetail deliberately does NOT extend this type, since the modal
+  // has no need for them and every mutation route (advance/reject/edit/…)
+  // would otherwise have to re-join Ecole/Categorie on every response.
+  ecoleId: string;
+  ecoleNom: string;
+  categorieId: string;
+  categorieLabel: string; // Categorie.libelleCourt, falling back to libelle
+};
+
+export type DossierDetail = DossierCore & {
   whatsapp: string;
   pieceJointeUrl: string | null;
   authToken: string | null;
@@ -103,6 +116,27 @@ export function pillClass(stage: number): 'danger' | 'ok' | 'warn' | 'neutral' {
   if (stage === 5) return 'ok';
   if (stage >= 3) return 'warn';
   return 'neutral';
+}
+
+// National (Béninois) vs étranger — 10-backoffice-dossiers.md: the
+// "Authentification du diplôme" stage only applies to foreign candidates
+// (their diploma needs authenticating for the FSS); a national candidate's
+// dossier skips straight from "En cours de traitement" (1) to "Inscription
+// en ligne" (3). `nationalite` is an optional ISO2 code (lib/countries.ts);
+// null/unknown is treated as NOT national (never silently skip a real step
+// for a candidate whose nationality wasn't captured).
+export function isNationalCandidate(nationalite: string | null): boolean {
+  return nationalite === 'BJ';
+}
+
+export function nextStageFor(stage: number, nationalite: string | null): number {
+  if (stage === 1 && isNationalCandidate(nationalite)) return 3;
+  return Math.min(stage + 1, 5);
+}
+
+export function prevStageFor(stage: number, nationalite: string | null): number {
+  if (stage === 3 && isNationalCandidate(nationalite)) return 1;
+  return Math.max(stage - 1, 1);
 }
 
 export function fmtF(n: number): string {

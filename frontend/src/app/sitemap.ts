@@ -15,12 +15,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'monthly',
       priority: 0.9,
     },
-    {
-      url: `${SITE_URL}/specialites`,
-      lastModified: now,
-      changeFrequency: 'monthly',
-      priority: 0.8,
-    },
+    { url: `${SITE_URL}/ecoles`, lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
+    { url: `${SITE_URL}/fss`, lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
+    { url: `${SITE_URL}/inmes`, lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
     {
       url: `${SITE_URL}/suivre-mon-dossier`,
       lastModified: now,

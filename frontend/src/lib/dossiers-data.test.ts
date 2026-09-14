@@ -14,6 +14,10 @@ function item(overrides: Partial<DossierListItem> = {}): DossierListItem {
     stageChangedAt: new Date().toISOString(),
     motifRejet: null,
     correctionRequestedAt: null,
+    ecoleId: 'ecole-fss',
+    ecoleNom: 'FSS',
+    categorieId: 'cat-fss-des',
+    categorieLabel: 'D.E.S.',
     ...overrides,
   };
 }

@@ -35,7 +35,7 @@ model User {
   // SUPERADMIN/ADMIN rank alone still gates everything via requireAdmin).
   // Lets the back-office show "Administrateur" vs "Support" for two ADMIN-rank
   // members with different default module permissions. Null for USER/SUPERADMIN.
-  adminLabel        String?   // ADMIN | SUPPORT
+  adminLabel        String? // ADMIN | SUPPORT
   // Per-module permission grid for the Comptes admin & rôles screen. Only
   // consulted for role=ADMIN (a SUPERADMIN always has full access regardless
   // of this field's contents) via requireModulePermission(). Shape:
@@ -54,11 +54,12 @@ model User {
   oauthAccounts     OAuthAccount[]
   adminActions      AdminAction[]
   invitesSent       AdminInvite[]
+  tarifBaremes      TarifBareme[]
 
   // Multi-tenancy is opt-in per project: by default no resource is org-scoped.
   // Apps that need it (marketplace, B2B SaaS, classifieds) wire owner relations
   // on their domain models.
-  ownedOrganizations Organization[]      @relation("OrgOwner")
+  ownedOrganizations Organization[]       @relation("OrgOwner")
   memberships        OrganizationMember[] @relation("OrgMembership")
   sessions           Session[]
   pushSubscriptions  PushSubscription[]
@@ -107,7 +108,7 @@ model PushSubscription {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  endpoint  String @unique
+  endpoint  String  @unique
   p256dh    String
   auth      String
   userAgent String?
@@ -187,14 +188,14 @@ model AdminInvite {
 // used as a stable URL segment.
 // ───────────────────────────────────────────────────────────────────────
 model Organization {
-  id        String   @id @default(cuid())
-  slug      String   @unique
+  id        String               @id @default(cuid())
+  slug      String               @unique
   name      String
   ownerId   String
-  owner     User     @relation("OrgOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  owner     User                 @relation("OrgOwner", fields: [ownerId], references: [id], onDelete: Restrict)
   members   OrganizationMember[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
 
   @@index([ownerId])
 }
@@ -365,21 +366,21 @@ model WebhookLog {
 // at the call site — the schema is currency-agnostic.
 // ───────────────────────────────────────────────────────────────────────
 model Order {
-  id              String    @id @default(cuid())
-  userId          String? // nullable — guest checkout supported
-  user            User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
-  amount          Int // gross amount, smallest unit
-  currency        String    @default("XOF") // ISO 4217
-  status          String    @default("PENDING") // PENDING | PAID | EXPIRED | FAILED | REFUNDED
-  customerEmail   String?
-  customerPhone   String?
-  customerName    String?
-  metadata        Json? // app-specific fields
+  id            String  @id @default(cuid())
+  userId        String? // nullable — guest checkout supported
+  user          User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  amount        Int // gross amount, smallest unit
+  currency      String  @default("XOF") // ISO 4217
+  status        String  @default("PENDING") // PENDING | PAID | EXPIRED | FAILED | REFUNDED
+  customerEmail String?
+  customerPhone String?
+  customerName  String?
+  metadata      Json? // app-specific fields
 
   // Stripe-grade idempotency. Required header on POST /api/orders; replay
   // with same value returns the original Order row instead of double-charging.
   // Nullable so existing rows pre-migration don't break the @unique constraint.
-  idempotencyKey  String?   @unique
+  idempotencyKey String? @unique
 
   // Provider reference
   provider         String // e.g. "bictorys"
@@ -403,12 +404,12 @@ model Order {
 }
 
 model Withdrawal {
-  id          String   @id @default(cuid())
+  id          String @id @default(cuid())
   userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  user        User   @relation(fields: [userId], references: [id], onDelete: Restrict)
   amount      Int // requested amount, smallest unit
-  currency    String   @default("XOF")
-  status      String   @default("PENDING") // PENDING | PROCESSING | COMPLETED | FAILED | CANCELLED
+  currency    String @default("XOF")
+  status      String @default("PENDING") // PENDING | PROCESSING | COMPLETED | FAILED | CANCELLED
   destination Json // { method: "WAVE" | "ORANGE_MONEY" | ..., phone: "+221...", accountName?: "..." }
 
   // Provider reference
@@ -434,6 +435,27 @@ model Dossier {
   whatsapp    String // E.164, e.g. "+22997000000" — see components/forms/CountryPhoneInput.tsx
   nationalite String? // ISO2 country code, e.g. "BJ" — see lib/countries.ts
 
+  // Multi-school scope (2026-09) — every Dossier belongs to exactly one
+  // Ecole and one Categorie (both required; onDelete: Restrict so a
+  // reference row can never be removed out from under existing dossiers).
+  // See the Ecole/Categorie/Filiere doc comment below for the full model.
+  ecoleId     String
+  ecole       Ecole     @relation(fields: [ecoleId], references: [id], onDelete: Restrict)
+  categorieId String
+  categorie   Categorie @relation(fields: [categorieId], references: [id], onDelete: Restrict)
+
+  // Single-filière selector — used for every Categorie EXCEPT FSS's
+  // "Probatoire spécialité (D.E.S.)", which keeps using specialtyCodes
+  // below (legacy multi-select). Nullable: left unset for D.E.S. dossiers.
+  filiereId String?
+  filiere   Filiere? @relation(fields: [filiereId], references: [id], onDelete: Restrict)
+
+  // Legacy multi-select, FSS "Probatoire spécialité (D.E.S.)" ONLY — a
+  // candidate may apply to several specialties in one dossier. Codes from
+  // frontend/src/lib/specialties.ts, now mirrored 1:1 by Filiere.code rows
+  // under the D.E.S. Categorie (see generateReference/seed-schools.ts).
+  // Left as an empty array for every other Categorie, which use filiereId
+  // above instead.
   specialtyCodes String[] // codes from frontend/src/lib/specialties.ts, e.g. ["ANR","CAR"]
   stage          Int      @default(1) // 0=rejeté, 1..5 — see STAGE_NAMES in frontend/src/lib/dossiers-data.ts
 
@@ -459,8 +481,8 @@ model Dossier {
   // stage 2), pre-filled with the data already on file. Non-null while a
   // correction is outstanding; the "Dossier MAJ" pill in the back-office
   // list reads this. Cleared back to null once the candidate resubmits.
-  correctionRequestedAt   DateTime?
-  correctionToken         String?   @unique // stage-1 (Demande) correction link only — stage-2 reuses authToken
+  correctionRequestedAt    DateTime?
+  correctionToken          String?   @unique // stage-1 (Demande) correction link only — stage-2 reuses authToken
   correctionTokenExpiresAt DateTime?
 
   ficheUploaded Boolean @default(false)
@@ -469,10 +491,10 @@ model Dossier {
   recepisseUploaded Boolean @default(false)
   recepisseUrl      String? // storage path, see pieceJointeUrl note above
 
-  montant           Int     @default(50000)
+  montant           Int    @default(50000)
   montantSupplement Int? // multi-spécialités, staff-editable, may stay empty
-  paye              Int     @default(0)
-  moyen             String  @default("Non renseigné") // Non renseigné | Mobile Money | Espèces | Virement
+  paye              Int    @default(0)
+  moyen             String @default("Non renseigné") // Non renseigné | Mobile Money | Espèces | Virement
 
   motifRejet String?
 
@@ -484,6 +506,9 @@ model Dossier {
 
   @@index([stage])
   @@index([whatsapp])
+  @@index([ecoleId])
+  @@index([categorieId])
+  @@index([filiereId])
 }
 
 model DossierComment {
@@ -498,4 +523,172 @@ model DossierComment {
   createdAt DateTime @default(now())
 
   @@index([dossierId])
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// Multi-school scope (2026-09) — Ecole > Categorie > Filiere.
+//
+// An Ecole (school, e.g. "FSS", "INMeS") has N Categories (e.g. "Master",
+// "Probatoire spécialité (D.E.S.)"). A Categorie has a `typeAdmission`:
+//
+//   - "dossier": no concours/composition — the candidate submits a Dossier,
+//     the school studies it, response is accept/reject. NEVER has a
+//     date/heure/salle on any of its Filiere rows — the candidate flow and
+//     every screen must never ask for or show one for this kind of Categorie.
+//   - "concours_ou_composition": every Filiere under it has a
+//     date/heure/salle (composition date, not per-Categorie) — e.g. FSS's
+//     "Probatoire spécialité (D.E.S.)" (each Filiere IS one of the 27
+//     legacy specialties from lib/specialties.ts) and INMeS's "Cycle I"
+//     (a single Filiere, one composition date). Every screen showing a
+//     Filiere of this kind must show its date/heure/salle.
+//
+// INMeS Cycle I special case: it keeps typeAdmission="concours_ou_composition"
+// (a real composition date exists and must be shown, for information), but
+// the app does NOT accompany that national entrance exam — it's reserved
+// to state-scholarship national candidates and happens BEFORE the dossier
+// phase. What the app accompanies for INMeS Cycle I is the dossier
+// submission that follows (studied by INMeS, accept/reject response). Any
+// screen about INMeS Cycle I must show both facts together — the
+// composition date (informational) AND the dossier-submission
+// accompaniment (the actual product) — never one without the other.
+//
+// Seed data (2 schools, 5 categories, ~49 filières incl. the 27 legacy
+// D.E.S. specialties) lives in frontend/scripts/seed-schools.ts — run once
+// against the shared dev/prod DB, not gated by NODE_ENV like seed-dev.ts,
+// since this is real launch reference data, not throwaway dev fixtures.
+// ───────────────────────────────────────────────────────────────────────
+model Ecole {
+  id                  String  @id @default(cuid())
+  nom                 String // e.g. "FSS", "INMeS"
+  description         String?
+  lienWhatsappGeneral String?
+
+  categories Categorie[]
+  dossiers   Dossier[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Categorie {
+  id      String @id @default(cuid())
+  ecoleId String
+  ecole   Ecole  @relation(fields: [ecoleId], references: [id], onDelete: Restrict)
+
+  libelle       String // e.g. "Médecine, Pharmacie & filières de base (Licence)", "Probatoire spécialité (D.E.S.)"
+  // Short form for the "École · Catégorie" badge used on Dossiers (10),
+  // École & WhatsApp (11) and Tarifs (13) — e.g. "Médecine & Pharmacie",
+  // "D.E.S.", "Master". Falls back to the full `libelle` if unset (a new
+  // Categorie without one yet still displays something reasonable).
+  libelleCourt  String?
+  // "dossier" | "concours_ou_composition" — see Ecole doc comment above.
+  typeAdmission String
+
+  // Curated body text shown on every card/section referencing this
+  // Categorie (École pages, Accompagnement hub, demand-form info callouts)
+  // — kept in the data model rather than hardcoded per screen so a
+  // back-office edit (prompt 11/13) propagates everywhere at once. One
+  // field serves both the École page's longer card copy and the
+  // Accompagnement hub's card copy — the reference mockups show slightly
+  // shorter copy on the hub for some categories; this is a deliberate
+  // simplification (one source of truth over near-duplicate text).
+  description String?
+
+  // Starting price shown as "À partir de X FCFA" on every public page that
+  // lists this Categorie (Accompagnement hub, École pages, demand-form
+  // screens) — smallest currency unit, no decimals, same convention as
+  // Order.amount/Dossier.montant. The single source of truth for pricing
+  // ("aucun montant ne doit être codé en dur", CLAUDE.md "Extension
+  // multi-écoles") — the back-office Tarifs screen (prompt
+  // 13-backoffice-tarifs-personnalisables.md) is expected to expose an
+  // editing UI for this field; nothing here builds that UI yet.
+  tarifDepart Int?
+
+  filieres Filiere[]
+  dossiers Dossier[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ecoleId])
+}
+
+model Filiere {
+  id          String    @id @default(cuid())
+  categorieId String
+  categorie   Categorie @relation(fields: [categorieId], references: [id], onDelete: Restrict)
+
+  nom String
+
+  // Legacy 3-letter code for the FSS D.E.S. specialties (matches
+  // Dossier.specialtyCodes entries and frontend/src/lib/specialties.ts,
+  // e.g. "ANR", "CAR") — null for every other Filiere.
+  code String?
+
+  // Populated ONLY when categorie.typeAdmission = "concours_ou_composition"
+  // (see Ecole doc comment above). Always null for a "dossier" Categorie.
+  date  String?
+  heure String?
+  salle String?
+
+  lienWhatsapp String?
+
+  dossiers Dossier[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([categorieId])
+  @@index([code])
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// Suggestions — public visitors proposing a missing school/filière (site
+// copy always says "Suggérer" / "Suggestions", never "Signaler" /
+// "Signalements" — see CLAUDE.md "Extension multi-écoles").
+// ───────────────────────────────────────────────────────────────────────
+model Suggestion {
+  id        String   @id @default(cuid())
+  nom       String // visitor's name
+  contact   String // WhatsApp number or e-mail
+  recherche String // free text — school/filière they were looking for
+  message   String?
+  statut    String   @default("nouveau") // nouveau | vu | a_ajouter | refuse
+  createdAt DateTime @default(now())
+
+  @@index([statut, createdAt])
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// Tarifs — back-office pricing module (13-backoffice-tarifs-personnalisables.md).
+// Append-only history: every save creates a NEW row rather than mutating
+// the previous one, so "Historique des barèmes" is just this table ordered
+// by `effectiveFrom` desc — the most recent row is the "Actif" one (no
+// separate status column, derived at read time), every earlier row reads
+// as "Archivé".
+//
+// This table is the audit trail; `Categorie.tarifDepart` stays the fast,
+// already-wired read path every public page queries directly (École
+// pages, Accompagnement hub, demand-form screens) — saving a new barème
+// writes both: a TarifBareme history row AND the matching
+// Categorie.tarifDepart value(s), in the same transaction.
+model TarifBareme {
+  id   String @id @default(cuid())
+  mode String // "personnalise" | "unique"
+
+  // mode="personnalise": { [categorieId]: montant } for every Categorie at
+  // save time. mode="unique": null (montantUnique below holds the value).
+  montants      Json?
+  // mode="unique" only — the single amount applied to every Categorie.
+  montantUnique Int?
+
+  // Free text, e.g. "+ 25 000 FCFA / spécialité supplémentaire" — D.E.S. only.
+  regleSpecialitesAdditionnelles String?
+
+  effectiveFrom   DateTime @default(now())
+  createdByUserId String
+  createdBy       User     @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
+  createdAt       DateTime @default(now())
+
+  @@index([effectiveFrom])
 }

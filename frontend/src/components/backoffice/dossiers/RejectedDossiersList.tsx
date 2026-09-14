@@ -11,7 +11,13 @@ import {
   type DossierListItem,
 } from '@/lib/dossiers-data';
 import { restoreDossier } from '@/lib/dossiers-admin-api';
+import { ecoleBadgeClass } from '@/lib/ecole-display';
+import { ListGridToggle, type ViewMode } from '@/components/backoffice/ListGridToggle';
 import { DossierModal } from './DossierModal';
+
+function subLabel(d: DossierListItem): string {
+  return d.specialtyCodes.length > 0 ? specialtyLabel(d.specialtyCodes) : d.categorieLabel;
+}
 
 interface DossiersResponse {
   items: DossierListItem[];
@@ -24,6 +30,7 @@ export function RejectedDossiersList() {
   const [restoringId, setRestoringId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [view, setView] = useState<ViewMode>('list');
 
   const { data, loading, refresh } = useApi<DossiersResponse>('/api/admin/dossiers?stage=0');
   const items = data?.items ?? [];
@@ -46,65 +53,112 @@ export function RejectedDossiersList() {
 
   const visibleItems = items.filter((d) => matchesDossierSearch(d, query));
 
+  const restoreButton = (d: DossierListItem) => (
+    <button
+      type="button"
+      className={`btn btn-outline btn-sm${restoringId === d.id ? ' is-disabled' : ''}`}
+      disabled={restoringId === d.id}
+      onClick={(e) => {
+        e.stopPropagation();
+        void handleRestore(d.id);
+      }}
+    >
+      {restoringId === d.id ? 'Restauration…' : 'Restaurer'}
+    </button>
+  );
+
   return (
-    <div className="tablewrap">
+    <>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+        <ListGridToggle mode={view} onChange={setView} />
+      </div>
+
       {error && (
         <p className="err-msg" style={{ marginBottom: 10 }}>
           {error}
         </p>
       )}
-      <table className="dtable">
-        <thead>
-          <tr>
-            <th>Dossier</th>
-            <th>Spécialité</th>
-            <th>Motif</th>
-            <th>Rejeté le</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {loading && !data ? (
-            <tr>
-              <td colSpan={5} className="hint">
-                Chargement…
-              </td>
-            </tr>
-          ) : visibleItems.length === 0 ? (
-            <tr>
-              <td colSpan={5} className="hint">
-                {query
-                  ? 'Aucun dossier rejeté ne correspond à cette recherche.'
-                  : 'Aucun dossier rejeté pour le moment.'}
-              </td>
-            </tr>
-          ) : (
-            visibleItems.map((d) => (
-              <tr key={d.id} onClick={() => setOpenId(d.id)} style={{ cursor: 'pointer' }}>
-                <td>
-                  {displayName(d.nom, d.prenom)} · {d.reference}
-                </td>
-                <td>{specialtyLabel(d.specialtyCodes)}</td>
-                <td className="rej-reason">{d.motifRejet || '—'}</td>
-                <td className="mono">{new Date(d.stageChangedAt).toLocaleDateString('fr-FR')}</td>
-                <td>
-                  <button
-                    type="button"
-                    className={`btn btn-outline btn-sm${restoringId === d.id ? ' is-disabled' : ''}`}
-                    disabled={restoringId === d.id}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      void handleRestore(d.id);
-                    }}
-                  >
-                    {restoringId === d.id ? 'Restauration…' : 'Restaurer'}
-                  </button>
-                </td>
+
+      {view === 'list' ? (
+        <div className="tablewrap">
+          <table className="dtable">
+            <thead>
+              <tr>
+                <th>Dossier</th>
+                <th>Spécialité</th>
+                <th>Motif</th>
+                <th>Rejeté le</th>
+                <th></th>
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+            </thead>
+            <tbody>
+              {loading && !data ? (
+                <tr>
+                  <td colSpan={5} className="hint">
+                    Chargement…
+                  </td>
+                </tr>
+              ) : visibleItems.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="hint">
+                    {query
+                      ? 'Aucun dossier rejeté ne correspond à cette recherche.'
+                      : 'Aucun dossier rejeté pour le moment.'}
+                  </td>
+                </tr>
+              ) : (
+                visibleItems.map((d) => (
+                  <tr key={d.id} onClick={() => setOpenId(d.id)} style={{ cursor: 'pointer' }}>
+                    <td>
+                      {displayName(d.nom, d.prenom)} · {d.reference}
+                    </td>
+                    <td>{subLabel(d)}</td>
+                    <td className="rej-reason">{d.motifRejet || '—'}</td>
+                    <td className="mono">
+                      {new Date(d.stageChangedAt).toLocaleDateString('fr-FR')}
+                    </td>
+                    <td>{restoreButton(d)}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      ) : loading && !data ? (
+        <div className="dossier-empty">Chargement…</div>
+      ) : visibleItems.length === 0 ? (
+        <div className="dossier-empty">
+          {query
+            ? 'Aucun dossier rejeté ne correspond à cette recherche.'
+            : 'Aucun dossier rejeté pour le moment.'}
+        </div>
+      ) : (
+        <div className="bo-grid">
+          {visibleItems.map((d) => (
+            <div key={d.id} className="bo-card" onClick={() => setOpenId(d.id)}>
+              <div className="bo-card-title">{displayName(d.nom, d.prenom)}</div>
+              <div className="bo-card-row">
+                <span>{subLabel(d)}</span>
+                <span className="mono">{d.reference}</span>
+              </div>
+              <div className="bo-card-badges">
+                <span className={`badge-ecole ${ecoleBadgeClass(d.ecoleNom)}`}>
+                  {d.ecoleNom} · {d.categorieLabel}
+                </span>
+              </div>
+              <div className="bo-card-row">
+                <span className="rej-reason">{d.motifRejet || '—'}</span>
+              </div>
+              <div className="bo-card-row" style={{ justifyContent: 'space-between' }}>
+                <span className="mono">
+                  {new Date(d.stageChangedAt).toLocaleDateString('fr-FR')}
+                </span>
+                {restoreButton(d)}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {openId && (
         <DossierModal
@@ -114,6 +168,6 @@ export function RejectedDossiersList() {
           onChanged={() => void refresh()}
         />
       )}
-    </div>
+    </>
   );
 }

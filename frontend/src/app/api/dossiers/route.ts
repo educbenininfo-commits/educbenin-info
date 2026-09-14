@@ -16,6 +16,7 @@ import { SPECIALTIES } from '@/lib/specialties';
 import { notifyAdmins } from '@/lib/server/push/send';
 import { log } from '@/lib/server/observability/log';
 import { DOSSIER_CREATED } from '@/lib/notification-types';
+import { ECOLE_FSS_ID, CATEGORIE_FSS_DES_ID } from '@/lib/server/schools/reference-ids';
 
 // General E.164 shape ("+" + 7-15 digits) — was hardcoded to Bénin's
 // "+229 XX XX XX XX" with a mandatory space; the candidate-facing form now
@@ -29,10 +30,16 @@ const Fields = z.object({
   prenom: z.string().trim().min(1),
   whatsapp: z.string().trim().regex(WHATSAPP_RE),
   nationalite: z.string().trim().min(1).optional(), // ISO2 country code, see lib/countries.ts
-  specialtyCodes: z
-    .array(z.string())
-    .min(1)
-    .refine((codes) => codes.every((c) => VALID_CODES.has(c))),
+  // Generic single-filière path (extension multi-écoles, 2026-09) — any
+  // Categorie other than FSS's "Probatoire spécialité (D.E.S.)". When
+  // absent, falls back to the legacy D.E.S. multi-select below (unchanged).
+  categorieId: z.string().trim().min(1).optional(),
+  filiereId: z.string().trim().min(1).optional(),
+  // Legacy FSS "Probatoire spécialité (D.E.S.)" multi-select — a candidate
+  // may apply to several specialties in one dossier. Required only when
+  // categorieId is absent (validated below, not by zod, since the two
+  // modes are mutually exclusive rather than independently optional).
+  specialtyCodes: z.array(z.string()).optional(),
   consent1: z.literal('true'),
   consent2: z.literal('true'),
   consent3: z.literal('true'),
@@ -61,11 +68,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
+    const categorieIdField = form.get('categorieId');
     const parsed = Fields.safeParse({
       nom: form.get('nom'),
       prenom: form.get('prenom'),
       whatsapp: form.get('whatsapp'),
       nationalite: form.get('nationalite') ?? undefined,
+      categorieId: categorieIdField ?? undefined,
+      filiereId: form.get('filiereId') ?? undefined,
       specialtyCodes: form.getAll('specialtyCodes'),
       consent1: form.get('consent1'),
       consent2: form.get('consent2'),
@@ -87,7 +97,56 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const { nom, prenom, whatsapp, nationalite, specialtyCodes } = parsed.data;
+    const { nom, prenom, whatsapp, nationalite, categorieId, filiereId, specialtyCodes } =
+      parsed.data;
+
+    // Resolve which Ecole/Categorie/(Filiere) this dossier targets. Two
+    // mutually exclusive modes:
+    //   - categorieId present: the generic single-filière path used by
+    //     every Categorie added by the multi-school extension (Licence,
+    //     Master, INMeS Cycle I/II, …).
+    //   - categorieId absent: the legacy FSS "Probatoire spécialité
+    //     (D.E.S.)" multi-select path — unchanged validation/behavior.
+    let targetEcoleId: string;
+    let targetCategorieId: string;
+    let targetFiliereId: string | null = null;
+    let finalSpecialtyCodes: string[] = [];
+
+    if (categorieId) {
+      const categorie = await prisma.categorie.findUnique({
+        where: { id: categorieId },
+        select: { id: true, ecoleId: true, filieres: { select: { id: true } } },
+      });
+      if (!categorie) {
+        return NextResponse.json(
+          { error: 'VALIDATION_FAILED', message: 'Unknown categorieId' },
+          { status: 400 },
+        );
+      }
+      if (filiereId && !categorie.filieres.some((f) => f.id === filiereId)) {
+        return NextResponse.json(
+          { error: 'VALIDATION_FAILED', message: 'filiereId does not belong to categorieId' },
+          { status: 400 },
+        );
+      }
+      targetEcoleId = categorie.ecoleId;
+      targetCategorieId = categorie.id;
+      targetFiliereId = filiereId ?? null;
+    } else {
+      if (
+        !specialtyCodes ||
+        specialtyCodes.length < 1 ||
+        !specialtyCodes.every((c) => VALID_CODES.has(c))
+      ) {
+        return NextResponse.json(
+          { error: 'VALIDATION_FAILED', message: 'Invalid specialtyCodes' },
+          { status: 400 },
+        );
+      }
+      targetEcoleId = ECOLE_FSS_ID;
+      targetCategorieId = CATEGORIE_FSS_DES_ID;
+      finalSpecialtyCodes = specialtyCodes;
+    }
 
     const created = await prisma.$transaction(async (tx) => {
       const reference = await generateReference(tx);
@@ -98,7 +157,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           prenom,
           whatsapp,
           nationalite: nationalite ?? null,
-          specialtyCodes,
+          specialtyCodes: finalSpecialtyCodes,
+          ecoleId: targetEcoleId,
+          categorieId: targetCategorieId,
+          ...(targetFiliereId ? { filiereId: targetFiliereId } : {}),
         },
       });
     });
