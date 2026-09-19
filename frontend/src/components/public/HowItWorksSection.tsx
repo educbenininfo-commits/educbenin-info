@@ -27,14 +27,18 @@ const STEPS: { n: string; title: string; desc: string }[] = [
   },
 ];
 
-export function HowItWorksSection({ title = 'Comment ça marche' }: { title?: string }) {
+export function HowItWorksSection({
+  title = 'Comment ça marche',
+  subtitle = 'Cinq étapes, du dépôt de votre demande jusqu’au récépissé officiel de la FSS.',
+}: {
+  title?: string;
+  subtitle?: string;
+}) {
   return (
     <div className="section-bleed">
       <div className="section pw">
         <h2>{title}</h2>
-        <p className="sub">
-          Cinq étapes, du dépôt de votre demande jusqu&rsquo;au récépissé officiel de la FSS.
-        </p>
+        <p className="sub">{subtitle}</p>
         <div className="steps-grid">
           {STEPS.map((step) => (
             <div key={step.n} className="step-card">
