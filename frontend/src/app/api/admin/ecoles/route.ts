@@ -31,7 +31,14 @@ export async function GET(): Promise<NextResponse> {
       lienWhatsappGeneral: true,
       categories: {
         orderBy: { createdAt: 'asc' },
-        select: { id: true, libelle: true, libelleCourt: true, typeAdmission: true },
+        select: {
+          id: true,
+          libelle: true,
+          libelleCourt: true,
+          typeAdmission: true,
+          piecesAFournir: true,
+          piecesLegend: true,
+        },
       },
     },
   });

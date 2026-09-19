@@ -604,6 +604,21 @@ model Categorie {
   // editing UI for this field; nothing here builds that UI yet.
   tarifDepart Int?
 
+  // "Pièces à fournir" list shown on this Categorie's demand-form page
+  // (fss/des, fss/licence, fss/medecine-pharmacie, fss/master,
+  // inmes/cycle-1, inmes/cycle-2) — a plain string array (each entry one
+  // line item), stored in the data model instead of hardcoded per page so
+  // a back-office edit (École & WhatsApp screen) propagates everywhere at
+  // once. Deliberately plain strings, not rich JSX — anything that needs
+  // bold/emphasis in the original mockup copy is flattened to plain text
+  // (e.g. "Quittance CUCA de 20 000 FCFA (...)") since admin-editable
+  // content can't practically carry arbitrary inline markup.
+  piecesAFournir Json?
+  // Small italic legend under the "Pièces à fournir" heading, e.g.
+  // "d'après le communiqué N°725/UAC/FSS du 8 avril 2026". Null when a
+  // category has none (e.g. D.E.S.).
+  piecesLegend String?
+
   filieres Filiere[]
   dossiers Dossier[]
 

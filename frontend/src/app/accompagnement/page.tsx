@@ -14,6 +14,7 @@ import { DisclaimerBar } from '@/components/public/DisclaimerBar';
 import { PublicFooter } from '@/components/public/PublicFooter';
 import { listEcolesForGrid } from '@/lib/server/schools/queries';
 import {
+  CATEGORIE_FSS_MEDECINE_PHARMACIE_ID,
   CATEGORIE_FSS_LICENCE_ID,
   CATEGORIE_FSS_DES_ID,
   CATEGORIE_FSS_MASTER_ID,
@@ -33,6 +34,7 @@ export const metadata: Metadata = {
 // PublicNav's doc comment (/fss/licence, /fss/des, /fss/master,
 // /inmes/cycle-1, /inmes/cycle-2).
 const DEMAND_HREF: Record<string, string> = {
+  [CATEGORIE_FSS_MEDECINE_PHARMACIE_ID]: '/fss/medecine-pharmacie',
   [CATEGORIE_FSS_LICENCE_ID]: '/fss/licence',
   [CATEGORIE_FSS_DES_ID]: '/fss/des',
   [CATEGORIE_FSS_MASTER_ID]: '/fss/master',

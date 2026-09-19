@@ -25,17 +25,8 @@ export default async function DemandeInmesCycle1Page() {
       eyebrow="INMeS · Accompagnement"
       title="Dépôt du dossier — Cycle I (Licence SIO)"
       lead="Sciences Infirmières et Obstétricales, Cycle I — inscription sur dépôt de dossier (hors concours national boursier, réservé aux candidats nationaux). Nous rassemblons, vérifions et déposons votre dossier de candidature auprès de l'INMeS."
-      piecesLegend="liste provisoire pour le dépôt de dossier hors concours, à confirmer avec l'INMeS chaque année"
-      pieces={[
-        "Fiche de pré-inscription imprimée depuis le portail national d'inscription en ligne",
-        "Fiche d'inscription officielle",
-        "Copie d'une pièce d'identité valide",
-        'Relevé de notes du Baccalauréat',
-        'Certificat médical (personnes en situation de handicap)',
-        <>
-          Reçu de la taxe d&rsquo;étude de <strong>5 000 FCFA</strong>
-        </>,
-      ]}
+      piecesLegend={categorie.piecesLegend}
+      pieces={categorie.piecesAFournir}
       infoCallout={
         <>
           Educ Bénin accompagne le dépôt du dossier d&rsquo;inscription au Cycle I (hors concours) :

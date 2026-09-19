@@ -12,6 +12,7 @@
 export const ECOLE_FSS_ID = 'ecole-fss';
 export const ECOLE_INMES_ID = 'ecole-inmes';
 
+export const CATEGORIE_FSS_MEDECINE_PHARMACIE_ID = 'cat-fss-medecine-pharmacie';
 export const CATEGORIE_FSS_LICENCE_ID = 'cat-fss-licence';
 export const CATEGORIE_FSS_DES_ID = 'cat-fss-des';
 export const CATEGORIE_FSS_MASTER_ID = 'cat-fss-master';

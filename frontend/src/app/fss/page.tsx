@@ -17,6 +17,7 @@ import { FiliereAccordionGrid } from '@/components/public/FiliereAccordionGrid';
 import { FiliereSimpleList } from '@/components/public/FiliereSimpleList';
 import { getEcoleBySlug } from '@/lib/server/schools/queries';
 import {
+  CATEGORIE_FSS_MEDECINE_PHARMACIE_ID,
   CATEGORIE_FSS_LICENCE_ID,
   CATEGORIE_FSS_DES_ID,
   CATEGORIE_FSS_MASTER_ID,
@@ -33,6 +34,9 @@ export default async function EcoleFssPage() {
   const ecole = await getEcoleBySlug('fss');
   if (!ecole) notFound();
 
+  const medecinePharmacie = ecole.categories.find(
+    (c) => c.id === CATEGORIE_FSS_MEDECINE_PHARMACIE_ID,
+  );
   const licence = ecole.categories.find((c) => c.id === CATEGORIE_FSS_LICENCE_ID);
   const des = ecole.categories.find((c) => c.id === CATEGORIE_FSS_DES_ID);
   const master = ecole.categories.find((c) => c.id === CATEGORIE_FSS_MASTER_ID);
@@ -51,13 +55,21 @@ export default async function EcoleFssPage() {
 
       <div className="section-bleed">
         <div className="section pw">
-          <h2>Trois catégories de candidats à la FSS</h2>
+          <h2>Quatre catégories de candidats à la FSS</h2>
           <p className="sub">
-            Choisissez la catégorie qui correspond à votre situation. Licence (filières de base) et
-            Master : admission sur dépôt de dossier. Probatoire D.E.S. : composition propre à chaque
-            spécialité (détail ci-dessous).
+            Choisissez la catégorie qui correspond à votre situation. Médecine &amp; Pharmacie,
+            Licence et Master : admission sur dépôt de dossier. Probatoire D.E.S. : composition
+            propre à chaque spécialité (détail ci-dessous).
           </p>
           <div className="cat-grid">
+            {medecinePharmacie && (
+              <CategorieCard
+                ecoleNom={ecole.nom}
+                categorie={medecinePharmacie}
+                href="/fss/medecine-pharmacie"
+                extraNote="Pièces provisoires, à confirmer avec la FSS."
+              />
+            )}
             {licence && (
               <CategorieCard
                 ecoleNom={ecole.nom}

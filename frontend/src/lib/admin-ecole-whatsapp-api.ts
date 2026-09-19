@@ -7,6 +7,8 @@ export interface AdminCategorie {
   libelle: string;
   libelleCourt: string | null;
   typeAdmission: 'dossier' | 'concours_ou_composition' | string;
+  piecesAFournir: string[];
+  piecesLegend: string | null;
 }
 
 export interface AdminEcole {
@@ -33,6 +35,13 @@ export function updateEcoleWhatsapp(
   lienWhatsappGeneral: string,
 ): Promise<{ ecole: AdminEcole }> {
   return api(`/api/admin/ecoles/${id}`, { method: 'PATCH', body: { lienWhatsappGeneral } });
+}
+
+export function updateCategoriePieces(
+  id: string,
+  data: { piecesAFournir?: string[]; piecesLegend?: string | null },
+): Promise<{ categorie: AdminCategorie }> {
+  return api(`/api/admin/categories/${id}`, { method: 'PATCH', body: data });
 }
 
 export interface AdminFiliere {

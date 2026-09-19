@@ -1,13 +1,18 @@
 // Écran "Dépôt du dossier de probatoire spécialité (D.E.S.)" — relocated
 // from the old /accompagnement (which is now the Accompagnement hub, see
-// 05-accompagnement-hub.md) to make room for it. Content/behavior
-// unchanged (03-ecole-fss.md: "écran de demande D.E.S. existant,
-// inchangé") — same DemandForm component, same pièces list, same tarif.
+// 05-accompagnement-hub.md) to make room for it. Same DemandForm
+// component, same tarif; "pièces à fournir" now read from
+// Categorie.piecesAFournir (back-office-editable) instead of a hardcoded
+// list, per the École & WhatsApp pièces-à-fournir customization request.
+export const dynamic = 'force-dynamic';
 
 import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import { PublicNav } from '@/components/public/PublicNav';
 import { PublicBottomNav } from '@/components/public/PublicBottomNav';
 import { DemandForm } from '@/components/accompagnement/DemandForm';
+import { getCategorieById } from '@/lib/server/schools/queries';
+import { CATEGORIE_FSS_DES_ID } from '@/lib/server/schools/reference-ids';
 
 export const metadata: Metadata = {
   title: 'Dépôt du dossier de probatoire spécialité — D.E.S.',
@@ -16,39 +21,10 @@ export const metadata: Metadata = {
   alternates: { canonical: '/fss/des' },
 };
 
-const PIECES: { id: string; content: React.ReactNode }[] = [
-  {
-    id: 'demande-doyen',
-    content: 'Demande manuscrite ou saisie adressée au Doyen de la FSS (spécialité, année, e-mail)',
-  },
-  {
-    id: 'lettre-vice-recteur',
-    content:
-      'Lettre manuscrite ou saisie adressée au Vice-Recteur des Affaires Académiques de l’UAC',
-  },
-  {
-    id: 'extrait-naissance',
-    content: 'Copie légalisée ou certifiée de l’extrait / certificat de naissance',
-  },
-  { id: 'nationalite', content: 'Copie légalisée ou certifiée du certificat de nationalité' },
-  { id: 'bac', content: 'Copie légalisée ou certifiée du diplôme de Baccalauréat' },
-  {
-    id: 'doctorat',
-    content: 'Copie légalisée ou certifiée du diplôme de Doctorat en Médecine',
-  },
-  { id: 'cv', content: 'Curriculum vitae détaillé' },
-  {
-    id: 'releves',
-    content: (
-      <>
-        Relevés de notes de la 1<sup>re</sup> à la 7<sup>e</sup> année, légalisés ou certifiés
-      </>
-    ),
-  },
-  { id: 'releve-bac', content: 'Relevé de notes du Baccalauréat, légalisé ou certifié' },
-];
+export default async function DemandeDesPage() {
+  const categorie = await getCategorieById(CATEGORIE_FSS_DES_ID);
+  if (!categorie) notFound();
 
-export default function DemandeDesPage() {
   return (
     <div className="prod">
       <PublicNav active="ecole-fss" />
@@ -68,8 +44,8 @@ export default function DemandeDesPage() {
           <div className="doc-card">
             <h3>Pièces à fournir — un seul document PDF</h3>
             <ol>
-              {PIECES.map((piece) => (
-                <li key={piece.id}>{piece.content}</li>
+              {categorie.piecesAFournir.map((piece, i) => (
+                <li key={i}>{piece}</li>
               ))}
             </ol>
           </div>
@@ -87,7 +63,8 @@ export default function DemandeDesPage() {
             >
               <div style={{ fontSize: 12.5, color: 'var(--prod-ink-muted)' }}>À partir de</div>
               <div className="amt">
-                50 000 <span className="cur">FCFA / spécialité</span>
+                {(categorie.tarifDepart ?? 0).toLocaleString('fr-FR')}{' '}
+                <span className="cur">FCFA / spécialité</span>
               </div>
               <div style={{ fontSize: 11.5, color: 'var(--prod-ink-faint)' }}>
                 Tarif multi-spécialités communiqué avant confirmation.

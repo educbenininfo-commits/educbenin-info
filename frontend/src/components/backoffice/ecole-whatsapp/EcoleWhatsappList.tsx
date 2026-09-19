@@ -6,6 +6,7 @@ import {
   fetchAdminFilieres,
   updateEcoleWhatsapp,
   updateFiliere,
+  updateCategoriePieces,
   type AdminEcole,
   type AdminFiliere,
 } from '@/lib/admin-ecole-whatsapp-api';
@@ -34,6 +35,9 @@ export function EcoleWhatsappList() {
   const [waSaving, setWaSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<EditDraft | null>(null);
+  const [piecesDraft, setPiecesDraft] = useState('');
+  const [piecesLegendDraft, setPiecesLegendDraft] = useState('');
+  const [piecesSaving, setPiecesSaving] = useState(false);
 
   async function loadEcoles() {
     setLoadingEcoles(true);
@@ -124,6 +128,36 @@ export function EcoleWhatsappList() {
           ''
         }`
     : '';
+
+  const currentCategorie =
+    currentEcole && categorieId !== 'all'
+      ? (currentEcole.categories.find((c) => c.id === categorieId) ?? null)
+      : null;
+
+  useEffect(() => {
+    setPiecesDraft((currentCategorie?.piecesAFournir ?? []).join('\n'));
+    setPiecesLegendDraft(currentCategorie?.piecesLegend ?? '');
+    // Only re-sync when the selected catégorie itself changes, not on every
+    // currentCategorie object identity change (e.g. right after saving).
+  }, [currentCategorie?.id]);
+
+  async function savePieces() {
+    if (!currentCategorie) return;
+    setPiecesSaving(true);
+    try {
+      const pieces = piecesDraft
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean);
+      await updateCategoriePieces(currentCategorie.id, {
+        piecesAFournir: pieces,
+        piecesLegend: piecesLegendDraft.trim() || null,
+      });
+      await loadEcoles();
+    } finally {
+      setPiecesSaving(false);
+    }
+  }
 
   return (
     <>
@@ -222,6 +256,44 @@ export function EcoleWhatsappList() {
                   {waSaving ? 'Enregistrement…' : 'Enregistrer et propager'}
                 </button>
               </div>
+            </div>
+          )}
+
+          {currentCategorie && (
+            <div className="panel" style={{ marginTop: 18 }}>
+              <h3>
+                Pièces à fournir — {currentCategorie.libelleCourt ?? currentCategorie.libelle}
+              </h3>
+              <div className="sub">
+                Une pièce par ligne. Propagé automatiquement sur la page de demande correspondante.
+              </div>
+              <div className="field">
+                <label>Pièces à fournir</label>
+                <textarea
+                  rows={Math.max(6, piecesDraft.split('\n').length)}
+                  value={piecesDraft}
+                  onChange={(e) => setPiecesDraft(e.target.value)}
+                  placeholder={
+                    'Une demande manuscrite adressée au Doyen…\nUne copie légalisée de l’acte de naissance…'
+                  }
+                />
+              </div>
+              <div className="field">
+                <label>Légende (optionnelle)</label>
+                <input
+                  value={piecesLegendDraft}
+                  onChange={(e) => setPiecesLegendDraft(e.target.value)}
+                  placeholder="ex. d'après le communiqué N°725/UAC/FSS du 8 avril 2026"
+                />
+              </div>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                disabled={piecesSaving}
+                onClick={() => void savePieces()}
+              >
+                {piecesSaving ? 'Enregistrement…' : 'Enregistrer les pièces à fournir'}
+              </button>
             </div>
           )}
 

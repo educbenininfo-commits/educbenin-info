@@ -25,33 +25,14 @@ export default async function DemandeMasterPage() {
       eyebrow="FSS · Accompagnement"
       title="Dépôt du dossier de Master"
       lead="15 filières de Master, sur dépôt de dossier, sans concours ni composition. Nous rassemblons, vérifions et déposons votre dossier auprès de la FSS."
-      piecesLegend="d'après le communiqué N°725/UAC/FSS du 8 avril 2026"
-      pieces={[
-        'Une demande manuscrite adressée au Doyen de la FSS',
-        "Une copie légalisée de l'acte de naissance",
-        'Une copie légalisée du diplôme de Licence',
-        "Une attestation d'authenticité (ou attestation de dépôt d'authenticité et récapitulatif de la demande)",
-        <>
-          Relevés de notes et attestation de succès des années d&rsquo;études suivies à
-          l&rsquo;université de provenance{' '}
-          <em style={{ color: 'var(--prod-ink-faint)' }}>— cas de transfert uniquement</em>
-        </>,
-        'Certificat de nationalité',
-        'Curriculum vitae',
-        <>
-          Quittance CUCA de <strong>20 000 FCFA</strong> (Compte Trésor Public N° BJ660 01001
-          000001044399 95, intitulé FSS)
-        </>,
-        <>
-          Quittance CUO de <strong>2 000 FCFA</strong> (Compte Trésor Public N° BJ660 01001
-          000001047722 20, intitulé Rectorat/Produits accessoires)
-        </>,
-      ]}
+      piecesLegend={categorie.piecesLegend}
+      pieces={categorie.piecesAFournir}
       infoCallout={
         <>
           Mêmes pièces qu&rsquo;au niveau Licence : seul le diplôme d&rsquo;entrée change (Licence à
           la place du Baccalauréat) et les frais CUCA sont de 20 000 FCFA. Vous avez le Bac et
-          démarrez à la FSS ? Voir <Link href="/fss/licence">Licence — filières de base</Link>.
+          démarrez à la FSS ? Voir <Link href="/fss/medecine-pharmacie">Médecine, Pharmacie</Link>{' '}
+          ou <Link href="/fss/licence">Licence</Link>.
         </>
       }
       tarifDepart={categorie.tarifDepart}

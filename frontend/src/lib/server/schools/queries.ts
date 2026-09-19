@@ -58,7 +58,14 @@ export interface CategorieDetail {
   typeAdmission: string;
   description: string | null;
   tarifDepart: number | null;
+  piecesAFournir: string[];
+  piecesLegend: string | null;
   filieres: FiliereDetail[];
+}
+
+/** Categorie.piecesAFournir is stored as Json — coerce to a plain string[]. */
+function asPiecesList(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : [];
 }
 
 export interface EcoleDetail {
@@ -85,6 +92,8 @@ export async function getEcoleBySlug(slug: string): Promise<EcoleDetail | null> 
           typeAdmission: true,
           description: true,
           tarifDepart: true,
+          piecesAFournir: true,
+          piecesLegend: true,
           filieres: {
             orderBy: { createdAt: 'asc' },
             select: {
@@ -101,7 +110,15 @@ export async function getEcoleBySlug(slug: string): Promise<EcoleDetail | null> 
       },
     },
   });
-  return ecoles.find((e) => e.nom.toLowerCase() === slug.toLowerCase()) ?? null;
+  const ecole = ecoles.find((e) => e.nom.toLowerCase() === slug.toLowerCase());
+  if (!ecole) return null;
+  return {
+    ...ecole,
+    categories: ecole.categories.map((c) => ({
+      ...c,
+      piecesAFournir: asPiecesList(c.piecesAFournir),
+    })),
+  };
 }
 
 /** One Categorie (by id) with its Ecole + Filiere list — demand-form pages. */
@@ -120,6 +137,8 @@ export async function getCategorieById(id: string): Promise<
       typeAdmission: true,
       description: true,
       tarifDepart: true,
+      piecesAFournir: true,
+      piecesLegend: true,
       ecoleId: true,
       ecole: { select: { nom: true } },
       filieres: {
@@ -143,6 +162,8 @@ export async function getCategorieById(id: string): Promise<
     typeAdmission: categorie.typeAdmission,
     description: categorie.description,
     tarifDepart: categorie.tarifDepart,
+    piecesAFournir: asPiecesList(categorie.piecesAFournir),
+    piecesLegend: categorie.piecesLegend,
     filieres: categorie.filieres,
     ecoleId: categorie.ecoleId,
     ecoleNom: categorie.ecole.nom,

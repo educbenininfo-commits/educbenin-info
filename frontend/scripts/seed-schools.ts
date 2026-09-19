@@ -18,6 +18,7 @@ import { SPECIALTIES } from '../src/lib/specialties';
 import {
   ECOLE_FSS_ID,
   ECOLE_INMES_ID,
+  CATEGORIE_FSS_MEDECINE_PHARMACIE_ID,
   CATEGORIE_FSS_LICENCE_ID,
   CATEGORIE_FSS_DES_ID,
   CATEGORIE_FSS_MASTER_ID,
@@ -35,13 +36,27 @@ interface FiliereSeed {
   salle?: string;
 }
 
-const LICENCE_FILIERES: FiliereSeed[] = [
+// Médecine générale + Pharmacie now form their own Categorie, separate
+// from "Licence" (ESAS/Kinésithérapie/Nutrition) — both were originally
+// bundled under one "Médecine, Pharmacie & filières de base (Licence)"
+// Categorie; split on 2026-09-20 per direct request. Filiere ids are kept
+// stable across the split so existing Dossier.filiereId references still
+// resolve — only their `categorieId` moves (see the update block below,
+// and the one-off Dossier.categorieId backfill after the filière loop).
+const MEDECINE_PHARMACIE_FILIERES: FiliereSeed[] = [
   {
     id: 'fil-licence-medecine-generale',
-    categorieId: CATEGORIE_FSS_LICENCE_ID,
+    categorieId: CATEGORIE_FSS_MEDECINE_PHARMACIE_ID,
     nom: 'Médecine générale',
   },
-  { id: 'fil-licence-pharmacie', categorieId: CATEGORIE_FSS_LICENCE_ID, nom: 'Pharmacie' },
+  {
+    id: 'fil-licence-pharmacie',
+    categorieId: CATEGORIE_FSS_MEDECINE_PHARMACIE_ID,
+    nom: 'Pharmacie',
+  },
+];
+
+const LICENCE_FILIERES: FiliereSeed[] = [
   {
     id: 'fil-licence-esas',
     categorieId: CATEGORIE_FSS_LICENCE_ID,
@@ -115,10 +130,77 @@ const INMES_FILIERES: FiliereSeed[] = [
 ];
 
 const ALL_FILIERES: FiliereSeed[] = [
+  ...MEDECINE_PHARMACIE_FILIERES,
   ...LICENCE_FILIERES,
   ...DES_FILIERES,
   ...MASTER_FILIERES,
   ...INMES_FILIERES,
+];
+
+// Plain-string "pièces à fournir" per Categorie — Categorie.piecesAFournir
+// (JSON array) + Categorie.piecesLegend. Flattened from the demand-form
+// pages' original hardcoded JSX (bold amounts, italics) to plain text,
+// since this is now back-office-editable content (École & WhatsApp
+// screen) and can't carry arbitrary inline markup.
+const MEDECINE_PHARMACIE_PIECES = [
+  'Une demande manuscrite adressée au Doyen de la FSS',
+  "Une copie légalisée de l'acte de naissance",
+  "Une copie légalisée de l'attestation de réussite au Baccalauréat (un an d'ancienneté au plus)",
+  "Une attestation d'authenticité (ou attestation de dépôt d'authenticité et récapitulatif de la demande)",
+  "Relevés de notes et attestation de succès des années d'études suivies à l'université de provenance — cas de transfert uniquement",
+  'Certificat de nationalité',
+  'Curriculum vitae',
+  'Quittance CUCA de 10 000 FCFA (Compte Trésor Public N° BJ660 01001 000001044399 95, intitulé FSS)',
+  'Quittance CUO de 2 000 FCFA (Compte Trésor Public N° BJ660 01001 000001047722 20, intitulé Rectorat/Produits accessoires)',
+];
+const PIECES_LEGEND_COMMUNIQUE = "d'après le communiqué N°725/UAC/FSS du 8 avril 2026";
+
+const DES_PIECES = [
+  'Demande manuscrite ou saisie adressée au Doyen de la FSS (spécialité, année, e-mail)',
+  "Lettre manuscrite ou saisie adressée au Vice-Recteur des Affaires Académiques de l'UAC",
+  "Copie légalisée ou certifiée de l'extrait / certificat de naissance",
+  'Copie légalisée ou certifiée du certificat de nationalité',
+  'Copie légalisée ou certifiée du diplôme de Baccalauréat',
+  'Copie légalisée ou certifiée du diplôme de Doctorat en Médecine',
+  'Curriculum vitae détaillé',
+  'Relevés de notes de la 1re à la 7e année, légalisés ou certifiés',
+  'Relevé de notes du Baccalauréat, légalisé ou certifié',
+];
+
+const MASTER_PIECES = [
+  'Une demande manuscrite adressée au Doyen de la FSS',
+  "Une copie légalisée de l'acte de naissance",
+  'Une copie légalisée du diplôme de Licence',
+  "Une attestation d'authenticité (ou attestation de dépôt d'authenticité et récapitulatif de la demande)",
+  "Relevés de notes et attestation de succès des années d'études suivies à l'université de provenance — cas de transfert uniquement",
+  'Certificat de nationalité',
+  'Curriculum vitae',
+  'Quittance CUCA de 20 000 FCFA (Compte Trésor Public N° BJ660 01001 000001044399 95, intitulé FSS)',
+  'Quittance CUO de 2 000 FCFA (Compte Trésor Public N° BJ660 01001 000001047722 20, intitulé Rectorat/Produits accessoires)',
+];
+
+const INMES_CYCLE1_PIECES = [
+  "Fiche de pré-inscription imprimée depuis le portail national d'inscription en ligne",
+  "Fiche d'inscription officielle",
+  "Copie d'une pièce d'identité valide",
+  'Relevé de notes du Baccalauréat',
+  'Certificat médical (personnes en situation de handicap)',
+  "Reçu de la taxe d'étude de 5 000 FCFA",
+];
+
+const INMES_CYCLE2_PIECES = [
+  'Lettre de candidature manuscrite',
+  'Copie certifiée du diplôme de Licence SIO (ou équivalent)',
+  'Copie du Baccalauréat',
+  'Attestation de travail/stage en soins infirmiers',
+  'Lettre de motivation',
+  'Lettre de recommandation',
+  'Copies des relevés de notes de Licence',
+  'Engagement de paiement de formation légalisé',
+  "2 photos d'identité récentes",
+  'Certificat de nationalité',
+  '2 reçus de paiement (20 000 FCFA + 2 000 FCFA)',
+  'Attestation de compétence en anglais',
 ];
 
 interface SeedDeps {
@@ -162,18 +244,35 @@ export async function main(_args: string[] = [], deps: SeedDeps = {}): Promise<v
       // Curated body text — see schema.prisma's Categorie.description doc
       // comment. Wording per 03-ecole-fss.md / 04-ecole-inmes.md's cards.
       description: string;
+      piecesAFournir: string[];
+      piecesLegend: string | null;
     }[] = [
       {
-        id: CATEGORIE_FSS_LICENCE_ID,
+        id: CATEGORIE_FSS_MEDECINE_PHARMACIE_ID,
         ecoleId: ECOLE_FSS_ID,
-        libelle: 'Médecine, Pharmacie & filières de base (Licence)',
+        libelle: 'Médecine, Pharmacie',
         libelleCourt: 'Médecine & Pharmacie',
         typeAdmission: 'dossier',
         tarifDepart: 25000,
         description:
-          'Médecine générale, Pharmacie, ESAS (École Supérieure des Assistants Sociaux), ' +
-          'Kinésithérapie, Nutrition — admission en 1re année sur dépôt de dossier, sans ' +
+          'Médecine générale, Pharmacie — admission en 1re année sur dépôt de dossier, sans ' +
           'concours ni composition. Pièces provisoires, à confirmer avec la FSS.',
+        piecesAFournir: MEDECINE_PHARMACIE_PIECES,
+        piecesLegend: PIECES_LEGEND_COMMUNIQUE,
+      },
+      {
+        id: CATEGORIE_FSS_LICENCE_ID,
+        ecoleId: ECOLE_FSS_ID,
+        libelle: 'Licence',
+        libelleCourt: 'Licence',
+        typeAdmission: 'dossier',
+        tarifDepart: 25000,
+        description:
+          'ESAS (École Supérieure des Assistants Sociaux), Kinésithérapie, Nutrition — ' +
+          'admission en 1re année sur dépôt de dossier, sans concours ni composition. Pièces ' +
+          'provisoires, à confirmer avec la FSS.',
+        piecesAFournir: MEDECINE_PHARMACIE_PIECES,
+        piecesLegend: PIECES_LEGEND_COMMUNIQUE,
       },
       {
         id: CATEGORIE_FSS_DES_ID,
@@ -185,6 +284,8 @@ export async function main(_args: string[] = [], deps: SeedDeps = {}): Promise<v
         description:
           '27 spécialités de troisième cycle (niveau Doctorat, spécialisation), chacune avec ' +
           'sa date, sa salle de composition et son groupe WhatsApp dédié.',
+        piecesAFournir: DES_PIECES,
+        piecesLegend: null,
       },
       {
         id: CATEGORIE_FSS_MASTER_ID,
@@ -196,6 +297,8 @@ export async function main(_args: string[] = [], deps: SeedDeps = {}): Promise<v
         description:
           '15 filières de Master proposées par la FSS (Licence en poche). Mêmes pièces que ' +
           "la Licence, diplôme d'entrée différent.",
+        piecesAFournir: MASTER_PIECES,
+        piecesLegend: PIECES_LEGEND_COMMUNIQUE,
       },
       {
         id: CATEGORIE_INMES_CYCLE1_ID,
@@ -210,6 +313,9 @@ export async function main(_args: string[] = [], deps: SeedDeps = {}): Promise<v
           "d'acceptation ou de refus. Pièces prévisionnelles pour l'accompagnement : fiche de " +
           'pré-inscription, pièce d’identité, relevé du Baccalauréat, taxe d’étude. Liste ' +
           'provisoire.',
+        piecesAFournir: INMES_CYCLE1_PIECES,
+        piecesLegend:
+          "liste provisoire pour le dépôt de dossier hors concours, à confirmer avec l'INMeS chaque année",
       },
       {
         id: CATEGORIE_INMES_CYCLE2_ID,
@@ -223,6 +329,8 @@ export async function main(_args: string[] = [], deps: SeedDeps = {}): Promise<v
           'chaque année par un communiqué du Ministère. Tests prévus en Septembre 2026 (date ' +
           'à confirmer). Pièces prévisionnelles : diplôme de Licence SIO, lettre de ' +
           "motivation, attestation d'anglais, relevés de notes. Liste provisoire.",
+        piecesAFournir: INMES_CYCLE2_PIECES,
+        piecesLegend: 'liste 2024 trouvée sur le site officiel, à actualiser chaque année',
       },
     ];
     for (const cat of categories) {
@@ -234,6 +342,8 @@ export async function main(_args: string[] = [], deps: SeedDeps = {}): Promise<v
           typeAdmission: cat.typeAdmission,
           tarifDepart: cat.tarifDepart,
           description: cat.description,
+          piecesAFournir: cat.piecesAFournir,
+          piecesLegend: cat.piecesLegend,
         },
         create: cat,
       });
@@ -244,6 +354,7 @@ export async function main(_args: string[] = [], deps: SeedDeps = {}): Promise<v
       await prisma.filiere.upsert({
         where: { id: fil.id },
         update: {
+          categorieId: fil.categorieId,
           nom: fil.nom,
           code: fil.code ?? null,
           date: fil.date ?? null,
@@ -267,6 +378,26 @@ export async function main(_args: string[] = [], deps: SeedDeps = {}): Promise<v
     // necessarily FSS/"Probatoire spécialité (D.E.S.)") already ran and
     // ecoleId/categorieId are now required NOT NULL columns — nothing left
     // to backfill on a fresh run of this idempotent script.
+
+    // One-off migration for the Médecine/Pharmacie ↔ Licence category
+    // split (2026-09-20): any Dossier submitted before the split has
+    // categorieId=cat-fss-licence with filiereId pointing at one of the two
+    // filières that just moved to the new Médecine/Pharmacie Categorie —
+    // repoint categorieId to match so the badge/filter shown in the
+    // back-office stays accurate. Safe to re-run: a dossier already
+    // migrated no longer matches this where-clause.
+    const { count: migratedDossiers } = await prisma.dossier.updateMany({
+      where: {
+        categorieId: CATEGORIE_FSS_LICENCE_ID,
+        filiereId: { in: ['fil-licence-medecine-generale', 'fil-licence-pharmacie'] },
+      },
+      data: { categorieId: CATEGORIE_FSS_MEDECINE_PHARMACIE_ID },
+    });
+    if (migratedDossiers > 0) {
+      console.log(
+        `✓ ${migratedDossiers} dossier(s) existant(s) déplacé(s) vers Médecine, Pharmacie`,
+      );
+    }
   } finally {
     if (!deps.prisma) {
       await prisma.$disconnect();

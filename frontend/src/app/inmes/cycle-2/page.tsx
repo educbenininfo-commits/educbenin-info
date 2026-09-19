@@ -25,23 +25,8 @@ export default async function DemandeInmesCycle2Page() {
       eyebrow="INMeS · Accompagnement"
       title="Dépôt du dossier — Cycle II (Master SIO)"
       lead="Sciences Infirmières et Obstétricales, Cycle II — admission sur dossier, précédée de tests probatoires. Nous rassemblons, vérifions et déposons votre dossier de candidature auprès de l'INMeS."
-      piecesLegend="liste 2024 trouvée sur le site officiel, à actualiser chaque année"
-      pieces={[
-        'Lettre de candidature manuscrite',
-        'Copie certifiée du diplôme de Licence SIO (ou équivalent)',
-        'Copie du Baccalauréat',
-        'Attestation de travail/stage en soins infirmiers',
-        'Lettre de motivation',
-        'Lettre de recommandation',
-        'Copies des relevés de notes de Licence',
-        'Engagement de paiement de formation légalisé',
-        "2 photos d'identité récentes",
-        'Certificat de nationalité',
-        <>
-          2 reçus de paiement (<strong>20 000 FCFA</strong> + <strong>2 000 FCFA</strong>)
-        </>,
-        'Attestation de compétence en anglais',
-      ]}
+      piecesLegend={categorie.piecesLegend}
+      pieces={categorie.piecesAFournir}
       infoCallout={
         <>
           Admission sur dossier, précédée de tests probatoires — date flexible, communiquée chaque
