@@ -765,6 +765,12 @@ button {
   flex-direction: column;
   gap: 9px;
   font-size: 13.5px;
+  /* Tailwind's Preflight resets ol/ul to `list-style: none` — restore
+     numbering so the pièces-à-fournir list actually shows "1. 2. 3."
+     (the ::marker styling right below was already written assuming it
+     would, and the "pièces 1 et 2" warning callout next to this list
+     depends on visible numbers to make sense). */
+  list-style: decimal;
 }
 .doc-card ol li::marker {
   font-family: var(--font-mono), monospace;
