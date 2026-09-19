@@ -2574,3 +2574,116 @@ table.dtable tr:last-child td {
   height: 18px;
   flex-shrink: 0;
 }
+
+/* Country + phone number input (components/forms/CountryPhoneInput.tsx) —
+   custom dropdown instead of a native <select>: Windows renders regional-
+   indicator flag emoji as a bare two-letter tag inside native
+   <select>/<option> (its own limited form-control font), but correctly as
+   a real flag in normal page content like this dropdown's buttons. */
+.phone-input {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--prod-border);
+  border-radius: 9px;
+  background: var(--prod-surface);
+}
+.phone-input.err {
+  border-color: var(--prod-danger);
+}
+.phone-input:focus-within {
+  border-color: var(--prod-primary);
+}
+.phone-input-country {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  border: none;
+  border-right: 1px solid var(--prod-border);
+  border-radius: 9px 0 0 9px;
+  padding: 11px 12px;
+  background: transparent;
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--prod-ink);
+  cursor: pointer;
+}
+.flag-icon {
+  width: 20px;
+  height: 14px;
+  flex-shrink: 0;
+  border-radius: 2px;
+  object-fit: cover;
+}
+.phone-input-country .chev {
+  margin-left: 2px;
+  font-size: 10px;
+  color: var(--prod-ink-faint);
+}
+.phone-input input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  border: none;
+  border-radius: 0 9px 9px 0;
+  padding: 11px 13px;
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--prod-ink);
+  background: transparent;
+}
+.phone-input input:focus {
+  outline: none;
+}
+.phone-input-list {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 280px;
+  max-width: 90vw;
+  max-height: 260px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: var(--prod-surface);
+  border: 1px solid var(--prod-border);
+  border-radius: 10px;
+  box-shadow: 0 12px 30px -12px rgba(30, 27, 51, 0.25);
+}
+.phone-input-list li {
+  margin: 0;
+}
+.phone-input-list button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: none;
+  border-radius: 7px;
+  padding: 8px 10px;
+  background: transparent;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--prod-ink);
+  text-align: left;
+  cursor: pointer;
+}
+.phone-input-list button:hover,
+.phone-input-list button.on {
+  background: var(--prod-primary-tint);
+}
+.phone-input-list .name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.phone-input-list .code {
+  flex: 0 0 auto;
+  font-size: 13px;
+  color: var(--prod-ink-faint);
+}
