@@ -48,7 +48,7 @@ export default async function EcolesPage() {
             <Link key={ecole.id} href={`/${ecoleSlug(ecole.nom)}`} className="ecole-card">
               <div className="badge">{ecoleBadge(ecole.nom)}</div>
               <h3>{ecole.description ?? ecole.nom}</h3>
-              <p>{ecoleDescription(ecole.categories)}</p>
+              <p>{ecoleDescription(ecole.nom, ecole.categories)}</p>
               <div className="tags">
                 <span className="pill neutral">{ecoleHighlightPill(ecole.categories)}</span>
                 <span className="pill ok">Accompagnement disponible</span>

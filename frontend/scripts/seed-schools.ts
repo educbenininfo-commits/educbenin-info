@@ -256,7 +256,7 @@ export async function main(_args: string[] = [], deps: SeedDeps = {}): Promise<v
         tarifDepart: 25000,
         description:
           'Médecine générale, Pharmacie — admission en 1re année sur dépôt de dossier, sans ' +
-          'concours ni composition. Pièces provisoires, à confirmer avec la FSS.',
+          'concours ni composition.',
         piecesAFournir: MEDECINE_PHARMACIE_PIECES,
         piecesLegend: PIECES_LEGEND_COMMUNIQUE,
       },
@@ -269,8 +269,7 @@ export async function main(_args: string[] = [], deps: SeedDeps = {}): Promise<v
         tarifDepart: 25000,
         description:
           'ESAS (École Supérieure des Assistants Sociaux), Kinésithérapie, Nutrition — ' +
-          'admission en 1re année sur dépôt de dossier, sans concours ni composition. Pièces ' +
-          'provisoires, à confirmer avec la FSS.',
+          'admission en 1re année sur dépôt de dossier, sans concours ni composition.',
         piecesAFournir: MEDECINE_PHARMACIE_PIECES,
         piecesLegend: PIECES_LEGEND_COMMUNIQUE,
       },
@@ -281,9 +280,7 @@ export async function main(_args: string[] = [], deps: SeedDeps = {}): Promise<v
         libelleCourt: 'D.E.S.',
         typeAdmission: 'concours_ou_composition',
         tarifDepart: 50000,
-        description:
-          '27 spécialités de troisième cycle (niveau Doctorat, spécialisation), chacune avec ' +
-          'sa date, sa salle de composition et son groupe WhatsApp dédié.',
+        description: '27 spécialités de troisième cycle (Candidat avec niveau Doctorat).',
         piecesAFournir: DES_PIECES,
         piecesLegend: null,
       },
@@ -294,9 +291,7 @@ export async function main(_args: string[] = [], deps: SeedDeps = {}): Promise<v
         libelleCourt: 'Master',
         typeAdmission: 'dossier',
         tarifDepart: 50000,
-        description:
-          '15 filières de Master proposées par la FSS (Licence en poche). Mêmes pièces que ' +
-          "la Licence, diplôme d'entrée différent.",
+        description: '15 filières de Master proposées par la FSS (Candidat avec niveau Licence).',
         piecesAFournir: MASTER_PIECES,
         piecesLegend: PIECES_LEGEND_COMMUNIQUE,
       },

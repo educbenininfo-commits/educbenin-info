@@ -139,11 +139,6 @@ function CycleCard({
           <dd>{filiere.date}</dd>
         </dl>
       )}
-      {categorie.tarifDepart != null && (
-        <div className="price-line">
-          À partir de <strong>{categorie.tarifDepart.toLocaleString('fr-FR')} FCFA</strong>
-        </div>
-      )}
       {(filiere?.lienWhatsapp ?? null) && (
         <a
           href={filiere!.lienWhatsapp!}

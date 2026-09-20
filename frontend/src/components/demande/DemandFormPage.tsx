@@ -36,7 +36,7 @@ export function DemandFormPage({
   lead: ReactNode;
   piecesLegend: ReactNode;
   pieces: ReactNode[];
-  infoCallout: ReactNode;
+  infoCallout?: ReactNode;
   tarifDepart: number | null;
   tarifNote: ReactNode;
   categorieId: string;
@@ -77,10 +77,12 @@ export function DemandFormPage({
             </ol>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div className="callout info">
-              <span className="icn">ⓘ</span>
-              <span>{infoCallout}</span>
-            </div>
+            {infoCallout && (
+              <div className="callout info">
+                <span className="icn">ⓘ</span>
+                <span>{infoCallout}</span>
+              </div>
+            )}
             <div
               className="price-box"
               style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}

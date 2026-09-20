@@ -23,13 +23,13 @@ const STEPS: { n: string; title: string; desc: string }[] = [
   {
     n: '05',
     title: 'Déposé avec succès',
-    desc: 'Votre récépissé officiel est disponible au téléchargement.',
+    desc: 'Votre preuve de dépôt est disponible au téléchargement.',
   },
 ];
 
 export function HowItWorksSection({
   title = 'Comment ça marche',
-  subtitle = 'Cinq étapes, du dépôt de votre demande jusqu’au récépissé officiel de la FSS.',
+  subtitle = 'Cinq étapes, du dépôt de votre demande jusqu’à la preuve de dépôt de la FSS.',
 }: {
   title?: string;
   subtitle?: string;

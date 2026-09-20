@@ -80,7 +80,7 @@ export default async function Home() {
               textTransform: 'uppercase',
             }}
           >
-            État du dossier — Dr. Amoussou K.
+            État du dossier — Dr. LISSANON Luc.
           </div>
           <div className="hero-track">
             {HERO_TRACK.map((row) => (
@@ -115,7 +115,7 @@ export default async function Home() {
               <Link key={ecole.id} href={`/${ecoleSlug(ecole.nom)}`} className="ecole-card">
                 <div className="badge">{ecoleBadge(ecole.nom)}</div>
                 <h3>{ecole.description ?? ecole.nom}</h3>
-                <p>{ecoleDescription(ecole.categories)}</p>
+                <p>{ecoleDescription(ecole.nom, ecole.categories)}</p>
                 <div className="tags">
                   <span className="pill neutral">{ecoleHighlightPill(ecole.categories)}</span>
                   <span className="pill ok">Accompagnement disponible</span>
@@ -135,7 +135,7 @@ export default async function Home() {
         </div>
       </div>
 
-      <HowItWorksSection subtitle="Cinq étapes, du dépôt de votre demande jusqu’au récépissé officiel de votre établissement." />
+      <HowItWorksSection subtitle="Cinq étapes, du dépôt de votre demande jusqu’à la preuve de dépôt de votre établissement." />
 
       <div className="section-bleed">
         <div className="section pw">
@@ -150,7 +150,7 @@ export default async function Home() {
             rechercheLabel="École ou filière recherchée"
             recherchePlaceholder="Ex. : Faculté de Droit — Sciences Politiques"
             confirmationSubtext="Merci ! Nous reviendrons vers vous si l'école (ou la filière) est ajoutée."
-            companionText="Chaque suggestion est examinée par l'équipe Educ Bénin et suivie depuis le back-office jusqu'à sa résolution."
+            companionText="Chaque suggestion est examinée par l'équipe Educ Bénin."
           />
         </div>
       </div>

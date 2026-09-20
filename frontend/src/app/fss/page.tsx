@@ -14,7 +14,6 @@ import { PublicFooter } from '@/components/public/PublicFooter';
 import { SimpleHero } from '@/components/public/SimpleHero';
 import { HowItWorksSection } from '@/components/public/HowItWorksSection';
 import { FiliereAccordionGrid } from '@/components/public/FiliereAccordionGrid';
-import { FiliereSimpleList } from '@/components/public/FiliereSimpleList';
 import { getEcoleBySlug } from '@/lib/server/schools/queries';
 import {
   CATEGORIE_FSS_MEDECINE_PHARMACIE_ID,
@@ -67,26 +66,12 @@ export default async function EcoleFssPage() {
                 ecoleNom={ecole.nom}
                 categorie={medecinePharmacie}
                 href="/fss/medecine-pharmacie"
-                extraNote="Pièces provisoires, à confirmer avec la FSS."
               />
             )}
             {licence && (
-              <CategorieCard
-                ecoleNom={ecole.nom}
-                categorie={licence}
-                href="/fss/licence"
-                extraNote="Pièces provisoires, à confirmer avec la FSS."
-              />
+              <CategorieCard ecoleNom={ecole.nom} categorie={licence} href="/fss/licence" />
             )}
-            {des && (
-              <CategorieCard
-                ecoleNom={ecole.nom}
-                categorie={des}
-                href="/fss/des"
-                featured
-                extraNote="Communautés WhatsApp par filière"
-              />
-            )}
+            {des && <CategorieCard ecoleNom={ecole.nom} categorie={des} href="/fss/des" featured />}
             {master && <CategorieCard ecoleNom={ecole.nom} categorie={master} href="/fss/master" />}
           </div>
         </div>
@@ -112,43 +97,6 @@ export default async function EcoleFssPage() {
         </div>
       )}
 
-      {master && (
-        <div className="section-bleed">
-          <div className="section pw">
-            <h2>15 filières du Master FSS</h2>
-            <p className="sub">
-              Mêmes pièces à fournir que le D.E.S. (diplôme d&rsquo;entrée différent) — chaque
-              filière a son propre groupe WhatsApp.
-            </p>
-            <FiliereSimpleList
-              filieres={master.filieres}
-              ecoleWhatsappGeneral={ecole.lienWhatsappGeneral}
-            />
-          </div>
-        </div>
-      )}
-
-      {des && (
-        <div className="section-bleed">
-          <div className="section pw">
-            <h2>Un accompagnement clair, un tarif clair</h2>
-            <div className="price-box">
-              <div>
-                <div style={{ fontSize: 13, color: 'var(--prod-ink-muted)', marginBottom: 4 }}>
-                  Dépôt de dossier — une spécialité
-                </div>
-                <div className="amt">
-                  {(des.tarifDepart ?? 0).toLocaleString('fr-FR')} <span className="cur">FCFA</span>
-                </div>
-              </div>
-              <Link href="/fss/des" className="btn btn-outline btn-sm">
-                Voir les pièces à fournir
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
-
       <PublicFooter currentEcoleNom={ecole.nom} contactLabel="WhatsApp FSS — Educ Bénin" />
     </div>
   );
@@ -159,13 +107,11 @@ function CategorieCard({
   categorie,
   href,
   featured,
-  extraNote,
 }: {
   ecoleNom: string;
   categorie: { libelle: string; description: string | null; tarifDepart: number | null };
   href: string;
   featured?: boolean;
-  extraNote?: string;
 }) {
   return (
     <div className={`cat-card${featured ? ' featured' : ''}`}>
@@ -173,20 +119,7 @@ function CategorieCard({
         {ecoleNom} · {categorie.libelle}
       </span>
       <h3>{categorie.libelle}</h3>
-      <p>
-        {categorie.description}
-        {extraNote && (
-          <>
-            {' '}
-            <em>{extraNote}</em>
-          </>
-        )}
-      </p>
-      {categorie.tarifDepart != null && (
-        <div className="price-line">
-          À partir de <strong>{categorie.tarifDepart.toLocaleString('fr-FR')} FCFA</strong>
-        </div>
-      )}
+      <p>{categorie.description}</p>
       <Link href={href} className="btn btn-primary btn-sm">
         Faire ma demande
       </Link>

@@ -129,22 +129,22 @@ function recepisseButtonState(d: DossierDetail): RecepisseButtonState {
   if (d.stage === 4) {
     return {
       enabled: true,
-      label: 'Ajouter le récépissé (scan FSS)',
-      title: 'Uploader le scan du récépissé remis par la FSS au moment du dépôt.',
+      label: 'Ajouter la preuve de dépôt (scan FSS)',
+      title: 'Uploader le scan de la preuve de dépôt remise par la FSS au moment du dépôt.',
       mode: 'add',
     };
   }
   if (d.stage === 5 && d.recepisseUploaded) {
     return {
       enabled: true,
-      label: 'Voir le récépissé',
-      title: 'Afficher le récépissé transmis au candidat.',
+      label: 'Voir la preuve de dépôt',
+      title: 'Afficher la preuve de dépôt transmise au candidat.',
       mode: 'view',
     };
   }
   return {
     enabled: false,
-    label: 'Récépissé de dépôt',
+    label: 'Preuve de dépôt',
     title: 'Disponible à partir de l’étape « Dépôt de dossier en cours ».',
     mode: 'none',
   };
@@ -536,7 +536,7 @@ export function DossierModal({
       setDossier(res.dossier);
       onChanged();
     } catch {
-      setActionError('Impossible de transmettre le récépissé.');
+      setActionError('Impossible de transmettre la preuve de dépôt.');
     } finally {
       setActionLoading(false);
     }
@@ -1144,10 +1144,10 @@ export function DossierModal({
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    📎 recepisse-{dossier.reference}.pdf
+                    📎 preuve-depot-{dossier.reference}.pdf
                   </a>
                 ) : (
-                  <span className="n">📎 Récépissé non encore transmis</span>
+                  <span className="n">📎 Preuve de dépôt non encore transmise</span>
                 )}
               </div>
             </div>

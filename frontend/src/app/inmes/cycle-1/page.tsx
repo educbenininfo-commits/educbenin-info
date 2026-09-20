@@ -27,15 +27,6 @@ export default async function DemandeInmesCycle1Page() {
       lead="Sciences Infirmières et Obstétricales, Cycle I — inscription sur dépôt de dossier (hors concours national boursier, réservé aux candidats nationaux). Nous rassemblons, vérifions et déposons votre dossier de candidature auprès de l'INMeS."
       piecesLegend={categorie.piecesLegend}
       pieces={categorie.piecesAFournir}
-      infoCallout={
-        <>
-          Educ Bénin accompagne le dépôt du dossier d&rsquo;inscription au Cycle I (hors concours) :
-          le dossier est étudié par l&rsquo;INMeS, avec une réponse d&rsquo;acceptation ou de refus,
-          selon le processus habituel. Un concours national d&rsquo;entrée existe pour le Cycle I :
-          réservé aux candidats nationaux qui briguent la bourse d&rsquo;État, il se déroule avant
-          la phase de dépôt des dossiers. Educ Bénin n&rsquo;accompagne pas cette composition.
-        </>
-      }
       tarifDepart={categorie.tarifDepart}
       tarifNote="Tarif indicatif, à confirmer avant chaque confirmation de dossier."
       categorieId={categorie.id}

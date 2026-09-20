@@ -2,7 +2,6 @@
 export const dynamic = 'force-dynamic';
 
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { DemandFormPage } from '@/components/demande/DemandFormPage';
 import { getCategorieById } from '@/lib/server/schools/queries';
@@ -27,14 +26,6 @@ export default async function DemandeMasterPage() {
       lead="15 filières de Master, sur dépôt de dossier, sans concours ni composition. Nous rassemblons, vérifions et déposons votre dossier auprès de la FSS."
       piecesLegend={categorie.piecesLegend}
       pieces={categorie.piecesAFournir}
-      infoCallout={
-        <>
-          Mêmes pièces qu&rsquo;au niveau Licence : seul le diplôme d&rsquo;entrée change (Licence à
-          la place du Baccalauréat) et les frais CUCA sont de 20 000 FCFA. Vous avez le Bac et
-          démarrez à la FSS ? Voir <Link href="/fss/medecine-pharmacie">Médecine, Pharmacie</Link>{' '}
-          ou <Link href="/fss/licence">Licence</Link>.
-        </>
-      }
       tarifDepart={categorie.tarifDepart}
       tarifNote="Tarif indicatif (accompagnement Educ Bénin), communiqué avant confirmation — distinct des frais officiels CUCA/CUO ci-contre."
       categorieId={categorie.id}

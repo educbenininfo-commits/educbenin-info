@@ -27,12 +27,6 @@ export default async function DemandeInmesCycle2Page() {
       lead="Sciences Infirmières et Obstétricales, Cycle II — admission sur dossier, précédée de tests probatoires. Nous rassemblons, vérifions et déposons votre dossier de candidature auprès de l'INMeS."
       piecesLegend={categorie.piecesLegend}
       pieces={categorie.piecesAFournir}
-      infoCallout={
-        <>
-          Admission sur dossier, précédée de tests probatoires — date flexible, communiquée chaque
-          année par un communiqué du Ministère. Tests prévus en Septembre 2026 (date à confirmer).
-        </>
-      }
       tarifDepart={categorie.tarifDepart}
       tarifNote="Tarif indicatif, à confirmer avant chaque confirmation de dossier."
       categorieId={categorie.id}

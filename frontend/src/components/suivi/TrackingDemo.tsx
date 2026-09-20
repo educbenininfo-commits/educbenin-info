@@ -33,7 +33,7 @@ const STAGES: { t: string; d: string }[] = [
   },
   {
     t: 'Dossier déposé avec succès',
-    d: 'Votre récépissé officiel est disponible au téléchargement.',
+    d: 'Votre preuve de dépôt est disponible au téléchargement.',
   },
 ];
 
@@ -243,7 +243,7 @@ export function TrackingDemo() {
                     )}
                     {n === 5 && state === 'done' && (
                       <div className="cuo-note">
-                        📄 Récépissé de dépôt FSS disponible —{' '}
+                        📄 Preuve de dépôt FSS disponible —{' '}
                         {dossier?.recepisseUrl ? (
                           <a href={dossier.recepisseUrl} target="_blank" rel="noopener noreferrer">
                             <strong>télécharger le PDF</strong>

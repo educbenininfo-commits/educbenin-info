@@ -33,14 +33,21 @@ export function ecoleBadge(nom: string): string {
 }
 
 /**
- * One-sentence description of an Ecole's programs, built from its real
- * Categorie.libelle values — never hand-authored per school, so a new
+ * One-sentence description of an Ecole's programs. Default behavior is
+ * mechanically derived from real Categorie.libelle values, so a new
  * Categorie added via the back-office is reflected here with no code
- * change (deliberately simpler than the reference mockup's editorial
- * copy, which isn't mechanically derivable from the data model — flagged
- * to the user rather than reverse-engineered).
+ * change. FSS is a documented exception: its editorial wording isn't
+ * derivable from the libelle list (mixes admission level and category
+ * names in an order the DB doesn't encode), so it's hardcoded below —
+ * revisit if another school ever needs the same treatment.
  */
-export function ecoleDescription(categories: CategorieLike[]): string {
+const ECOLE_DESCRIPTION_OVERRIDES: Record<string, string> = {
+  FSS: 'Médecine, Pharmacie, Licence, Spécialité.',
+};
+
+export function ecoleDescription(nom: string, categories: CategorieLike[]): string {
+  const override = ECOLE_DESCRIPTION_OVERRIDES[nom.toUpperCase()];
+  if (override) return override;
   return `${categories.map((c) => c.libelle).join(', ')}.`;
 }
 

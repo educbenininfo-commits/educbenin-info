@@ -5,7 +5,6 @@
 export const dynamic = 'force-dynamic';
 
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { DemandFormPage } from '@/components/demande/DemandFormPage';
 import { getCategorieById } from '@/lib/server/schools/queries';
@@ -31,16 +30,6 @@ export default async function DemandeLicencePage() {
       lead="ESAS, Kinésithérapie, Nutrition : admission en 1re année sur dépôt de dossier, sans concours ni composition. Nous rassemblons, vérifions et déposons votre dossier auprès de la FSS."
       piecesLegend={categorie.piecesLegend}
       pieces={categorie.piecesAFournir}
-      infoCallout={
-        <>
-          Cette catégorie n&rsquo;a ni concours ni composition : l&rsquo;admission se fait
-          uniquement sur dépôt de dossier (inscription ou transfert). Filières concernées : ESAS
-          (École Supérieure des Assistants Sociaux), Kinésithérapie, Nutrition. Vous cherchez
-          Médecine générale ou Pharmacie ? Voir{' '}
-          <Link href="/fss/medecine-pharmacie">Médecine, Pharmacie</Link>. Vous avez déjà votre
-          Licence et visez un Master ? Voir <Link href="/fss/master">Master FSS</Link>.
-        </>
-      }
       tarifDepart={categorie.tarifDepart}
       tarifNote="Tarif indicatif (accompagnement Educ Bénin), communiqué avant confirmation — distinct des frais officiels CUCA/CUO ci-contre."
       categorieId={categorie.id}

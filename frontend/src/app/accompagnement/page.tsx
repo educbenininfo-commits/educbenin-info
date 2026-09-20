@@ -79,12 +79,6 @@ export default async function AccompagnementHubPage() {
                       </span>
                       <h3>{cat.libelle}</h3>
                       <p>{cat.description}</p>
-                      {cat.tarifDepart != null && (
-                        <div className="price-line">
-                          À partir de{' '}
-                          <strong>{cat.tarifDepart.toLocaleString('fr-FR')} FCFA</strong>
-                        </div>
-                      )}
                       <Link href={href} className="btn btn-primary btn-sm">
                         Faire une demande
                       </Link>
