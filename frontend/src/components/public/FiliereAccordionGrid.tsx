@@ -62,11 +62,14 @@ function FiliereTileAndDetail({
   return (
     <>
       <div className={`spec-tile${selected ? ' sel' : ''}`} onClick={onToggle}>
-        <div className="name">{filiere.nom}</div>
-        <div className="code">
-          {categorieLabel}
-          {filiere.code ? ` · ${filiere.code}` : ''}
+        <div>
+          <div className="name">{filiere.nom}</div>
+          <div className="code">
+            {categorieLabel}
+            {filiere.code ? ` · ${filiere.code}` : ''}
+          </div>
         </div>
+        <span className="chev">›</span>
       </div>
       {selected && (
         <div className="spec-detail">

@@ -485,10 +485,26 @@ button {
   gap: 12px;
 }
 .spec-tile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   border: 1px solid var(--prod-border);
   border-radius: 11px;
   padding: 14px 15px;
   background: var(--prod-surface);
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+.spec-tile:hover {
+  border-color: var(--prod-primary);
+  box-shadow: 0 8px 24px -12px rgba(79, 70, 229, 0.35);
+}
+.spec-tile.sel {
+  border-color: var(--prod-primary);
+  background: var(--prod-primary-tint);
 }
 .spec-tile .name {
   font-weight: 600;
@@ -499,6 +515,19 @@ button {
   color: var(--prod-ink-faint);
   font-family: var(--font-mono), monospace;
   margin-top: 3px;
+}
+.spec-tile .chev {
+  flex: none;
+  color: var(--prod-ink-faint);
+  font-size: 16px;
+  line-height: 1;
+  transition:
+    transform 0.15s,
+    color 0.15s;
+}
+.spec-tile.sel .chev {
+  color: var(--prod-primary);
+  transform: rotate(90deg);
 }
 
 .price-box {
