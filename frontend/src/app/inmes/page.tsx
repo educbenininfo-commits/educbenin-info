@@ -133,12 +133,6 @@ function CycleCard({
       <span className="eyebrow-pill">INMeS · {categorie.libelle}</span>
       <h3>{filiere?.nom ?? categorie.libelle}</h3>
       <p>{categorie.description}</p>
-      {filiere?.date && (
-        <dl className="kv" style={{ marginTop: 0 }}>
-          <dt>Date</dt>
-          <dd>{filiere.date}</dd>
-        </dl>
-      )}
       {(filiere?.lienWhatsapp ?? null) && (
         <a
           href={filiere!.lienWhatsapp!}

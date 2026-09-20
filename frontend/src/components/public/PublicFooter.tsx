@@ -92,7 +92,7 @@ export async function PublicFooter(
             <div>
               <h6>Contact</h6>
               <span className="footer-text">{contactLabel}</span>
-              <span className="footer-text">contact@educbenin.bj</span>
+              <span className="footer-text">educbenininfo@gmail.com</span>
             </div>
           )}
         </div>

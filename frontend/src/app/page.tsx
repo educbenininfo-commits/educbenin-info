@@ -54,7 +54,7 @@ export default async function Home() {
         <div className="disclaimer-bar pw">
           ⓘ&nbsp; Educ Bénin est un service d&rsquo;accompagnement indépendant — il ne se substitue
           ni à la FSS ni à l&rsquo;UAC.
-          <Link href="/mentions-legales">En savoir plus</Link>
+          <Link href="/non-affiliation">En savoir plus</Link>
         </div>
       </div>
 

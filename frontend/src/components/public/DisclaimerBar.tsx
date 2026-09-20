@@ -14,7 +14,7 @@ export function DisclaimerBar({ ecoleNom }: { ecoleNom?: string }) {
         ) : (
           <>à aucun établissement de l&rsquo;UAC.</>
         )}
-        <Link href="/mentions-legales">En savoir plus</Link>
+        <Link href="/non-affiliation">En savoir plus</Link>
       </div>
     </div>
   );
