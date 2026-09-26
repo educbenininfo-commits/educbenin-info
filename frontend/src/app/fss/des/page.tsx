@@ -42,7 +42,15 @@ export default async function DemandeDesPage() {
       <div className="section pw">
         <div className="two-col" style={{ alignItems: 'start' }}>
           <div className="doc-card">
-            <h3>Pièces à fournir — un seul document PDF</h3>
+            <h3>
+              Pièces à fournir — mettre toutes les pièces dans un seul document PDF
+              {categorie.piecesLegend && (
+                <>
+                  {' '}
+                  — <em style={{ fontWeight: 400 }}>{categorie.piecesLegend}</em>
+                </>
+              )}
+            </h3>
             <ol>
               {categorie.piecesAFournir.map((piece, i) => (
                 <li key={i}>{piece}</li>

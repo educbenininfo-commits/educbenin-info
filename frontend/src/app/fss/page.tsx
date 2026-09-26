@@ -114,15 +114,13 @@ function CategorieCard({
   featured?: boolean;
 }) {
   return (
-    <div className={`cat-card${featured ? ' featured' : ''}`}>
+    <Link href={href} className={`cat-card${featured ? ' featured' : ''}`}>
       <span className="eyebrow-pill">
         {ecoleNom} · {categorie.libelle}
       </span>
       <h3>{categorie.libelle}</h3>
       <p>{categorie.description}</p>
-      <Link href={href} className="btn btn-primary btn-sm">
-        Faire ma demande
-      </Link>
-    </div>
+      <span className="cta">Faire ma demande →</span>
+    </Link>
   );
 }

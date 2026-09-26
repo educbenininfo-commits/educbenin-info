@@ -294,27 +294,29 @@ export default function TableauDeBordPage() {
   return (
     <>
       <div
+        className="bo-header-wrap"
         style={{
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'center',
+          alignItems: 'flex-start',
           flexWrap: 'wrap',
-          gap: 10,
+          gap: 16,
+          marginBottom: 24,
         }}
       >
-        <h3 className="bo-h1" style={{ marginBottom: 0 }}>
+        <h3 className="bo-h1" style={{ marginBottom: 0, marginTop: 4 }}>
           Tableau de bord
         </h3>
 
         {isSuperadmin && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
             {maintenance !== null && (
               <span className={`pill ${maintenance ? 'danger' : 'ok'}`}>
                 {maintenance ? 'Site en maintenance' : 'Site en ligne'}
               </span>
             )}
             {maintenanceConfirm ? (
-              <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <span className="hint">
                   {maintenance
                     ? 'Remettre le site en ligne ?'
@@ -336,7 +338,7 @@ export default function TableauDeBordPage() {
                 >
                   Annuler
                 </button>
-              </>
+              </div>
             ) : (
               <button
                 type="button"
@@ -353,19 +355,6 @@ export default function TableauDeBordPage() {
       </div>
 
       <div className="dash-kpis">
-        <div id="kpiBlockGeneral">
-          <div className="bo-sub">Vue d&rsquo;ensemble de tous les dossiers</div>
-          <div className="kpi-grid">
-            {KPI_DEFS.map((k) => (
-              <div key={k.key} className={`kpi ${k.cls}`}>
-                <div className="n mono">
-                  {loading && !summary ? '—' : (summary?.kpis[k.key] ?? 0)}
-                </div>
-                <div className="l">{k.l}</div>
-              </div>
-            ))}
-          </div>
-        </div>
         <div id="kpiBlockFinance">
           <div className="section-lbl" style={{ marginTop: 0 }}>
             Suivi financier — interne, non visible du candidat
@@ -389,6 +378,50 @@ export default function TableauDeBordPage() {
               </div>
               <div className="l">Reste à payer (dossiers ouverts)</div>
             </div>
+          </div>
+        </div>
+        <div id="kpiBlockGeneral">
+          <div className="bo-sub">Vue d&rsquo;ensemble de tous les dossiers</div>
+          <div className="kpi-grid">
+            {KPI_DEFS.map((k) => (
+              <div key={k.key} className={`kpi ${k.cls}`}>
+                <div className="n mono">
+                  {loading && !summary ? '—' : (summary?.kpis[k.key] ?? 0)}
+                </div>
+                <div className="l">{k.l}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="two-col" style={{ marginTop: 22 }}>
+        <div className="panel">
+          <h3>Évolution des encaissements</h3>
+          <div className="sub">Facturé vs. encaissé, 6 derniers mois — survolez pour le détail</div>
+          <FinanceChart />
+        </div>
+        <div className="panel">
+          <h3>Répartition par moyen de paiement</h3>
+          <div className="sub">Part de l&rsquo;encaissé, 6 derniers mois</div>
+          <div>
+            {FIN_MOYENS.map((m) => (
+              <div key={m.label} className="paybar-row">
+                <div className="paybar-top">
+                  <span className="lbl">
+                    <span className="sw" style={{ background: m.color }} />
+                    {m.label}
+                  </span>
+                  <span className="val">{m.pct}%</span>
+                </div>
+                <div className="paybar-track">
+                  <div
+                    className="paybar-fill"
+                    style={{ width: `${m.pct}%`, background: m.color }}
+                  />
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -429,37 +462,6 @@ export default function TableauDeBordPage() {
               </div>
             ));
           })()}
-        </div>
-      </div>
-
-      <div className="two-col" style={{ marginTop: 22 }}>
-        <div className="panel">
-          <h3>Évolution des encaissements</h3>
-          <div className="sub">Facturé vs. encaissé, 6 derniers mois — survolez pour le détail</div>
-          <FinanceChart />
-        </div>
-        <div className="panel">
-          <h3>Répartition par moyen de paiement</h3>
-          <div className="sub">Part de l&rsquo;encaissé, 6 derniers mois</div>
-          <div>
-            {FIN_MOYENS.map((m) => (
-              <div key={m.label} className="paybar-row">
-                <div className="paybar-top">
-                  <span className="lbl">
-                    <span className="sw" style={{ background: m.color }} />
-                    {m.label}
-                  </span>
-                  <span className="val">{m.pct}%</span>
-                </div>
-                <div className="paybar-track">
-                  <div
-                    className="paybar-fill"
-                    style={{ width: `${m.pct}%`, background: m.color }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
     </>

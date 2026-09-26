@@ -71,18 +71,15 @@ export default async function AccompagnementHubPage() {
               <div className="cat-grid">
                 {ecole.categories.map((cat) => {
                   const href = DEMAND_HREF[cat.id];
-                  if (!href) return null;
                   return (
-                    <div key={cat.id} className="cat-card">
+                    <Link key={cat.id} href={href ?? '#'} className="cat-card">
                       <span className="eyebrow-pill">
                         {ecole.nom} · {cat.libelle}
                       </span>
                       <h3>{cat.libelle}</h3>
                       <p>{cat.description}</p>
-                      <Link href={href} className="btn btn-primary btn-sm">
-                        Faire une demande
-                      </Link>
-                    </div>
+                      <span className="cta">Faire une demande →</span>
+                    </Link>
                   );
                 })}
               </div>

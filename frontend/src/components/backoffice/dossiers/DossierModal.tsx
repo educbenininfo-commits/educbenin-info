@@ -748,29 +748,27 @@ export function DossierModal({
               <div className="hint" style={{ marginBottom: 3 }}>
                 Étape actuelle
               </div>
-              <span className={`pill ${pillClass(dossier.stage)}`}>
-                {STAGE_NAMES[dossier.stage]}
-              </span>
-              {dossier.correctionRequestedAt && (
-                <span
-                  className="pill"
-                  style={{
-                    marginLeft: 6,
-                    background: 'var(--prod-warning-tint)',
-                    color: 'var(--prod-warning)',
-                  }}
-                >
-                  Dossier MAJ
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                <span className={`pill ${pillClass(dossier.stage)}`}>
+                  {STAGE_NAMES[dossier.stage]}
                 </span>
-              )}
-              {isPendingCandidate && (
-                <span
-                  className="pill"
-                  style={{ marginLeft: 6, background: 'var(--prod-surface-2)' }}
-                >
-                  En attente du candidat
-                </span>
-              )}
+                {dossier.correctionRequestedAt && (
+                  <span
+                    className="pill"
+                    style={{
+                      background: 'var(--prod-warning-tint)',
+                      color: 'var(--prod-warning)',
+                    }}
+                  >
+                    Dossier MAJ
+                  </span>
+                )}
+                {isPendingCandidate && (
+                  <span className="pill" style={{ background: 'var(--prod-surface-2)' }}>
+                    En attente du candidat
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -1207,21 +1205,28 @@ export function DossierModal({
                     />
                   </div>
                 </div>
-                <div className="field" style={{ marginTop: 14 }}>
-                  <label>Moyen de paiement</label>
-                  <select
-                    value={dossier.moyen}
-                    onChange={(e) => void handleMoyenChange(e.target.value)}
-                  >
-                    <option>Non renseigné</option>
-                    <option>Mobile Money</option>
-                    <option>Espèces</option>
-                    <option>Virement</option>
-                  </select>
-                </div>
-                <div className={`pay-summary ${reste > 0 ? 'due' : 'clear'}`}>
-                  <span>Reste à payer</span>
-                  <span className="v">{fmtF(reste)}</span>
+                <div className="pay-field-row" style={{ marginTop: 14 }}>
+                  <div className="field" style={{ marginBottom: 0 }}>
+                    <label>Moyen de paiement</label>
+                    <select
+                      value={dossier.moyen}
+                      onChange={(e) => void handleMoyenChange(e.target.value)}
+                    >
+                      <option>Non renseigné</option>
+                      <option>Mobile Money</option>
+                      <option>Espèces</option>
+                      <option>Virement</option>
+                    </select>
+                  </div>
+                  <div className="field" style={{ marginBottom: 0 }}>
+                    <label>Reste à payer</label>
+                    <div
+                      className={`pay-summary ${reste > 0 ? 'due' : 'clear'}`}
+                      style={{ height: 42, display: 'flex', justifyContent: 'center' }}
+                    >
+                      <span className="v">{fmtF(reste)}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -1431,64 +1436,70 @@ export function DossierModal({
         </div>
 
         <div className="modal-foot">
-          <button
-            type="button"
-            className={`btn btn-danger-outline btn-sm${canReject ? '' : ' is-disabled'}`}
-            disabled={!canReject}
-            title={
-              dossier.stage === 0
-                ? 'Ce dossier est déjà rejeté.'
-                : dossier.stage === 5
-                  ? 'Un dossier déposé avec succès ne peut plus être rejeté.'
-                  : 'Rejeter ce dossier vers « Dossiers rejetés ».'
-            }
-            onClick={() => canReject && setConfirm({ kind: 'rejeter', motif: '' })}
-          >
-            Rejeter le dossier
-          </button>
-          <button
-            type="button"
-            className={`btn btn-outline btn-sm${canRestore ? '' : ' is-disabled'}`}
-            disabled={!canRestore}
-            title={
-              dossier.stage === 0
-                ? 'Remet ce dossier dans le circuit normal.'
-                : 'Disponible uniquement pour un dossier rejeté.'
-            }
-            onClick={() => canRestore && setConfirm({ kind: 'restaurer' })}
-          >
-            Restaurer vers Dossiers reçus
-          </button>
-          <button
-            type="button"
-            className={`btn btn-outline btn-sm${canRetreat ? '' : ' is-disabled'}`}
-            disabled={!canRetreat}
-            title={
-              canRetreat
-                ? 'Revenir à l’étape précédente.'
-                : 'Disponible à partir de l’étape « Authentification du diplôme en cours ».'
-            }
-            onClick={() => canRetreat && setConfirm({ kind: 'reculer' })}
-          >
-            ← Étape précédente
-          </button>
-          <button
-            type="button"
-            className={`btn btn-primary btn-sm${canAdvance ? '' : ' is-disabled'}`}
-            disabled={!canAdvance}
-            title={
-              dossier.stage === 5
-                ? 'Ce dossier est déjà finalisé.'
-                : dossier.stage === 0
-                  ? 'Restaurez le dossier avant de le faire progresser.'
-                  : 'Fait passer le dossier à l’étape suivante.'
-            }
-            onClick={() => canAdvance && setConfirm({ kind: 'avancer' })}
-          >
-            {dossier.stage === 5 ? 'Dossier finalisé ✓' : 'Faire passer à l’étape suivante →'}
-          </button>
+          <div className="modal-foot-group">
+            <button
+              type="button"
+              className={`btn btn-outline btn-sm${canRetreat ? '' : ' is-disabled'}`}
+              disabled={!canRetreat}
+              title={
+                canRetreat
+                  ? 'Revenir à l’étape précédente.'
+                  : 'Disponible à partir de l’étape « Authentification du diplôme en cours ».'
+              }
+              onClick={() => canRetreat && setConfirm({ kind: 'reculer' })}
+            >
+              ← Étape précédente
+            </button>
+            <button
+              type="button"
+              className={`btn btn-primary btn-sm${canAdvance ? '' : ' is-disabled'}`}
+              disabled={!canAdvance}
+              title={
+                dossier.stage === 5
+                  ? 'Ce dossier est déjà finalisé.'
+                  : dossier.stage === 0
+                    ? 'Restaurez le dossier avant de le faire progresser.'
+                    : 'Fait passer le dossier à l’étape suivante.'
+              }
+              onClick={() => canAdvance && setConfirm({ kind: 'avancer' })}
+            >
+              {dossier.stage === 5 ? 'Dossier finalisé ✓' : 'Passer à l’étape suivante →'}
+            </button>
+          </div>
+
+          <div className="modal-foot-group">
+            <button
+              type="button"
+              className={`btn btn-danger-outline btn-sm${canReject ? '' : ' is-disabled'}`}
+              disabled={!canReject}
+              title={
+                dossier.stage === 0
+                  ? 'Ce dossier est déjà rejeté.'
+                  : dossier.stage === 5
+                    ? 'Un dossier déposé avec succès ne peut plus être rejeté.'
+                    : 'Rejeter ce dossier vers « Dossiers rejetés ».'
+              }
+              onClick={() => canReject && setConfirm({ kind: 'rejeter', motif: '' })}
+            >
+              Rejeter le dossier
+            </button>
+            <button
+              type="button"
+              className={`btn btn-outline btn-sm${canRestore ? '' : ' is-disabled'}`}
+              disabled={!canRestore}
+              title={
+                dossier.stage === 0
+                  ? 'Remet ce dossier dans le circuit normal.'
+                  : 'Disponible uniquement pour un dossier rejeté.'
+              }
+              onClick={() => canRestore && setConfirm({ kind: 'restaurer' })}
+            >
+              Restaurer vers Dossiers reçus
+            </button>
+          </div>
+
           {isSuperadmin && (
-            <>
+            <div className="modal-foot-group">
               <a
                 className="btn btn-outline btn-sm"
                 href={dossierExportUrl(dossier.id)}
@@ -1510,7 +1521,7 @@ export function DossierModal({
               >
                 Supprimer définitivement
               </button>
-            </>
+            </div>
           )}
         </div>
       </div>

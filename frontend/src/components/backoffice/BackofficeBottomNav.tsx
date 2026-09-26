@@ -28,7 +28,7 @@ const BOTTOM_ITEMS_AFTER_MORE = [
   { key: 'parametres', href: '/admin/parametres', icon: '⚙', label: 'Réglages' },
 ];
 
-const SHEET_GROUP_1_KEYS = ['dashboard', 'dossiers', 'rejetes', 'suggestions', 'parametres'];
+const SHEET_GROUP_1_KEYS = ['suggestions'];
 const SHEET_GROUP_2_KEYS = ['ecole-whatsapp', 'tarifs', 'comptes'];
 
 export function BackofficeBottomNav() {
@@ -59,6 +59,7 @@ export function BackofficeBottomNav() {
             key={item.key}
             href={item.href}
             className={`p-bn-item${pathname === item.href ? ' on' : ''}`}
+            onClick={() => setOpen(false)}
           >
             <span className="ic">
               {item.icon}
@@ -73,9 +74,9 @@ export function BackofficeBottomNav() {
         ))}
         <button
           type="button"
-          className="p-bn-item more"
+          className={`p-bn-item more${open ? ' on' : ''}`}
           title="Plus de pages"
-          onClick={() => setOpen(true)}
+          onClick={() => setOpen(!open)}
         >
           <span className="ic">☰</span>
           <span>Menu</span>
@@ -85,6 +86,7 @@ export function BackofficeBottomNav() {
             key={item.key}
             href={item.href}
             className={`p-bn-item${pathname === item.href ? ' on' : ''}`}
+            onClick={() => setOpen(false)}
           >
             <span className="ic">{item.icon}</span>
             <span>{item.label}</span>

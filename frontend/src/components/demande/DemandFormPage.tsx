@@ -62,7 +62,7 @@ export function DemandFormPage({
         <div className="two-col" style={{ alignItems: 'start' }}>
           <div className="doc-card">
             <h3>
-              Pièces à fournir
+              Pièces à fournir — mettre toutes les pièces dans un seul document PDF
               {piecesLegend && (
                 <>
                   {' '}

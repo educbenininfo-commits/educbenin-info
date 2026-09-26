@@ -10,6 +10,7 @@ export function UploadHint({ maxMb }: { maxMb: number }) {
         href="https://www.ilovepdf.com/fr/compresser_pdf"
         target="_blank"
         rel="noopener noreferrer"
+        style={{ color: 'var(--prod-primary)', textDecoration: 'underline', fontWeight: 500 }}
       >
         Compresser un PDF trop volumineux →
       </a>

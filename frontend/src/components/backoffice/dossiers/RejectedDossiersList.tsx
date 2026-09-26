@@ -69,7 +69,7 @@ export function RejectedDossiersList() {
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 24 }}>
         <ListGridToggle mode={view} onChange={setView} />
       </div>
 

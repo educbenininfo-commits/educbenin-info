@@ -325,21 +325,9 @@ export function EcoleWhatsappList() {
                   ) : (
                     filieres.map((f) => {
                       const isConcours = f.typeAdmission === 'concours_ou_composition';
-                      const editing = editingId === f.id;
                       return (
                         <tr key={f.id}>
-                          <td>
-                            {editing ? (
-                              <input
-                                value={editDraft!.nom}
-                                onChange={(e) =>
-                                  setEditDraft((d) => (d ? { ...d, nom: e.target.value } : d))
-                                }
-                              />
-                            ) : (
-                              f.nom
-                            )}
-                          </td>
+                          <td>{f.nom}</td>
                           <td>
                             <span
                               className={`badge-ecole ${ecoleBadgeClass(currentEcole?.nom ?? '')}`}
@@ -347,95 +335,22 @@ export function EcoleWhatsappList() {
                               {f.categorieLabel}
                             </span>
                           </td>
+                          <td className="mono">{isConcours ? (f.date ?? '—') : '—'}</td>
+                          <td className="mono">{isConcours ? (f.heure ?? '—') : '—'}</td>
+                          <td>{isConcours ? (f.salle ?? '—') : '—'}</td>
                           <td className="mono">
-                            {editing && isConcours ? (
-                              <input
-                                value={editDraft!.date}
-                                onChange={(e) =>
-                                  setEditDraft((d) => (d ? { ...d, date: e.target.value } : d))
-                                }
-                                style={{ width: 110 }}
-                              />
-                            ) : isConcours ? (
-                              (f.date ?? '—')
-                            ) : (
-                              '—'
-                            )}
-                          </td>
-                          <td className="mono">
-                            {editing && isConcours ? (
-                              <input
-                                value={editDraft!.heure}
-                                onChange={(e) =>
-                                  setEditDraft((d) => (d ? { ...d, heure: e.target.value } : d))
-                                }
-                                style={{ width: 70 }}
-                              />
-                            ) : isConcours ? (
-                              (f.heure ?? '—')
-                            ) : (
-                              '—'
-                            )}
+                            {f.lienWhatsapp
+                              ? f.lienWhatsapp.replace(/^https?:\/\//, '').slice(0, 24) + '…'
+                              : '—'}
                           </td>
                           <td>
-                            {editing && isConcours ? (
-                              <input
-                                value={editDraft!.salle}
-                                onChange={(e) =>
-                                  setEditDraft((d) => (d ? { ...d, salle: e.target.value } : d))
-                                }
-                                style={{ width: 90 }}
-                              />
-                            ) : isConcours ? (
-                              (f.salle ?? '—')
-                            ) : (
-                              '—'
-                            )}
-                          </td>
-                          <td className="mono">
-                            {editing ? (
-                              <input
-                                value={editDraft!.lienWhatsapp}
-                                onChange={(e) =>
-                                  setEditDraft((d) =>
-                                    d ? { ...d, lienWhatsapp: e.target.value } : d,
-                                  )
-                                }
-                                placeholder="https://chat.whatsapp.com/…"
-                              />
-                            ) : f.lienWhatsapp ? (
-                              f.lienWhatsapp.replace(/^https?:\/\//, '').slice(0, 24) + '…'
-                            ) : (
-                              '—'
-                            )}
-                          </td>
-                          <td>
-                            {editing ? (
-                              <div style={{ display: 'flex', gap: 6 }}>
-                                <button
-                                  type="button"
-                                  className="btn btn-primary btn-sm"
-                                  onClick={() => void saveEdit(f)}
-                                >
-                                  Enregistrer
-                                </button>
-                                <button
-                                  type="button"
-                                  className="btn btn-outline btn-sm"
-                                  onClick={() => setEditingId(null)}
-                                >
-                                  Annuler
-                                </button>
-                              </div>
-                            ) : (
-                              <button
-                                type="button"
-                                className="btn btn-outline btn-sm"
-                                onClick={() => startEdit(f)}
-                              >
-                                Modifier
-                              </button>
-                            )}
+                            <button
+                              type="button"
+                              className="btn btn-outline btn-sm"
+                              onClick={() => startEdit(f)}
+                            >
+                              Modifier
+                            </button>
                           </td>
                         </tr>
                       );
@@ -461,6 +376,15 @@ export function EcoleWhatsappList() {
                       <span>{f.salle ?? '—'}</span>
                     </div>
                   )}
+                  <div style={{ marginTop: 12 }}>
+                    <button
+                      type="button"
+                      className="btn btn-outline btn-sm"
+                      style={{ width: '100%' }}
+                    >
+                      Modifier
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -475,6 +399,82 @@ export function EcoleWhatsappList() {
 
       {addOpen && (
         <AddEcoleModal onClose={() => setAddOpen(false)} onCreated={() => void loadEcoles()} />
+      )}
+
+      {editingId && editDraft && (
+        <div
+          className="overlay show"
+          onClick={(e) => e.target === e.currentTarget && setEditingId(null)}
+        >
+          <div className="modal">
+            <div className="modal-head">
+              <h3>Modifier la filière</h3>
+              <button type="button" className="x" onClick={() => setEditingId(null)}>
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="field">
+                <label>Filière / spécialité</label>
+                <input
+                  value={editDraft.nom}
+                  onChange={(e) => setEditDraft({ ...editDraft, nom: e.target.value })}
+                />
+              </div>
+              {filieres.find((f) => f.id === editingId)?.typeAdmission ===
+                'concours_ou_composition' && (
+                <>
+                  <div className="two-col">
+                    <div className="field">
+                      <label>Date</label>
+                      <input
+                        value={editDraft.date}
+                        onChange={(e) => setEditDraft({ ...editDraft, date: e.target.value })}
+                      />
+                    </div>
+                    <div className="field">
+                      <label>Heure</label>
+                      <input
+                        value={editDraft.heure}
+                        onChange={(e) => setEditDraft({ ...editDraft, heure: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="field">
+                    <label>Salle</label>
+                    <input
+                      value={editDraft.salle}
+                      onChange={(e) => setEditDraft({ ...editDraft, salle: e.target.value })}
+                    />
+                  </div>
+                </>
+              )}
+              <div className="field">
+                <label>Lien WhatsApp (optionnel)</label>
+                <input
+                  value={editDraft.lienWhatsapp}
+                  onChange={(e) => setEditDraft({ ...editDraft, lienWhatsapp: e.target.value })}
+                  placeholder="https://chat.whatsapp.com/…"
+                />
+              </div>
+            </div>
+            <div className="modal-foot">
+              <button type="button" className="btn btn-outline" onClick={() => setEditingId(null)}>
+                Annuler
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => {
+                  const f = filieres.find((f) => f.id === editingId);
+                  if (f) void saveEdit(f);
+                }}
+              >
+                Enregistrer
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

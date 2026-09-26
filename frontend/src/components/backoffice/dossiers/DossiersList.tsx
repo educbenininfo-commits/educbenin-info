@@ -68,6 +68,7 @@ export function DossiersList() {
           alignItems: 'flex-start',
           gap: 12,
           flexWrap: 'wrap',
+          marginBottom: 24,
         }}
       >
         <div>

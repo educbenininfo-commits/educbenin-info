@@ -144,8 +144,8 @@ function CycleCard({
           ✆ {waLabel}
         </a>
       )}
-      <Link href={href} className="btn btn-primary btn-sm">
-        Faire ma demande
+      <Link href={href} className="cta" style={{ marginTop: 'auto', display: 'inline-block' }}>
+        Faire ma demande →
       </Link>
     </div>
   );
