@@ -69,7 +69,7 @@ export function BackofficeBottomNav() {
                 </span>
               )}
             </span>
-            <span>{item.label}</span>
+            <span className="lbl">{item.label}</span>
           </Link>
         ))}
         <button
@@ -79,7 +79,7 @@ export function BackofficeBottomNav() {
           onClick={() => setOpen(!open)}
         >
           <span className="ic">☰</span>
-          <span>Menu</span>
+          <span className="lbl">Menu</span>
         </button>
         {BOTTOM_ITEMS_AFTER_MORE.map((item) => (
           <Link
@@ -89,7 +89,7 @@ export function BackofficeBottomNav() {
             onClick={() => setOpen(false)}
           >
             <span className="ic">{item.icon}</span>
-            <span>{item.label}</span>
+            <span className="lbl">{item.label}</span>
           </Link>
         ))}
       </nav>

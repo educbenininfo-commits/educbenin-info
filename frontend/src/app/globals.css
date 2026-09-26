@@ -84,7 +84,11 @@
   box-sizing: border-box;
 }
 
+html {
+  overflow-x: hidden;
+}
 body {
+  overflow-x: hidden;
   color: var(--prod-ink);
   background: var(--prod-page);
   font-family:
@@ -637,6 +641,7 @@ button {
 }
 .p-bn-item {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -652,6 +657,12 @@ button {
   color: var(--prod-ink-faint);
   letter-spacing: 0.01em;
   text-decoration: none;
+}
+.p-bn-item .lbl {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .p-bn-item .ic {
   position: relative;

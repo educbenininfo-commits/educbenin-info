@@ -49,7 +49,7 @@ export function PublicBottomNav({ active }: { active: string }) {
             className={`p-bn-item${item.key === active ? ' on' : ''}`}
           >
             <span className="ic">{item.icon}</span>
-            <span>{item.label}</span>
+            <span className="lbl">{item.label}</span>
           </Link>
         ))}
         <button
@@ -59,7 +59,7 @@ export function PublicBottomNav({ active }: { active: string }) {
           onClick={() => setOpen(true)}
         >
           <span className="ic">☰</span>
-          <span>Menu</span>
+          <span className="lbl">Menu</span>
         </button>
         {NAV_ITEMS_AFTER_MORE.map((item) => (
           <Link
@@ -68,7 +68,7 @@ export function PublicBottomNav({ active }: { active: string }) {
             className={`p-bn-item${item.key === active || (item.key === 'ecole-toutes' && ecoleActive) ? ' on' : ''}`}
           >
             <span className="ic">{item.icon}</span>
-            <span>{item.label}</span>
+            <span className="lbl">{item.label}</span>
           </Link>
         ))}
       </nav>
