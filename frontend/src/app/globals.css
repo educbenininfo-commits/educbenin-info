@@ -2479,6 +2479,7 @@ table.dtable tr:last-child td {
     margin-left: 0;
     width: 100%;
     justify-content: space-between;
+    flex-wrap: wrap;
   }
   table.dtable {
     min-width: 520px;
