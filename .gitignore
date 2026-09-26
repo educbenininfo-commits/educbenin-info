@@ -21,3 +21,7 @@ next-env.d.ts
 amp
 node-compile-cache/
 
+# Antigravity IDE — per-machine tool state (downloaded skills), not app code
+.agents/
+skills-lock.json
+
