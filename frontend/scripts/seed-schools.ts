@@ -280,7 +280,7 @@ export async function main(_args: string[] = [], deps: SeedDeps = {}): Promise<v
         libelleCourt: 'D.E.S.',
         typeAdmission: 'concours_ou_composition',
         tarifDepart: 50000,
-        description: '27 spécialités de troisième cycle (Candidat avec niveau Doctorat).',
+        description: '27 spécialités D.E.S. (Candidat avec niveau Doctorat).',
         piecesAFournir: DES_PIECES,
         piecesLegend: null,
       },

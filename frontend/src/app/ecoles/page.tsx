@@ -61,8 +61,8 @@ export default async function EcolesPage() {
         <div className="callout info" style={{ marginTop: 24 }}>
           <span className="icn">ⓘ</span>
           <span>
-            Vous êtes dans un autre établissement de l&rsquo;UAC, ou une autre filière ?{' '}
-            <Link href="/#suggestion">Suggérez-le nous</Link>, nous étudierons son ajout.
+            Vous désirez vous inscrire dans une autre filière de l&rsquo;UAC ? Veuillez{' '}
+            <Link href="/#suggestion">la suggérer</Link>. Merci.
           </span>
         </div>
       </div>

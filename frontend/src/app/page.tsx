@@ -128,14 +128,14 @@ export default async function Home() {
           <div className="callout info" style={{ marginTop: 24 }}>
             <span className="icn">ⓘ</span>
             <span>
-              Vous êtes dans un autre établissement de l&rsquo;UAC, ou une autre filière ?{' '}
-              <a href="#suggestion">Suggérez-le nous</a>, nous étudierons son ajout.
+              Vous désirez vous inscrire dans une autre filière de l&rsquo;UAC ? Veuillez{' '}
+              <a href="#suggestion">la suggérer</a>. Merci.
             </span>
           </div>
         </div>
       </div>
 
-      <HowItWorksSection subtitle="Cinq étapes, du dépôt de votre demande jusqu’à la preuve de dépôt de votre établissement." />
+      <HowItWorksSection />
 
       <div className="section-bleed">
         <div className="section pw">

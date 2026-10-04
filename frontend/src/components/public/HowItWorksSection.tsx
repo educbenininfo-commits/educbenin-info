@@ -29,7 +29,7 @@ const STEPS: { n: string; title: string; desc: string }[] = [
 
 export function HowItWorksSection({
   title = 'Comment ça marche',
-  subtitle = 'Cinq étapes, du dépôt de votre demande jusqu’à la preuve de dépôt de la FSS.',
+  subtitle = 'Cinq étapes depuis votre demande d’inscription jusqu’à la preuve du dépôt de dossier dans l’établissement concerné.',
 }: {
   title?: string;
   subtitle?: string;
