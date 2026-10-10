@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { lookupDossier, uploadFiche, type LookupResult } from '@/lib/dossiers-public-api';
 import { CountryPhoneInput } from '@/components/forms/CountryPhoneInput';
 import { UploadHint } from '@/components/forms/UploadHint';
@@ -14,7 +14,13 @@ import { formatRelativeTime } from '@/lib/dossiers-data';
 // button (visible at stage 3) calls the real
 // POST /api/dossiers/lookup/fiche route.
 
-const STAGES: { t: string; d: string }[] = [
+// Official registration portal, named across the site (DisclaimerBar,
+// Mentions légales, Non-affiliation) but only ever as plain text until now —
+// this is the one step where the candidate actually needs to go there, so
+// it's a real link, opened in a new tab rather than requiring copy/paste.
+const CUO_URL = 'https://cuo.sigan-uac.bj';
+
+const STAGES: { t: string; d: ReactNode }[] = [
   {
     t: 'Dossier en cours de traitement',
     d: 'Vos pièces sont en cours de vérification par notre équipe.',
@@ -25,7 +31,15 @@ const STAGES: { t: string; d: string }[] = [
   },
   {
     t: 'Inscription en ligne',
-    d: "Inscrivez-vous sur cuo.sigan-uac.bj puis transmettez votre fiche d'inscription ci-dessous.",
+    d: (
+      <>
+        Inscrivez-vous sur{' '}
+        <a href={CUO_URL} target="_blank" rel="noopener noreferrer">
+          cuo.sigan-uac.bj
+        </a>{' '}
+        puis transmettez votre fiche d&rsquo;inscription ci-dessous.
+      </>
+    ),
   },
   {
     t: 'Dépôt de dossier en cours',
@@ -189,8 +203,11 @@ export function TrackingDemo() {
                     {n === 3 && state === 'now' && (
                       <>
                         <div className="cuo-note">
-                          Inscrivez-vous sur <strong>cuo.sigan-uac.bj</strong>, puis transmettez
-                          votre fiche d&rsquo;inscription ci-dessous.
+                          Inscrivez-vous sur{' '}
+                          <a href={CUO_URL} target="_blank" rel="noopener noreferrer">
+                            <strong>cuo.sigan-uac.bj</strong>
+                          </a>
+                          , puis transmettez votre fiche d&rsquo;inscription ci-dessous.
                         </div>
                         {dossier?.ficheUploaded ? (
                           <div className="comment-note" style={{ marginTop: 10 }}>
