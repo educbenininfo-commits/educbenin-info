@@ -1257,6 +1257,115 @@ button {
   font-size: 11px;
 }
 
+/* ---- page Contact: WhatsApp / e-mail channel buttons ---- */
+.contact-channels {
+  display: grid;
+  gap: 14px;
+}
+.contact-channel {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px;
+  border-radius: 14px;
+  border: 1px solid var(--prod-border);
+  background: var(--prod-surface);
+  color: var(--prod-ink);
+  text-decoration: none;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s,
+    transform 0.15s;
+}
+.contact-channel:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 26px -14px rgba(15, 23, 42, 0.35);
+}
+.contact-channel .ic {
+  width: 46px;
+  height: 46px;
+  flex: none;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+.contact-channel .ic svg {
+  width: 24px;
+  height: 24px;
+}
+.contact-channel .txt {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.contact-channel .lbl {
+  font-weight: 700;
+  font-size: 15px;
+}
+.contact-channel .val {
+  font-size: 13px;
+  color: var(--prod-ink-muted);
+  overflow-wrap: anywhere;
+}
+.contact-channel .go {
+  flex: none;
+  font-size: 18px;
+  color: var(--prod-ink-faint);
+}
+.contact-channel.wa .ic {
+  background: #25d366;
+}
+.contact-channel.wa:hover {
+  border-color: #25d366;
+}
+.contact-channel.mail .ic {
+  background: var(--prod-primary);
+}
+.contact-channel.mail:hover {
+  border-color: var(--prod-primary);
+}
+
+/* ---- back-office Contact inbox ---- */
+.contact-inbox {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+.contact-msg {
+  cursor: default;
+}
+.contact-msg.new {
+  border-left: 3px solid var(--prod-primary);
+}
+.contact-msg-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+.contact-msg-subject {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--prod-ink-muted);
+  margin-top: 2px;
+}
+.contact-msg-body {
+  font-size: 13.5px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.contact-msg-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  font-size: 12.5px;
+  align-items: center;
+}
+
 /* ---- legal pages (Mentions légales, CGU/CGV, Confidentialité) ---- */
 .legal {
   max-width: 720px;

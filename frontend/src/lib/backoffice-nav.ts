@@ -22,6 +22,7 @@ export const BACKOFFICE_NAV: {
   { key: 'dossiers', href: '/admin/dossiers', icon: '▤', label: 'Dossiers' },
   { key: 'rejetes', href: '/admin/dossiers-rejetes', icon: '⊘', label: 'Dossiers rejetés' },
   { key: 'suggestions', href: '/admin/suggestions', icon: '✉', label: 'Suggestions' },
+  { key: 'contact', href: '/admin/contact', icon: '✆', label: 'Contact & messages' },
   { key: 'ecole-whatsapp', href: '/admin/ecole-whatsapp', icon: '☎', label: 'École & WhatsApp' },
   { key: 'tarifs', href: '/admin/tarifs', icon: '₣', label: 'Tarifs' },
   { key: 'comptes', href: '/admin/comptes-admin', icon: '◎', label: 'Comptes admin & rôles' },

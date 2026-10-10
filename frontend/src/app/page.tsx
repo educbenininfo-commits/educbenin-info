@@ -14,7 +14,9 @@ import { HowItWorksSection } from '@/components/public/HowItWorksSection';
 import { SuggestionForm } from '@/components/public/SuggestionForm';
 import { EducBeninLogo } from '@/components/theme/EducBeninLogo';
 import { listEcolesForGrid } from '@/lib/server/schools/queries';
+import { getContactSettings } from '@/lib/server/site-settings';
 import { ecoleSlug, ecoleBadge, ecoleDescription, ecoleHighlightPill } from '@/lib/ecole-display';
+import { formatWhatsapp, whatsappLink } from '@/lib/contact-display';
 
 const HERO_TRACK: { label: string; done: boolean; num: string }[] = [
   { label: 'Dossier en cours de traitement', done: true, num: '✓' },
@@ -39,7 +41,7 @@ const ORGANIZATION_JSON_LD = {
 };
 
 export default async function Home() {
-  const ecoles = await listEcolesForGrid();
+  const [ecoles, contact] = await Promise.all([listEcolesForGrid(), getContactSettings()]);
 
   return (
     <div className="prod">
@@ -187,6 +189,14 @@ export default async function Home() {
               <Link href="/mentions-legales">Mentions légales</Link>
               <Link href="/cgu-cgv">CGU / CGV</Link>
               <Link href="/confidentialite">Politique de confidentialité</Link>
+            </div>
+            <div>
+              <h6>Contact</h6>
+              <a href={whatsappLink(contact.whatsapp)} target="_blank" rel="noopener noreferrer">
+                WhatsApp : {formatWhatsapp(contact.whatsapp)}
+              </a>
+              <a href={`mailto:${contact.email}`}>{contact.email}</a>
+              <Link href="/contact">Formulaire de contact</Link>
             </div>
           </div>
           <div className="legal-line">

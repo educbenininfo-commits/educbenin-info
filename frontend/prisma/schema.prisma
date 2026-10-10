@@ -675,6 +675,34 @@ model Suggestion {
 }
 
 // ───────────────────────────────────────────────────────────────────────
+// Contact — site-wide contact details (single row, id "site") edited from
+// the back-office "Contact & messages" screen and read by every public
+// surface that shows them (page Contact, footer, Non-affiliation,
+// maintenance). Null fields fall back to built-in defaults (see
+// lib/server/site-settings.ts), so the site never renders an empty contact.
+// ───────────────────────────────────────────────────────────────────────
+model SiteSettings {
+  id              String   @id @default("site")
+  contactEmail    String?
+  contactWhatsapp String? // E.164, e.g. "+22967249837"
+  updatedAt       DateTime @updatedAt
+}
+
+// Messages sent from the public /contact form, read in the back-office.
+model ContactMessage {
+  id        String   @id @default(cuid())
+  nom       String
+  email     String?
+  telephone String? // WhatsApp, E.164
+  sujet     String?
+  message   String
+  statut    String   @default("nouveau") // nouveau | lu | traite
+  createdAt DateTime @default(now())
+
+  @@index([statut, createdAt])
+}
+
+// ───────────────────────────────────────────────────────────────────────
 // Tarifs — back-office pricing module (13-backoffice-tarifs-personnalisables.md).
 // Append-only history: every save creates a NEW row rather than mutating
 // the previous one, so "Historique des barèmes" is just this table ordered

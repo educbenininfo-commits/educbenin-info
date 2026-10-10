@@ -5,10 +5,13 @@
 // Reprend et développe des faits déjà établis ailleurs sur le site
 // (DisclaimerBar, pied de page, Mentions légales § Non-affiliation, CGU/CGV
 // art. 2 et 3) — n'invente aucune nouvelle affirmation juridique.
+export const dynamic = 'force-dynamic';
+
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { PublicNav } from '@/components/public/PublicNav';
 import { PublicBottomNav } from '@/components/public/PublicBottomNav';
+import { getContactSettings } from '@/lib/server/site-settings';
 
 export const metadata: Metadata = {
   title: 'Non-affiliation',
@@ -17,7 +20,8 @@ export const metadata: Metadata = {
   alternates: { canonical: '/non-affiliation' },
 };
 
-export default function NonAffiliationPage() {
+export default async function NonAffiliationPage() {
+  const contact = await getContactSettings();
   return (
     <div className="prod">
       <PublicNav active="non-affiliation" />
@@ -84,7 +88,8 @@ export default function NonAffiliationPage() {
           <Link href="/mentions-legales">Mentions légales</Link> (dont certaines informations
           d&rsquo;immatriculation restent en cours de finalisation) et les{' '}
           <Link href="/cgu-cgv">CGU / CGV</Link>. Pour toute question sur ce point, contactez{' '}
-          <a href="mailto:educbenininfo@gmail.com">educbenininfo@gmail.com</a>.
+          <a href={`mailto:${contact.email}`}>{contact.email}</a> ou via la{' '}
+          <Link href="/contact">page Contact</Link>.
         </p>
       </div>
     </div>

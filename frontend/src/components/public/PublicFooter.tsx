@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import { EducBeninLogo } from '@/components/theme/EducBeninLogo';
 import { listEcolesForGrid } from '@/lib/server/schools/queries';
+import { getContactSettings } from '@/lib/server/site-settings';
 import { ecoleSlug } from '@/lib/ecole-display';
+import { formatWhatsapp, whatsappLink } from '@/lib/contact-display';
 
 // Shared footer for the multi-school public pages (/ecoles, /fss, /inmes,
 // /accompagnement) — an async Server Component reading the live Ecole list
@@ -18,13 +20,11 @@ import { ecoleSlug } from '@/lib/ecole-display';
 //     pages, which aren't about one specific school.
 //   - `{ currentEcoleNom }`: the individual École pages — "Plateforme"
 //     absorbs "Tous les établissements" + a link to every OTHER school
-//     (dynamic — never hardcoded to "the other one"), plus a Contact
-//     column naming that school's WhatsApp.
-export async function PublicFooter(
-  props: { currentEcoleNom?: string; contactLabel?: string } = {},
-) {
-  const ecoles = await listEcolesForGrid();
-  const { currentEcoleNom, contactLabel } = props;
+//     (dynamic — never hardcoded to "the other one").
+// Both variants end with a Contact column fed by the back-office settings.
+export async function PublicFooter(props: { currentEcoleNom?: string } = {}) {
+  const [ecoles, contact] = await Promise.all([listEcolesForGrid(), getContactSettings()]);
+  const { currentEcoleNom } = props;
 
   const brandBlurb = currentEcoleNom
     ? `Educ Bénin n’est ni ${currentEcoleNom === 'INMeS' ? 'l’' : 'la '}${currentEcoleNom}, ni l’UAC.`
@@ -88,13 +88,14 @@ export async function PublicFooter(
             <Link href="/confidentialite">Politique de confidentialité</Link>
           </div>
 
-          {currentEcoleNom && contactLabel && (
-            <div>
-              <h6>Contact</h6>
-              <span className="footer-text">{contactLabel}</span>
-              <span className="footer-text">educbenininfo@gmail.com</span>
-            </div>
-          )}
+          <div>
+            <h6>Contact</h6>
+            <a href={whatsappLink(contact.whatsapp)} target="_blank" rel="noopener noreferrer">
+              WhatsApp : {formatWhatsapp(contact.whatsapp)}
+            </a>
+            <a href={`mailto:${contact.email}`}>{contact.email}</a>
+            <Link href="/contact">Formulaire de contact</Link>
+          </div>
         </div>
         <div className="legal-line">
           <span>© 2026 Educ Bénin — Cotonou, Bénin</span>

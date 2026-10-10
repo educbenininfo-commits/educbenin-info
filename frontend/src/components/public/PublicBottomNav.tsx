@@ -112,6 +112,11 @@ export function PublicBottomNav({ active }: { active: string }) {
             <span className="ic">◔</span>
             Suivre mon dossier
           </Link>
+          <div className="sep" />
+          <Link href="/contact" onClick={() => setOpen(false)}>
+            <span className="ic">✆</span>
+            Contact
+          </Link>
         </div>
       </div>
     </>

@@ -33,7 +33,6 @@ export default async function DemandeInmesCycle1Page() {
       filiereOptions={categorie.filieres.map((f) => ({ id: f.id, label: f.nom }))}
       independenceSuffix="l'INMeS"
       stepsSummary="2 étapes, environ 3 minutes."
-      contactLabel="WhatsApp INMeS — Educ Bénin"
     />
   );
 }

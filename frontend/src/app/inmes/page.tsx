@@ -113,7 +113,7 @@ export default async function EcoleInmesPage() {
         </div>
       </div>
 
-      <PublicFooter currentEcoleNom={ecole.nom} contactLabel="WhatsApp INMeS — Educ Bénin" />
+      <PublicFooter currentEcoleNom={ecole.nom} />
     </div>
   );
 }

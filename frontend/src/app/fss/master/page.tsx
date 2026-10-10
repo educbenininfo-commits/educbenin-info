@@ -33,7 +33,6 @@ export default async function DemandeMasterPage() {
       filiereStepLabel="Choisissez votre filière de Master"
       independenceSuffix="la FSS"
       stepsSummary="3 étapes, environ 5 minutes."
-      contactLabel="WhatsApp FSS — Educ Bénin"
     />
   );
 }

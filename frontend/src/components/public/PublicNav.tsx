@@ -31,6 +31,7 @@ const LINKS: { key: string; href: string; label: string }[] = [
 const LINKS_AFTER_ECOLE: { key: string; href: string; label: string }[] = [
   { key: 'accompagnement', href: '/accompagnement', label: 'Accompagnement' },
   { key: 'suivi', href: '/suivre-mon-dossier', label: 'Suivre mon dossier' },
+  { key: 'contact', href: '/contact', label: 'Contact' },
 ];
 
 export function PublicNav({ active }: { active: string }) {

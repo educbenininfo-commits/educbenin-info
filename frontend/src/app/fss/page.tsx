@@ -97,7 +97,7 @@ export default async function EcoleFssPage() {
         </div>
       )}
 
-      <PublicFooter currentEcoleNom={ecole.nom} contactLabel="WhatsApp FSS — Educ Bénin" />
+      <PublicFooter currentEcoleNom={ecole.nom} />
     </div>
   );
 }

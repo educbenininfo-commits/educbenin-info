@@ -27,7 +27,6 @@ export function DemandFormPage({
   filiereStepLabel,
   independenceSuffix,
   stepsSummary,
-  contactLabel,
 }: {
   activeNav: string;
   ecoleNom: string;
@@ -44,7 +43,6 @@ export function DemandFormPage({
   filiereStepLabel?: string;
   independenceSuffix: string;
   stepsSummary: string;
-  contactLabel: string;
 }) {
   return (
     <div className="prod">
@@ -110,7 +108,7 @@ export function DemandFormPage({
         </div>
       </div>
 
-      <PublicFooter currentEcoleNom={ecoleNom} contactLabel={contactLabel} />
+      <PublicFooter currentEcoleNom={ecoleNom} />
     </div>
   );
 }
