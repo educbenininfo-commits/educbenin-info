@@ -31,6 +31,7 @@ export function HeroPanel({
   rows,
   variant = 'list',
   floats = [],
+  hideOnMobile = false,
 }: {
   icon: LucideIcon;
   title: string;
@@ -38,9 +39,11 @@ export function HeroPanel({
   rows: HeroPanelRow[];
   variant?: 'list' | 'steps' | 'chat';
   floats?: HeroPanelFloat[];
+  /** Desktop/tablet only — hidden under 760px. */
+  hideOnMobile?: boolean;
 }) {
   return (
-    <div className="hp" aria-hidden="true">
+    <div className={`hp${hideOnMobile ? ' hide-mobile' : ''}`} aria-hidden="true">
       <div className="hp-card">
         <div className="hp-head">
           <span className="hp-icon">

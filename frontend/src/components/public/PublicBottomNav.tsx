@@ -151,19 +151,27 @@ export function PublicBottomNav({ active }: { active: string }) {
               )}
             </span>
           </div>
-          <Link href="/" onClick={() => setOpen(false)}>
-            <span className="ic">
-              <House size={17} />
-            </span>
-            Accueil
-          </Link>
-          <div className="sep" />
-          <Link href="/ecoles" onClick={() => setOpen(false)}>
-            <span className="ic">
-              <GraduationCap size={17} />
-            </span>
-            Toutes les écoles
-          </Link>
+          {/* With the bottom bar visible, Accueil / Demande / École / Suivi are
+              already one tap away there — the sheet only lists what the bar
+              doesn't (each school, Contact). The side drawers (top modes)
+              have no bar, so they list everything. */}
+          {mode !== 'bottom' && (
+            <>
+              <Link href="/" onClick={() => setOpen(false)}>
+                <span className="ic">
+                  <House size={17} />
+                </span>
+                Accueil
+              </Link>
+              <div className="sep" />
+              <Link href="/ecoles" onClick={() => setOpen(false)}>
+                <span className="ic">
+                  <GraduationCap size={17} />
+                </span>
+                Toutes les écoles
+              </Link>
+            </>
+          )}
           {ecoles.map((ecole) => (
             <Link key={ecole.id} href={`/${ecoleSlug(ecole.nom)}`} onClick={() => setOpen(false)}>
               <span className="ic">
@@ -172,19 +180,23 @@ export function PublicBottomNav({ active }: { active: string }) {
               École — {ecole.nom}
             </Link>
           ))}
-          <div className="sep" />
-          <Link href="/accompagnement" onClick={() => setOpen(false)}>
-            <span className="ic">
-              <PenLine size={17} />
-            </span>
-            Accompagnement (toutes les demandes)
-          </Link>
-          <Link href="/suivre-mon-dossier" onClick={() => setOpen(false)}>
-            <span className="ic">
-              <ClipboardCheck size={17} />
-            </span>
-            Suivre mon dossier
-          </Link>
+          {mode !== 'bottom' && (
+            <>
+              <div className="sep" />
+              <Link href="/accompagnement" onClick={() => setOpen(false)}>
+                <span className="ic">
+                  <PenLine size={17} />
+                </span>
+                Accompagnement (toutes les demandes)
+              </Link>
+              <Link href="/suivre-mon-dossier" onClick={() => setOpen(false)}>
+                <span className="ic">
+                  <ClipboardCheck size={17} />
+                </span>
+                Suivre mon dossier
+              </Link>
+            </>
+          )}
           <div className="sep" />
           <Link href="/contact" onClick={() => setOpen(false)}>
             <span className="ic">

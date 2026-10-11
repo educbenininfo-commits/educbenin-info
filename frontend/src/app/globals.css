@@ -5019,3 +5019,8 @@ table.dtable tr:last-child td {
     padding: 0 11px;
   }
 }
+@media (max-width: 760px) {
+  .hp.hide-mobile {
+    display: none;
+  }
+}
