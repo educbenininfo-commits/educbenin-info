@@ -5024,3 +5024,19 @@ table.dtable tr:last-child td {
     display: none;
   }
 }
+
+/* ── No automatic zoom on phones/tablets ────────────────────────────────────
+   iOS Safari zooms the page when a focused field's text is under 16px. On
+   touch-size screens every form control is forced to 16px (desktop keeps
+   its compact sizes). touch-action: manipulation removes double-tap zoom;
+   pinch-zoom stays available for people who need to enlarge the page. */
+html {
+  touch-action: manipulation;
+}
+@media (max-width: 1024px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}

@@ -12,6 +12,7 @@ import { requireModulePermission } from '@/lib/server/middleware/require-module-
 import { enforceAdminRateLimit } from '@/lib/server/middleware/rate-limit-by-userid';
 import { prisma } from '@/lib/server/prisma';
 import { logAdminAction } from '@/lib/server/admin/audit';
+import { revalidatePublicContent } from '@/lib/server/public-cache';
 
 const Body = z.object({
   lienWhatsappGeneral: z.string().trim().url(),
@@ -53,6 +54,7 @@ export async function PATCH(
     targetId: id,
     metadata: { nom: ecole.nom, lienWhatsappGeneral: ecole.lienWhatsappGeneral },
   });
+  revalidatePublicContent();
 
   return NextResponse.json({ ecole });
 }

@@ -3,6 +3,7 @@
 // /filières/tarifs viennent du back-office.
 export const dynamic = 'force-dynamic';
 
+import { cachedGetEcoleBySlug } from '@/lib/server/public-cache';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -14,7 +15,7 @@ import { SimpleHero } from '@/components/public/SimpleHero';
 import { HeroPanel } from '@/components/public/HeroPanel';
 import { BellRing, FileCheck2, GraduationCap, School } from 'lucide-react';
 import { SuggestionForm } from '@/components/public/SuggestionForm';
-import { getEcoleBySlug, type CategorieDetail } from '@/lib/server/schools/queries';
+import { type CategorieDetail } from '@/lib/server/schools/queries';
 import {
   CATEGORIE_INMES_CYCLE1_ID,
   CATEGORIE_INMES_CYCLE2_ID,
@@ -28,7 +29,7 @@ export const metadata: Metadata = {
 };
 
 export default async function EcoleInmesPage() {
-  const ecole = await getEcoleBySlug('inmes');
+  const ecole = await cachedGetEcoleBySlug('inmes');
   if (!ecole) notFound();
 
   const cycle1 = ecole.categories.find((c) => c.id === CATEGORIE_INMES_CYCLE1_ID);

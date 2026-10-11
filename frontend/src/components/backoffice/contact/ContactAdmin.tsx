@@ -50,6 +50,7 @@ export function ContactAdmin() {
   // ---- messages ----
   const [statut, setStatut] = useState<'all' | ContactMessageStatut>('all');
   const [q, setQ] = useState('');
+  const [tab, setTab] = useState<'messages' | 'coordonnees'>('messages');
   const [period, setPeriod] = useState<DateRangePreset>('all');
   const [allItems, setAllItems] = useState<ContactMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -122,166 +123,195 @@ export function ContactAdmin() {
             le site.
           </div>
         </div>
-        <div className="bo-head-actions">
-          <DateRangeFilter value={period} onChange={setPeriod} />
-        </div>
-      </div>
-
-      <div className="stat-grid">
-        <StatCard
-          label="Messages reçus"
-          value={v(counts.all)}
-          icon={Inbox}
-          caption={DATE_RANGE_LABELS[period]}
-          featured
-        />
-        <StatCard
-          label="Nouveaux"
-          value={v(counts.nouveau)}
-          icon={MailPlus}
-          chip="gold"
-          caption="En attente de lecture"
-        />
-        <StatCard
-          label="Lus"
-          value={v(counts.lu)}
-          icon={Eye}
-          chip="violet"
-          caption="Lus, pas encore traités"
-        />
-        <StatCard
-          label="Traités"
-          value={v(counts.traite)}
-          icon={CheckCheck}
-          chip="success"
-          caption="Réponse apportée"
-        />
-      </div>
-
-      <div style={{ display: 'flex', gap: 10, marginTop: 22, flexWrap: 'wrap' }}>
-        <input
-          type="search"
-          placeholder="Rechercher par nom, e-mail, sujet ou contenu…"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          style={{ flex: 1, minWidth: 220 }}
-        />
-      </div>
-
-      <div className="dossier-filters" style={{ marginTop: 14 }}>
-        {STATUT_FILTERS.map((f) => (
-          <button
-            key={f.statut}
-            type="button"
-            className={`df-chip${statut === f.statut ? ' on' : ''}`}
-            onClick={() => setStatut(f.statut)}
-          >
-            {f.label}
-            <span className="cnt">{counts[f.statut] ?? 0}</span>
-          </button>
-        ))}
-      </div>
-
-      {loading && items.length === 0 ? (
-        <div className="dossier-empty" style={{ marginTop: 16 }}>
-          Chargement…
-        </div>
-      ) : items.length === 0 ? (
-        <div className="dossier-empty" style={{ marginTop: 16 }}>
-          Aucun message ne correspond à ce filtre.
-        </div>
-      ) : (
-        <div className="contact-inbox">
-          {items.map((m) => (
-            <div
-              key={m.id}
-              className={`bo-card contact-msg${m.statut === 'nouveau' ? ' new' : ''}`}
-            >
-              <div className="contact-msg-head">
-                <div style={{ minWidth: 0 }}>
-                  <div className="bo-card-title">{m.nom}</div>
-                  {m.sujet && <div className="contact-msg-subject">{m.sujet}</div>}
-                </div>
-                <select
-                  value={m.statut}
-                  onChange={(e) =>
-                    void handleStatutChange(m.id, e.target.value as ContactMessageStatut)
-                  }
-                >
-                  {(Object.keys(STATUT_LABELS) as ContactMessageStatut[]).map((key) => (
-                    <option key={key} value={key}>
-                      {STATUT_LABELS[key]}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <p className="contact-msg-body">{m.message}</p>
-              <div className="contact-msg-meta">
-                {m.email && <a href={`mailto:${m.email}`}>✉ {m.email}</a>}
-                {m.telephone && (
-                  <a href={whatsappLink(m.telephone)} target="_blank" rel="noopener noreferrer">
-                    ✆ {formatWhatsapp(m.telephone)}
-                  </a>
-                )}
-                <span className="hint">{formatDateTime(m.createdAt)}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div className="panel" style={{ marginTop: 28 }}>
-        <h3>
-          <span className="icon-chip">
-            <Settings2 />
-          </span>
-          Coordonnées affichées sur le site
-        </h3>
-        <div className="sub">
-          Mises à jour ici, elles changent partout : page Contact, pied de page, page
-          Non-affiliation et page de maintenance.
-        </div>
-        {settingsLoaded ? (
-          <>
-            <div className="row2">
-              <div className="field">
-                <label htmlFor="bo-contact-email">E-mail de contact</label>
-                <input
-                  id="bo-contact-email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="bo-contact-wa">Numéro WhatsApp</label>
-                <CountryPhoneInput id="bo-contact-wa" value={whatsapp} onChange={setWhatsapp} />
-              </div>
-            </div>
-            {settingsMsg && (
-              <p
-                className={settingsMsg.ok ? 'hint' : 'err-msg'}
-                style={{
-                  marginBottom: 10,
-                  ...(settingsMsg.ok ? { color: 'var(--prod-success)' } : {}),
-                }}
-              >
-                {settingsMsg.text}
-              </p>
-            )}
-            <button
-              type="button"
-              className="btn btn-primary btn-sm"
-              disabled={saving || !email.trim()}
-              onClick={() => void saveSettings()}
-            >
-              {saving ? 'Enregistrement…' : 'Enregistrer et propager'}
-            </button>
-          </>
-        ) : (
-          <div className="hint">Chargement…</div>
+        {tab === 'messages' && (
+          <div className="bo-head-actions">
+            <DateRangeFilter value={period} onChange={setPeriod} />
+          </div>
         )}
       </div>
+
+      <div className="bo-tabs" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === 'messages'}
+          className={tab === 'messages' ? 'on' : ''}
+          onClick={() => setTab('messages')}
+        >
+          Messages ({allItems.length})
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === 'coordonnees'}
+          className={tab === 'coordonnees' ? 'on' : ''}
+          onClick={() => setTab('coordonnees')}
+        >
+          Coordonnées du site
+        </button>
+      </div>
+
+      {tab === 'messages' && (
+        <>
+          <div className="stat-grid">
+            <StatCard
+              label="Messages reçus"
+              value={v(counts.all)}
+              icon={Inbox}
+              caption={DATE_RANGE_LABELS[period]}
+              featured
+            />
+            <StatCard
+              label="Nouveaux"
+              value={v(counts.nouveau)}
+              icon={MailPlus}
+              chip="gold"
+              caption="En attente de lecture"
+            />
+            <StatCard
+              label="Lus"
+              value={v(counts.lu)}
+              icon={Eye}
+              chip="violet"
+              caption="Lus, pas encore traités"
+            />
+            <StatCard
+              label="Traités"
+              value={v(counts.traite)}
+              icon={CheckCheck}
+              chip="success"
+              caption="Réponse apportée"
+            />
+          </div>
+
+          <div style={{ display: 'flex', gap: 10, marginTop: 22, flexWrap: 'wrap' }}>
+            <input
+              type="search"
+              placeholder="Rechercher par nom, e-mail, sujet ou contenu…"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              style={{ flex: 1, minWidth: 220 }}
+            />
+          </div>
+
+          <div className="dossier-filters" style={{ marginTop: 14 }}>
+            {STATUT_FILTERS.map((f) => (
+              <button
+                key={f.statut}
+                type="button"
+                className={`df-chip${statut === f.statut ? ' on' : ''}`}
+                onClick={() => setStatut(f.statut)}
+              >
+                {f.label}
+                <span className="cnt">{counts[f.statut] ?? 0}</span>
+              </button>
+            ))}
+          </div>
+
+          {loading && items.length === 0 ? (
+            <div className="dossier-empty" style={{ marginTop: 16 }}>
+              Chargement…
+            </div>
+          ) : items.length === 0 ? (
+            <div className="dossier-empty" style={{ marginTop: 16 }}>
+              Aucun message ne correspond à ce filtre.
+            </div>
+          ) : (
+            <div className="contact-inbox">
+              {items.map((m) => (
+                <div
+                  key={m.id}
+                  className={`bo-card contact-msg${m.statut === 'nouveau' ? ' new' : ''}`}
+                >
+                  <div className="contact-msg-head">
+                    <div style={{ minWidth: 0 }}>
+                      <div className="bo-card-title">{m.nom}</div>
+                      {m.sujet && <div className="contact-msg-subject">{m.sujet}</div>}
+                    </div>
+                    <select
+                      value={m.statut}
+                      onChange={(e) =>
+                        void handleStatutChange(m.id, e.target.value as ContactMessageStatut)
+                      }
+                    >
+                      {(Object.keys(STATUT_LABELS) as ContactMessageStatut[]).map((key) => (
+                        <option key={key} value={key}>
+                          {STATUT_LABELS[key]}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <p className="contact-msg-body">{m.message}</p>
+                  <div className="contact-msg-meta">
+                    {m.email && <a href={`mailto:${m.email}`}>✉ {m.email}</a>}
+                    {m.telephone && (
+                      <a href={whatsappLink(m.telephone)} target="_blank" rel="noopener noreferrer">
+                        ✆ {formatWhatsapp(m.telephone)}
+                      </a>
+                    )}
+                    <span className="hint">{formatDateTime(m.createdAt)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {tab === 'coordonnees' && (
+        <div className="panel">
+          <h3>
+            <span className="icon-chip">
+              <Settings2 />
+            </span>
+            Coordonnées affichées sur le site
+          </h3>
+          <div className="sub">
+            Mises à jour ici, elles changent partout : page Contact, pied de page, page
+            Non-affiliation et page de maintenance.
+          </div>
+          {settingsLoaded ? (
+            <>
+              <div className="row2">
+                <div className="field">
+                  <label htmlFor="bo-contact-email">E-mail de contact</label>
+                  <input
+                    id="bo-contact-email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="bo-contact-wa">Numéro WhatsApp</label>
+                  <CountryPhoneInput id="bo-contact-wa" value={whatsapp} onChange={setWhatsapp} />
+                </div>
+              </div>
+              {settingsMsg && (
+                <p
+                  className={settingsMsg.ok ? 'hint' : 'err-msg'}
+                  style={{
+                    marginBottom: 10,
+                    ...(settingsMsg.ok ? { color: 'var(--prod-success)' } : {}),
+                  }}
+                >
+                  {settingsMsg.text}
+                </p>
+              )}
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                disabled={saving || !email.trim()}
+                onClick={() => void saveSettings()}
+              >
+                {saving ? 'Enregistrement…' : 'Enregistrer et propager'}
+              </button>
+            </>
+          ) : (
+            <div className="hint">Chargement…</div>
+          )}
+        </div>
+      )}
     </>
   );
 }

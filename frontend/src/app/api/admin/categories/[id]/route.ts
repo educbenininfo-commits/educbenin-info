@@ -14,6 +14,7 @@ import { requireModulePermission } from '@/lib/server/middleware/require-module-
 import { enforceAdminRateLimit } from '@/lib/server/middleware/rate-limit-by-userid';
 import { prisma } from '@/lib/server/prisma';
 import { logAdminAction } from '@/lib/server/admin/audit';
+import { revalidatePublicContent } from '@/lib/server/public-cache';
 
 function definedOnly<T extends object>(obj: T): T {
   const out: Partial<T> = {};
@@ -66,6 +67,7 @@ export async function PATCH(
     targetId: id,
     metadata: parsed.data,
   });
+  revalidatePublicContent();
 
   return NextResponse.json({ categorie });
 }

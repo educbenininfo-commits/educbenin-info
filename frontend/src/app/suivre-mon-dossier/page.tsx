@@ -8,6 +8,11 @@ import type { Metadata } from 'next';
 import { PublicNav } from '@/components/public/PublicNav';
 import { PublicBottomNav } from '@/components/public/PublicBottomNav';
 import { TrackingDemo } from '@/components/suivi/TrackingDemo';
+import { PublicFooter } from '@/components/public/PublicFooter';
+
+// Dynamic like every page carrying PublicFooter (it reads écoles + contact
+// details, served from the public-content cache — lib/server/public-cache.ts).
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Suivre mon dossier',
@@ -55,6 +60,8 @@ export default function SuiviPage() {
       <div className="pw content-pad">
         <TrackingDemo />
       </div>
+
+      <PublicFooter />
     </div>
   );
 }

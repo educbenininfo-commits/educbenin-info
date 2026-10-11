@@ -7,6 +7,7 @@
 // redéploiement (même principe que /ecoles, /accompagnement).
 export const dynamic = 'force-dynamic';
 
+import { cachedListEcolesForGrid, cachedGetContactSettings } from '@/lib/server/public-cache';
 import Link from 'next/link';
 import { ArrowRight, BadgeCheck, BellRing, FileCheck2, GraduationCap } from 'lucide-react';
 import { PublicNav } from '@/components/public/PublicNav';
@@ -14,8 +15,6 @@ import { PublicBottomNav } from '@/components/public/PublicBottomNav';
 import { HowItWorksSection } from '@/components/public/HowItWorksSection';
 import { SuggestionForm } from '@/components/public/SuggestionForm';
 import { EducBeninLogo } from '@/components/theme/EducBeninLogo';
-import { listEcolesForGrid } from '@/lib/server/schools/queries';
-import { getContactSettings } from '@/lib/server/site-settings';
 import { ecoleSlug, ecoleBadge, ecoleDescription, ecoleHighlightPill } from '@/lib/ecole-display';
 import { formatWhatsapp, whatsappLink } from '@/lib/contact-display';
 
@@ -42,7 +41,10 @@ const ORGANIZATION_JSON_LD = {
 };
 
 export default async function Home() {
-  const [ecoles, contact] = await Promise.all([listEcolesForGrid(), getContactSettings()]);
+  const [ecoles, contact] = await Promise.all([
+    cachedListEcolesForGrid(),
+    cachedGetContactSettings(),
+  ]);
 
   return (
     <div className="prod">

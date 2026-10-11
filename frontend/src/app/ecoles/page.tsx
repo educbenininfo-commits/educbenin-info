@@ -5,6 +5,7 @@
 // ajoute une école doit apparaître ici sans redéploiement.
 export const dynamic = 'force-dynamic';
 
+import { cachedListEcolesForGrid } from '@/lib/server/public-cache';
 import { HeroPanel } from '@/components/public/HeroPanel';
 import { BellRing, GraduationCap, School } from 'lucide-react';
 import type { Metadata } from 'next';
@@ -13,7 +14,6 @@ import { PublicNav } from '@/components/public/PublicNav';
 import { PublicBottomNav } from '@/components/public/PublicBottomNav';
 import { DisclaimerBar } from '@/components/public/DisclaimerBar';
 import { PublicFooter } from '@/components/public/PublicFooter';
-import { listEcolesForGrid } from '@/lib/server/schools/queries';
 import { ecoleSlug, ecoleBadge, ecoleDescription, ecoleHighlightPill } from '@/lib/ecole-display';
 
 export const metadata: Metadata = {
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 };
 
 export default async function EcolesPage() {
-  const ecoles = await listEcolesForGrid();
+  const ecoles = await cachedListEcolesForGrid();
 
   return (
     <div className="prod">

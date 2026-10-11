@@ -5,6 +5,7 @@ import { ToastProvider } from '@/contexts/ToastContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { InstallPrompt } from '@/components/pwa/InstallPrompt';
 import { PageViewTracker } from '@/components/PageViewTracker';
+import { ServiceWorkerRegister } from '@/components/pwa/ServiceWorkerRegister';
 import { THEME_STORAGE_KEY } from '@/lib/theme';
 import { PUBLIC_NAV_INIT_SCRIPT } from '@/lib/public-nav-mode';
 
@@ -110,6 +111,7 @@ export default function RootLayout({
         </ToastProvider>
         <InstallPrompt />
         <PageViewTracker />
+        <ServiceWorkerRegister />
       </body>
     </html>
   );

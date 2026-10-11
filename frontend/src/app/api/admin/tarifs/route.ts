@@ -14,6 +14,7 @@ import { requireModulePermission } from '@/lib/server/middleware/require-module-
 import { enforceAdminRateLimit } from '@/lib/server/middleware/rate-limit-by-userid';
 import { prisma } from '@/lib/server/prisma';
 import { logAdminAction } from '@/lib/server/admin/audit';
+import { revalidatePublicContent } from '@/lib/server/public-cache';
 
 export async function GET(): Promise<NextResponse> {
   const auth = await requireModulePermission(null, 'tarifs', 'read');
@@ -162,6 +163,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     targetId: bareme.id,
     metadata: { mode, montants, montantUnique, regleSpecialitesAdditionnelles },
   });
+  revalidatePublicContent();
 
   return NextResponse.json({ id: bareme.id }, { status: 201 });
 }

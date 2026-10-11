@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState, useCallback, type React
 import { useRouter } from 'next/navigation';
 import { api, ApiError, clearCsrfToken, storeCsrfToken } from '@/lib/api';
 import { invalidateCachePrefix } from '@/lib/useApi';
+import { clearOffline } from '@/lib/offline-cache';
 import { COOKIE_PREFIX } from '@/lib/constants';
 
 export interface User {
@@ -82,6 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     clearCsrfToken();
     invalidateCachePrefix('/api/');
+    clearOffline();
     setUser(null);
     setLoggingOut(false);
   }, []);

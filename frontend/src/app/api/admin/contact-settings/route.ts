@@ -12,6 +12,7 @@ import { requireAdmin } from '@/lib/server/middleware';
 import { enforceAdminRateLimit } from '@/lib/server/middleware/rate-limit-by-userid';
 import { prisma } from '@/lib/server/prisma';
 import { logAdminAction } from '@/lib/server/admin/audit';
+import { revalidatePublicContent } from '@/lib/server/public-cache';
 import { getContactSettings, SITE_SETTINGS_ID } from '@/lib/server/site-settings';
 
 export async function GET(): Promise<NextResponse> {
@@ -68,6 +69,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
     targetId: SITE_SETTINGS_ID,
     metadata: { previous, next: { email, whatsapp } },
   });
+  revalidatePublicContent();
 
   return NextResponse.json({ settings: { email, whatsapp } });
 }

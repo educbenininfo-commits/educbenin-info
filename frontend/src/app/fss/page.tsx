@@ -4,6 +4,7 @@
 // force-dynamic : catégories/filières/tarifs viennent du back-office.
 export const dynamic = 'force-dynamic';
 
+import { cachedGetEcoleBySlug } from '@/lib/server/public-cache';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -16,7 +17,6 @@ import { HeroPanel } from '@/components/public/HeroPanel';
 import { BellRing, GraduationCap, School, Stethoscope } from 'lucide-react';
 import { HowItWorksSection } from '@/components/public/HowItWorksSection';
 import { FiliereCardGrid } from '@/components/public/FiliereCardGrid';
-import { getEcoleBySlug } from '@/lib/server/schools/queries';
 import {
   CATEGORIE_FSS_MEDECINE_PHARMACIE_ID,
   CATEGORIE_FSS_LICENCE_ID,
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
 };
 
 export default async function EcoleFssPage() {
-  const ecole = await getEcoleBySlug('fss');
+  const ecole = await cachedGetEcoleBySlug('fss');
   if (!ecole) notFound();
 
   const medecinePharmacie = ecole.categories.find(

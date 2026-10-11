@@ -25,6 +25,7 @@ import { ExternalLink, LogOut, Menu, Search } from 'lucide-react';
 import { useBoNavMode } from '@/lib/bo-nav-mode';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchMaintenanceState } from '@/lib/admin-maintenance-api';
+import { clearOffline, readOffline, writeOffline } from '@/lib/offline-cache';
 
 interface AdminMe {
   admin: { id: string; email: string; role: 'ADMIN' | 'SUPERADMIN' };
@@ -106,15 +107,27 @@ export function AdminLayoutClient({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
+    // Installed-app instant paint: open straight onto the shell with the
+    // identity kept from the last session, then confirm it with the server.
+    // A refused session wipes the device copy and goes to /connexion; a
+    // network failure keeps the cached shell (offline) when there is one.
+    const cachedAdmin = readOffline<AdminMe['admin']>('admin-me');
+    if (cachedAdmin) {
+      setAdmin(cachedAdmin);
+      setChecked(true);
+    }
     void (async () => {
       try {
         const res = await api<AdminMe>('/api/admin/me');
-        if (!cancelled) setAdmin(res.admin);
+        if (!cancelled) {
+          setAdmin(res.admin);
+          writeOffline('admin-me', res.admin);
+        }
       } catch (err) {
         if (!cancelled) {
-          if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
-            router.replace('/connexion');
-          } else {
+          const refused = err instanceof ApiError && (err.status === 401 || err.status === 403);
+          if (refused || !cachedAdmin) {
+            clearOffline();
             router.replace('/connexion');
           }
         }

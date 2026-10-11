@@ -1,7 +1,6 @@
+import { cachedListEcolesForGrid, cachedGetContactSettings } from '@/lib/server/public-cache';
 import Link from 'next/link';
 import { EducBeninLogo } from '@/components/theme/EducBeninLogo';
-import { listEcolesForGrid } from '@/lib/server/schools/queries';
-import { getContactSettings } from '@/lib/server/site-settings';
 import { ecoleSlug } from '@/lib/ecole-display';
 import { formatWhatsapp, whatsappLink } from '@/lib/contact-display';
 
@@ -23,7 +22,10 @@ import { formatWhatsapp, whatsappLink } from '@/lib/contact-display';
 //     (dynamic — never hardcoded to "the other one").
 // Both variants end with a Contact column fed by the back-office settings.
 export async function PublicFooter(props: { currentEcoleNom?: string } = {}) {
-  const [ecoles, contact] = await Promise.all([listEcolesForGrid(), getContactSettings()]);
+  const [ecoles, contact] = await Promise.all([
+    cachedListEcolesForGrid(),
+    cachedGetContactSettings(),
+  ]);
   const { currentEcoleNom } = props;
 
   const brandBlurb = currentEcoleNom

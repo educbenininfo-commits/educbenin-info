@@ -14,6 +14,7 @@ import { requireModulePermission } from '@/lib/server/middleware/require-module-
 import { enforceAdminRateLimit } from '@/lib/server/middleware/rate-limit-by-userid';
 import { prisma } from '@/lib/server/prisma';
 import { logAdminAction } from '@/lib/server/admin/audit';
+import { revalidatePublicContent } from '@/lib/server/public-cache';
 
 export async function GET(): Promise<NextResponse> {
   const auth = await requireModulePermission(null, 'specialites', 'read');
@@ -84,6 +85,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     targetId: ecole.id,
     metadata: { nom: ecole.nom },
   });
+  revalidatePublicContent();
 
   return NextResponse.json({ ecole }, { status: 201 });
 }

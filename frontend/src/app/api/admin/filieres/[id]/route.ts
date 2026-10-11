@@ -14,6 +14,7 @@ import { enforceAdminRateLimit } from '@/lib/server/middleware/rate-limit-by-use
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/server/prisma';
 import { logAdminAction } from '@/lib/server/admin/audit';
+import { revalidatePublicContent } from '@/lib/server/public-cache';
 
 // Strips `undefined` entries entirely (not just typed as optional) — a plain
 // spread of the Zod .optional() result would otherwise overwrite an existing
@@ -74,6 +75,7 @@ export async function PATCH(
     targetId: id,
     metadata: parsed.data,
   });
+  revalidatePublicContent();
 
   return NextResponse.json({ filiere });
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { api } from './api';
+import { isOfflineCacheable, readOffline, writeOffline } from './offline-cache';
 
 // In-memory stale-while-revalidate cache.
 const cache = new Map<string, { data: unknown; ts: number }>();
@@ -56,6 +57,7 @@ export function useApi<T>(path: string, options: UseApiOptions = {}): UseApiResu
         if (mountedRef.current && fetchIdRef.current === currentFetchId) {
           setData(result);
           cache.set(pathRef.current, { data: result, ts: Date.now() });
+          if (isOfflineCacheable(pathRef.current)) writeOffline(pathRef.current, result);
         }
       } catch (err) {
         if (mountedRef.current && fetchIdRef.current === currentFetchId) {
@@ -82,7 +84,17 @@ export function useApi<T>(path: string, options: UseApiOptions = {}): UseApiResu
         void fetchData(false);
       }
     } else {
-      void fetchData(true);
+      // Installed-app instant paint: show the copy kept on the device from
+      // the last visit (lib/offline-cache.ts), then refresh it silently.
+      const offline = isOfflineCacheable(path) ? readOffline<T>(path) : null;
+      if (offline !== null) {
+        cache.set(path, { data: offline, ts: 0 });
+        setData(offline);
+        setLoading(false);
+        void fetchData(false);
+      } else {
+        void fetchData(true);
+      }
     }
     return () => {
       mountedRef.current = false;

@@ -6,12 +6,12 @@
 // list, per the École & WhatsApp pièces-à-fournir customization request.
 export const dynamic = 'force-dynamic';
 
+import { cachedGetCategorieById } from '@/lib/server/public-cache';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { PublicNav } from '@/components/public/PublicNav';
 import { PublicBottomNav } from '@/components/public/PublicBottomNav';
 import { DemandForm } from '@/components/accompagnement/DemandForm';
-import { getCategorieById } from '@/lib/server/schools/queries';
 import { CATEGORIE_FSS_DES_ID } from '@/lib/server/schools/reference-ids';
 
 export const metadata: Metadata = {
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 };
 
 export default async function DemandeDesPage() {
-  const categorie = await getCategorieById(CATEGORIE_FSS_DES_ID);
+  const categorie = await cachedGetCategorieById(CATEGORIE_FSS_DES_ID);
   if (!categorie) notFound();
 
   return (

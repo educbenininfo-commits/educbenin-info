@@ -7,11 +7,11 @@
 // art. 2 et 3) — n'invente aucune nouvelle affirmation juridique.
 export const dynamic = 'force-dynamic';
 
+import { cachedGetContactSettings } from '@/lib/server/public-cache';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { PublicNav } from '@/components/public/PublicNav';
 import { PublicBottomNav } from '@/components/public/PublicBottomNav';
-import { getContactSettings } from '@/lib/server/site-settings';
 
 export const metadata: Metadata = {
   title: 'Non-affiliation',
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 };
 
 export default async function NonAffiliationPage() {
-  const contact = await getContactSettings();
+  const contact = await cachedGetContactSettings();
   return (
     <div className="prod">
       <PublicNav active="non-affiliation" />

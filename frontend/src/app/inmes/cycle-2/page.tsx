@@ -1,10 +1,10 @@
 // Écran "Dépôt du dossier — Cycle II (Master SIO)" — 09-demande-inmes-c2.md.
 export const dynamic = 'force-dynamic';
 
+import { cachedGetCategorieById } from '@/lib/server/public-cache';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { DemandFormPage } from '@/components/demande/DemandFormPage';
-import { getCategorieById } from '@/lib/server/schools/queries';
 import { CATEGORIE_INMES_CYCLE2_ID } from '@/lib/server/schools/reference-ids';
 
 export const metadata: Metadata = {
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 };
 
 export default async function DemandeInmesCycle2Page() {
-  const categorie = await getCategorieById(CATEGORIE_INMES_CYCLE2_ID);
+  const categorie = await cachedGetCategorieById(CATEGORIE_INMES_CYCLE2_ID);
   if (!categorie) notFound();
 
   return (

@@ -6,6 +6,7 @@
 // back-office.
 export const dynamic = 'force-dynamic';
 
+import { cachedListEcolesForGrid } from '@/lib/server/public-cache';
 import { HeroPanel } from '@/components/public/HeroPanel';
 import { FileCheck2, PenLine, ShieldCheck } from 'lucide-react';
 import type { Metadata } from 'next';
@@ -14,7 +15,6 @@ import { PublicNav } from '@/components/public/PublicNav';
 import { PublicBottomNav } from '@/components/public/PublicBottomNav';
 import { DisclaimerBar } from '@/components/public/DisclaimerBar';
 import { PublicFooter } from '@/components/public/PublicFooter';
-import { listEcolesForGrid } from '@/lib/server/schools/queries';
 import {
   CATEGORIE_FSS_MEDECINE_PHARMACIE_ID,
   CATEGORIE_FSS_LICENCE_ID,
@@ -45,7 +45,7 @@ const DEMAND_HREF: Record<string, string> = {
 };
 
 export default async function AccompagnementHubPage() {
-  const ecoles = await listEcolesForGrid();
+  const ecoles = await cachedListEcolesForGrid();
 
   return (
     <div className="prod">

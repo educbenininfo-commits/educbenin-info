@@ -3,6 +3,7 @@
 // visible ici sans redéploiement).
 export const dynamic = 'force-dynamic';
 
+import { cachedGetContactSettings } from '@/lib/server/public-cache';
 import { HeroPanel } from '@/components/public/HeroPanel';
 import { Clock, MessageCircle } from 'lucide-react';
 import type { Metadata } from 'next';
@@ -11,7 +12,6 @@ import { PublicBottomNav } from '@/components/public/PublicBottomNav';
 import { PublicFooter } from '@/components/public/PublicFooter';
 import { ContactForm } from '@/components/public/ContactForm';
 import { MailIcon, WhatsappIcon } from '@/components/public/ContactIcons';
-import { getContactSettings } from '@/lib/server/site-settings';
 import { formatWhatsapp, whatsappLink } from '@/lib/contact-display';
 
 export const metadata: Metadata = {
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ContactPage() {
-  const contact = await getContactSettings();
+  const contact = await cachedGetContactSettings();
 
   return (
     <div className="prod">

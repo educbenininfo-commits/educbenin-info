@@ -4,10 +4,10 @@
 // from anywhere; the URL bar keeps showing the page the visitor requested.
 export const dynamic = 'force-dynamic';
 
+import { cachedGetContactSettings } from '@/lib/server/public-cache';
 import type { Metadata } from 'next';
 import { EducBeninLogo } from '@/components/theme/EducBeninLogo';
 import { MailIcon, WhatsappIcon } from '@/components/public/ContactIcons';
-import { getContactSettings } from '@/lib/server/site-settings';
 import { formatWhatsapp, whatsappLink } from '@/lib/contact-display';
 
 export const metadata: Metadata = {
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 };
 
 export default async function MaintenancePage() {
-  const contact = await getContactSettings();
+  const contact = await cachedGetContactSettings();
   return (
     <main className="maint-page">
       <div className="maint-card">
