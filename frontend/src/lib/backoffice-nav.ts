@@ -23,20 +23,17 @@ export interface BackofficeNavItem {
   icon: LucideIcon;
   label: string;
   /** Sidebar group heading; items without one sit above the first group. */
-  section?: 'Analyse' | 'Dossiers' | 'Échanges' | 'Contenu' | 'Réglages';
+  section?: 'Dossiers' | 'Messages' | 'Pilotage' | 'Contenu du site' | 'Administration';
   /** Hidden from ADMIN — only SUPERADMIN sees this item (e.g. Connexions). */
   superadminOnly?: boolean;
 }
 
+// Ordered by how often the team uses each screen: daily case work first
+// (dossiers, then incoming messages), then periodic monitoring
+// (statistiques), then rarely-edited site content, and account/team
+// administration last.
 export const BACKOFFICE_NAV: BackofficeNavItem[] = [
   { key: 'dashboard', href: '/admin/tableau-de-bord', icon: LayoutGrid, label: 'Tableau de bord' },
-  {
-    key: 'statistiques',
-    href: '/admin/statistiques',
-    icon: BarChart3,
-    label: 'Statistiques',
-    section: 'Analyse',
-  },
   {
     key: 'dossiers',
     href: '/admin/dossiers',
@@ -52,40 +49,53 @@ export const BACKOFFICE_NAV: BackofficeNavItem[] = [
     section: 'Dossiers',
   },
   {
-    key: 'suggestions',
-    href: '/admin/suggestions',
-    icon: Lightbulb,
-    label: 'Suggestions',
-    section: 'Échanges',
-  },
-  {
     key: 'contact',
     href: '/admin/contact',
     icon: Inbox,
     label: 'Contact & messages',
-    section: 'Échanges',
+    section: 'Messages',
+  },
+  {
+    key: 'suggestions',
+    href: '/admin/suggestions',
+    icon: Lightbulb,
+    label: 'Suggestions',
+    section: 'Messages',
+  },
+  {
+    key: 'statistiques',
+    href: '/admin/statistiques',
+    icon: BarChart3,
+    label: 'Statistiques',
+    section: 'Pilotage',
   },
   {
     key: 'ecole-whatsapp',
     href: '/admin/ecole-whatsapp',
     icon: GraduationCap,
     label: 'École & WhatsApp',
-    section: 'Contenu',
+    section: 'Contenu du site',
   },
-  { key: 'tarifs', href: '/admin/tarifs', icon: Banknote, label: 'Tarifs', section: 'Contenu' },
+  {
+    key: 'tarifs',
+    href: '/admin/tarifs',
+    icon: Banknote,
+    label: 'Tarifs',
+    section: 'Contenu du site',
+  },
   {
     key: 'comptes',
     href: '/admin/comptes-admin',
     icon: Users,
     label: 'Comptes admin & rôles',
-    section: 'Réglages',
+    section: 'Administration',
   },
   {
     key: 'connexions',
     href: '/admin/connexions',
     icon: Activity,
     label: 'Connexions',
-    section: 'Réglages',
+    section: 'Administration',
     superadminOnly: true,
   },
   {
@@ -93,6 +103,6 @@ export const BACKOFFICE_NAV: BackofficeNavItem[] = [
     href: '/admin/parametres',
     icon: Settings,
     label: 'Paramètres',
-    section: 'Réglages',
+    section: 'Administration',
   },
 ];

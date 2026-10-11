@@ -29,7 +29,7 @@ const BOTTOM_ITEMS_AFTER_MORE = [
   { key: 'parametres', href: '/admin/parametres', icon: Settings, label: 'Réglages' },
 ];
 
-const SHEET_GROUP_1_KEYS = ['statistiques', 'suggestions', 'contact'];
+const SHEET_GROUP_1_KEYS = ['contact', 'suggestions', 'statistiques'];
 const SHEET_GROUP_2_KEYS = ['ecole-whatsapp', 'tarifs', 'comptes'];
 
 export function BackofficeBottomNav() {
