@@ -11,7 +11,10 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import {
+  Globe,
   KeyRound,
+  PanelTopClose,
+  PanelTopOpen,
   LaptopMinimal,
   LogOut,
   MonitorSmartphone,
@@ -26,6 +29,7 @@ import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBackofficeAdmin } from '@/contexts/BackofficeAdminContext';
 import { setBoNavMode, useBoNavMode } from '@/lib/bo-nav-mode';
+import type { PublicNavMode } from '@/lib/public-nav-mode';
 
 interface SessionRow {
   id: string;
@@ -44,6 +48,28 @@ interface Profile {
 }
 
 const SESSIONS_PREVIEW = 5;
+
+const PUBLIC_NAV_CHOICES: { mode: PublicNavMode; label: string; desc: string; icon: LucideIcon }[] =
+  [
+    {
+      mode: 'bottom',
+      label: 'En bas',
+      desc: 'Barre flottante en bas de l’écran, avec un bouton Menu.',
+      icon: PanelBottom,
+    },
+    {
+      mode: 'top-left',
+      label: 'En haut à gauche',
+      desc: 'Bouton ☰ à gauche du logo, menu qui s’ouvre depuis la gauche.',
+      icon: PanelTopOpen,
+    },
+    {
+      mode: 'top-right',
+      label: 'En haut à droite',
+      desc: 'Bouton ☰ à droite, menu qui s’ouvre depuis la droite.',
+      icon: PanelTopClose,
+    },
+  ];
 
 const ROLE_LABELS: Record<string, string> = {
   SUPERADMIN: 'Super-administrateur',
@@ -119,6 +145,10 @@ export default function ParametresPage() {
   const [pwSaving, setPwSaving] = useState(false);
   const [pwMsg, setPwMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
+  const [publicNav, setPublicNav] = useState<PublicNavMode | null>(null);
+  const [savingPublicNav, setSavingPublicNav] = useState(false);
+  const [publicNavMsg, setPublicNavMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
   const [sessions, setSessions] = useState<SessionRow[] | null>(null);
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [sessionsError, setSessionsError] = useState<string | null>(null);
@@ -139,6 +169,9 @@ export default function ParametresPage() {
 
   useEffect(() => {
     void loadSessions();
+    void api<{ settings: { publicNavMode: PublicNavMode } }>('/api/admin/site-display')
+      .then(({ settings }) => setPublicNav(settings.publicNavMode))
+      .catch(() => {});
     void api<{ profile: Profile }>('/api/admin/profile')
       .then(({ profile: p }) => {
         setProfile(p);
@@ -150,6 +183,23 @@ export default function ParametresPage() {
   async function handleLogout() {
     await logout();
     router.push('/connexion');
+  }
+
+  async function savePublicNav(next: PublicNavMode) {
+    if (next === publicNav) return;
+    const prev = publicNav;
+    setPublicNav(next);
+    setPublicNavMsg(null);
+    setSavingPublicNav(true);
+    try {
+      await api('/api/admin/site-display', { method: 'PATCH', body: { publicNavMode: next } });
+      setPublicNavMsg({ ok: true, text: 'Enregistré — appliqué au site d’ici une minute.' });
+    } catch {
+      setPublicNav(prev);
+      setPublicNavMsg({ ok: false, text: 'Enregistrement impossible. Réessayez.' });
+    } finally {
+      setSavingPublicNav(false);
+    }
   }
 
   async function saveName(e: FormEvent) {
@@ -449,7 +499,7 @@ export default function ParametresPage() {
             <span className="icon-chip violet">
               <PanelLeft />
             </span>
-            Affichage
+            Menu du back-office
           </h3>
           <div className="sub">
             Navigation sur téléphone et petite tablette — mémorisée sur cet appareil.
@@ -478,6 +528,47 @@ export default function ParametresPage() {
               <span>Bouton ☰ en haut à gauche qui ouvre le menu complet sur le côté.</span>
             </button>
           </div>
+        </div>
+
+        <div className="panel">
+          <h3>
+            <span className="icon-chip">
+              <Globe />
+            </span>
+            Menu du site public
+          </h3>
+          <div className="sub">
+            Position du menu sur téléphone pour <strong>tous les visiteurs</strong> du site. Sur
+            ordinateur, le menu reste en haut.
+          </div>
+          <div className="choice-grid three" role="radiogroup" aria-label="Menu du site public">
+            {PUBLIC_NAV_CHOICES.map((c) => (
+              <button
+                key={c.mode}
+                type="button"
+                role="radio"
+                aria-checked={publicNav === c.mode}
+                className={`choice-card${publicNav === c.mode ? ' on' : ''}`}
+                disabled={publicNav === null || savingPublicNav}
+                onClick={() => void savePublicNav(c.mode)}
+              >
+                <c.icon size={22} />
+                <strong>{c.label}</strong>
+                <span>{c.desc}</span>
+              </button>
+            ))}
+          </div>
+          {publicNavMsg && (
+            <p
+              className={publicNavMsg.ok ? 'hint' : 'err-msg'}
+              style={{
+                marginBottom: 0,
+                ...(publicNavMsg.ok ? { color: 'var(--prod-success)' } : {}),
+              }}
+            >
+              {publicNavMsg.text}
+            </p>
+          )}
         </div>
 
         <div className="panel">

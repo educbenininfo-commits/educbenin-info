@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useId, useState } from 'react';
+import { parsePhoneNumberFromString } from 'libphonenumber-js';
+import { CountryPhoneInput } from '@/components/forms/CountryPhoneInput';
 import { createSuggestion, SuggestionApiError } from '@/lib/suggestions-public-api';
 
 // "Suggérer" form (site copy always says "Suggérer"/"Suggestions", never
@@ -24,7 +26,15 @@ export function SuggestionForm({
   id?: string;
 }) {
   const [nom, setNom] = useState('');
-  const [contact, setContact] = useState('');
+  const fieldId = useId();
+  const [contactMode, setContactMode] = useState<'whatsapp' | 'email'>('whatsapp');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+
+  function switchMode(next: 'whatsapp' | 'email') {
+    setContactMode(next);
+    setError(null);
+  }
   const [recherche, setRecherche] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -32,16 +42,31 @@ export function SuggestionForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!nom.trim() || !contact.trim() || !recherche.trim()) {
+    if (!nom.trim() || !recherche.trim()) {
       setError('Merci de remplir les 3 champs.');
       return;
+    }
+    let contact: string;
+    if (contactMode === 'whatsapp') {
+      const parsed = parsePhoneNumberFromString(phone);
+      if (!parsed?.isPossible()) {
+        setError('Numéro WhatsApp invalide pour le pays choisi.');
+        return;
+      }
+      contact = parsed.number;
+    } else {
+      contact = email.trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)) {
+        setError('Adresse e-mail invalide.');
+        return;
+      }
     }
     setError(null);
     setSubmitting(true);
     try {
       await createSuggestion({
         nom: nom.trim(),
-        contact: contact.trim(),
+        contact,
         recherche: recherche.trim(),
       });
       setSubmitted(true);
@@ -74,20 +99,48 @@ export function SuggestionForm({
         <h3>{title}</h3>
         <form onSubmit={handleSubmit} style={{ marginTop: 14, display: 'grid', gap: 14 }}>
           <div className="field">
-            <label>Nom</label>
+            <label htmlFor={`${fieldId}-nom`}>Nom</label>
             <input
+              id={`${fieldId}-nom`}
               placeholder="Votre nom complet"
               value={nom}
               onChange={(e) => setNom(e.target.value)}
             />
           </div>
           <div className="field">
-            <label>Contact (WhatsApp ou e-mail)</label>
-            <input
-              placeholder="+229 97 00 00 00"
-              value={contact}
-              onChange={(e) => setContact(e.target.value)}
-            />
+            <label htmlFor={`${fieldId}-contact`}>Contact</label>
+            <div className="lg-toggle contact-mode" role="radiogroup" aria-label="Type de contact">
+              <button
+                type="button"
+                role="radio"
+                aria-checked={contactMode === 'whatsapp'}
+                className={contactMode === 'whatsapp' ? 'on' : ''}
+                onClick={() => switchMode('whatsapp')}
+              >
+                WhatsApp
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={contactMode === 'email'}
+                className={contactMode === 'email' ? 'on' : ''}
+                onClick={() => switchMode('email')}
+              >
+                E-mail
+              </button>
+            </div>
+            {contactMode === 'whatsapp' ? (
+              <CountryPhoneInput id={`${fieldId}-contact`} value={phone} onChange={setPhone} />
+            ) : (
+              <input
+                id={`${fieldId}-contact`}
+                type="email"
+                autoComplete="email"
+                placeholder="vous@exemple.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            )}
           </div>
           <div className="field">
             <label>{rechercheLabel}</label>

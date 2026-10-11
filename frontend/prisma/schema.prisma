@@ -685,6 +685,10 @@ model SiteSettings {
   id              String   @id @default("site")
   contactEmail    String?
   contactWhatsapp String? // E.164, e.g. "+22967249837"
+  // Public site mobile menu: "bottom" (floating bottom bar), "top-left" or
+  // "top-right" (☰ button in the header opening a side drawer). See
+  // lib/public-nav-mode.ts.
+  publicNavMode   String   @default("bottom")
   updatedAt       DateTime @updatedAt
 }
 

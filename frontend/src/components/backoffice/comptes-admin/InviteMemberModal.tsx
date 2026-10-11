@@ -26,17 +26,19 @@ function defaultsFor(role: RoleChoice): ModulePermissions {
 
 export function InviteMemberModal({
   canInviteSuperadmin,
+  initialRole = 'ADMIN',
   onClose,
   onSent,
 }: {
   canInviteSuperadmin: boolean;
+  initialRole?: RoleChoice;
   onClose: () => void;
   onSent: () => void;
 }) {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
-  const [role, setRole] = useState<RoleChoice>('ADMIN');
-  const [perms, setPerms] = useState<ModulePermissions>(defaultsFor('ADMIN'));
+  const [role, setRole] = useState<RoleChoice>(initialRole);
+  const [perms, setPerms] = useState<ModulePermissions>(defaultsFor(initialRole));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

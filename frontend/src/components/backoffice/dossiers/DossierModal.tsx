@@ -18,6 +18,7 @@ import {
   type DossierDetail,
 } from '@/lib/dossiers-data';
 import { findCountry } from '@/lib/countries';
+import { CountryPhoneInput } from '@/components/forms/CountryPhoneInput';
 import { useBackofficeAdmin } from '@/contexts/BackofficeAdminContext';
 import {
   fetchDossierDetail,
@@ -693,9 +694,9 @@ export function DossierModal({
                 </div>
                 <div className="field">
                   <label>WhatsApp</label>
-                  <input
+                  <CountryPhoneInput
                     value={editDraft.whatsapp}
-                    onChange={(e) => setEditDraft({ ...editDraft, whatsapp: e.target.value })}
+                    onChange={(v) => setEditDraft({ ...editDraft, whatsapp: v })}
                   />
                 </div>
                 {dossier.authFormData && (
@@ -709,9 +710,9 @@ export function DossierModal({
                     </div>
                     <div className="field">
                       <label>Téléphone (formulaire d&rsquo;authentification)</label>
-                      <input
+                      <CountryPhoneInput
                         value={editDraft.authTel}
-                        onChange={(e) => setEditDraft({ ...editDraft, authTel: e.target.value })}
+                        onChange={(v) => setEditDraft({ ...editDraft, authTel: v })}
                       />
                     </div>
                   </div>

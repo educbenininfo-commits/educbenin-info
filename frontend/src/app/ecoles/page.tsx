@@ -5,6 +5,8 @@
 // ajoute une école doit apparaître ici sans redéploiement.
 export const dynamic = 'force-dynamic';
 
+import { HeroPanel } from '@/components/public/HeroPanel';
+import { BellRing, GraduationCap, School } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { PublicNav } from '@/components/public/PublicNav';
@@ -30,16 +32,36 @@ export default async function EcolesPage() {
       <PublicBottomNav active="ecole-toutes" />
       <DisclaimerBar />
 
-      <div className="page-head pw">
-        <div className="k">Établissements</div>
-        <h1>Toutes les écoles et facultés accompagnées</h1>
-        <p>
-          Parcourez les établissements disponibles sur Educ Bénin et ouvrez celui qui vous concerne
-          pour voir ses filières, ses pièces à fournir et son tarif. La plateforme s&rsquo;adresse
-          en priorité aux candidats venus de l&rsquo;étranger, qui n&rsquo;ont pas toujours les
-          bonnes informations ou ne savent pas comment s&rsquo;y prendre une fois qu&rsquo;ils les
-          ont.
-        </p>
+      <div className="page-head with-visual pw">
+        <div>
+          <div className="k">Établissements</div>
+          <h1>Toutes les écoles et facultés accompagnées</h1>
+          <p>
+            Parcourez les établissements disponibles sur Educ Bénin et ouvrez celui qui vous
+            concerne pour voir ses filières, ses pièces à fournir et son tarif. La plateforme
+            s&rsquo;adresse en priorité aux candidats venus de l&rsquo;étranger, qui n&rsquo;ont pas
+            toujours les bonnes informations ou ne savent pas comment s&rsquo;y prendre une fois
+            qu&rsquo;ils les ont.
+          </p>
+        </div>
+        <HeroPanel
+          icon={GraduationCap}
+          title="Établissements accompagnés"
+          subtitle={`${ecoles.length} école(s) — UAC`}
+          rows={ecoles.map((e) => ({
+            label: e.description ?? e.nom,
+            sub: e.categories.map((c) => c.libelle).join(' · '),
+            icon: School,
+          }))}
+          floats={[
+            {
+              icon: BellRing,
+              title: 'Suivi en ligne',
+              sub: 'Chaque étape, en direct',
+              tone: 'success',
+            },
+          ]}
+        />
       </div>
 
       <div className="pw content-pad">

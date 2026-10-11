@@ -21,14 +21,31 @@ export function BackofficeSidebar({
   const { role } = useBackofficeAdmin();
   const navItems = BACKOFFICE_NAV.filter((item) => !item.superadminOnly || role === 'SUPERADMIN');
 
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsedPref, setCollapsedPref] = useState(false);
+  // Phones only ever see the sidebar as a full-width drawer: the icon-only
+  // collapsed rail (and its toggle) is a tablet/desktop affordance.
+  const [isPhone, setIsPhone] = useState(false);
   useEffect(() => {
-    if (localStorage.getItem('bo-sidebar-collapsed') === '1') setCollapsed(true);
+    try {
+      if (localStorage.getItem('bo-sidebar-collapsed') === '1') setCollapsedPref(true);
+    } catch {
+      /* storage blocked */
+    }
+    const mq = window.matchMedia('(max-width: 760px)');
+    const sync = () => setIsPhone(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
   }, []);
+  const collapsed = collapsedPref && !isPhone;
 
   function toggle() {
-    setCollapsed(!collapsed);
-    localStorage.setItem('bo-sidebar-collapsed', !collapsed ? '1' : '0');
+    setCollapsedPref(!collapsedPref);
+    try {
+      localStorage.setItem('bo-sidebar-collapsed', !collapsedPref ? '1' : '0');
+    } catch {
+      /* storage blocked */
+    }
   }
 
   return (
@@ -60,15 +77,17 @@ export function BackofficeSidebar({
       </div>
 
       <div className="bo-side-scroll">
-        <button
-          onClick={toggle}
-          type="button"
-          className="bo-collapse-btn"
-          title={collapsed ? 'Déplier le menu' : 'Réduire le menu'}
-        >
-          {collapsed ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} />}
-          {!collapsed && <span>Réduire le menu</span>}
-        </button>
+        {!isPhone && (
+          <button
+            onClick={toggle}
+            type="button"
+            className="bo-collapse-btn"
+            title={collapsed ? 'Déplier le menu' : 'Réduire le menu'}
+          >
+            {collapsed ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} />}
+            {!collapsed && <span>Réduire le menu</span>}
+          </button>
+        )}
 
         <nav className="bo-nav">
           {navItems.map((item, i) => {

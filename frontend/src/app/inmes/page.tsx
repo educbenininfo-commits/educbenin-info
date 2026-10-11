@@ -11,6 +11,8 @@ import { PublicBottomNav } from '@/components/public/PublicBottomNav';
 import { DisclaimerBar } from '@/components/public/DisclaimerBar';
 import { PublicFooter } from '@/components/public/PublicFooter';
 import { SimpleHero } from '@/components/public/SimpleHero';
+import { HeroPanel } from '@/components/public/HeroPanel';
+import { BellRing, FileCheck2, GraduationCap, School } from 'lucide-react';
 import { SuggestionForm } from '@/components/public/SuggestionForm';
 import { getEcoleBySlug, type CategorieDetail } from '@/lib/server/schools/queries';
 import {
@@ -50,6 +52,35 @@ export default async function EcoleInmesPage() {
             II) ; le concours national d&rsquo;entrée du Cycle I, réservé aux candidats nationaux
             qui briguent la bourse d&rsquo;État, n&rsquo;entre pas dans notre accompagnement.
           </>
+        }
+        visual={
+          <HeroPanel
+            icon={School}
+            title={ecole.description ?? ecole.nom}
+            subtitle="Sciences Infirmières et Obstétricales"
+            rows={ecole.categories.map((c) => ({
+              label: c.libelle,
+              sub:
+                c.typeAdmission === 'dossier'
+                  ? 'Admission sur dépôt de dossier'
+                  : 'Composition propre à la filière',
+              icon: GraduationCap,
+            }))}
+            floats={[
+              {
+                icon: FileCheck2,
+                title: 'Dossier vérifié',
+                sub: 'Avant chaque dépôt',
+                tone: 'gold' as const,
+              },
+              {
+                icon: BellRing,
+                title: 'Suivi en ligne',
+                sub: 'Chaque étape, en direct',
+                tone: 'success' as const,
+              },
+            ]}
+          />
         }
       />
 

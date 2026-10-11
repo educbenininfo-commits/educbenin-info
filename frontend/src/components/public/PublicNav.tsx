@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { EducBeninLogo } from '@/components/theme/EducBeninLogo';
 import { EcoleNavDropdown } from '@/components/public/EcoleNavDropdown';
+import { PublicMenuButton } from '@/components/public/PublicMenuButton';
 
 // Desktop nav for public pages — single shared component, every public page
 // renders this (never a page-local copy) so the menu is identical
@@ -42,6 +43,7 @@ export function PublicNav({ active }: { active: string }) {
   return (
     <div className="nav-bleed">
       <div className="p-nav pw">
+        <PublicMenuButton side="left" />
         <Link href="/" className="p-logo">
           <EducBeninLogo height={32} />
         </Link>
@@ -68,6 +70,7 @@ export function PublicNav({ active }: { active: string }) {
           <Link href="/accompagnement" className="btn btn-primary">
             Faire ma demande
           </Link>
+          <PublicMenuButton side="right" />
         </div>
       </div>
     </div>

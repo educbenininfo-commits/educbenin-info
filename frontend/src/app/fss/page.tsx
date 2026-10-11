@@ -12,8 +12,10 @@ import { PublicBottomNav } from '@/components/public/PublicBottomNav';
 import { DisclaimerBar } from '@/components/public/DisclaimerBar';
 import { PublicFooter } from '@/components/public/PublicFooter';
 import { SimpleHero } from '@/components/public/SimpleHero';
+import { HeroPanel } from '@/components/public/HeroPanel';
+import { BellRing, GraduationCap, School, Stethoscope } from 'lucide-react';
 import { HowItWorksSection } from '@/components/public/HowItWorksSection';
-import { FiliereAccordionGrid } from '@/components/public/FiliereAccordionGrid';
+import { FiliereCardGrid } from '@/components/public/FiliereCardGrid';
 import { getEcoleBySlug } from '@/lib/server/schools/queries';
 import {
   CATEGORIE_FSS_MEDECINE_PHARMACIE_ID,
@@ -50,6 +52,39 @@ export default async function EcoleFssPage() {
         eyebrow={`${ecole.description ?? ecole.nom} · UAC`}
         title="Votre dossier FSS, sans faux pas administratif."
         lead="Educ Bénin accompagne les candidats de la FSS : rassemblement des pièces, authentification de diplôme (candidats étrangers), inscription en ligne et dépôt du dossier — avec un suivi clair à chaque étape."
+        visual={
+          <HeroPanel
+            icon={School}
+            title={ecole.description ?? ecole.nom}
+            subtitle={`${ecole.categories.length} catégories accompagnées`}
+            rows={ecole.categories.map((c) => ({
+              label: c.libelle,
+              sub:
+                c.typeAdmission === 'dossier'
+                  ? 'Admission sur dépôt de dossier'
+                  : 'Composition propre à la filière',
+              icon: GraduationCap,
+            }))}
+            floats={[
+              ...(des
+                ? [
+                    {
+                      icon: Stethoscope,
+                      title: `${des.filieres.length} spécialités D.E.S.`,
+                      sub: 'Dates et salles ci-dessous',
+                      tone: 'gold' as const,
+                    },
+                  ]
+                : []),
+              {
+                icon: BellRing,
+                title: 'Suivi en ligne',
+                sub: 'Chaque étape, en direct',
+                tone: 'success' as const,
+              },
+            ]}
+          />
+        }
       />
 
       <div className="section-bleed">
@@ -84,10 +119,9 @@ export default async function EcoleFssPage() {
           <div className="section pw">
             <h2>27 spécialités du D.E.S. — année 2026-2027</h2>
             <p className="sub">
-              Cliquez sur une spécialité pour voir sa date, sa salle de composition et rejoindre les
-              communautés WhatsApp.
+              Date, heure et salle de composition de chaque spécialité, avec son groupe WhatsApp.
             </p>
-            <FiliereAccordionGrid
+            <FiliereCardGrid
               filieres={des.filieres}
               ecoleWhatsappGeneral={ecole.lienWhatsappGeneral}
               ecoleNom={ecole.nom}

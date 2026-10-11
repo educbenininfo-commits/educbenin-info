@@ -6,6 +6,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { InstallPrompt } from '@/components/pwa/InstallPrompt';
 import { PageViewTracker } from '@/components/PageViewTracker';
 import { THEME_STORAGE_KEY } from '@/lib/theme';
+import { PUBLIC_NAV_INIT_SCRIPT } from '@/lib/public-nav-mode';
 
 // Blocking inline script — runs before hydration so an explicit Clair/Sombre
 // choice (persisted in localStorage) applies before first paint, avoiding a
@@ -101,6 +102,7 @@ export default function RootLayout({
     >
       <body className={lexend.className}>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: PUBLIC_NAV_INIT_SCRIPT }} />
         <ToastProvider>
           <AuthProvider>{children}</AuthProvider>
         </ToastProvider>

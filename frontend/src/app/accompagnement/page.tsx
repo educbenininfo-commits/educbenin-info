@@ -6,6 +6,8 @@
 // back-office.
 export const dynamic = 'force-dynamic';
 
+import { HeroPanel } from '@/components/public/HeroPanel';
+import { FileCheck2, PenLine, ShieldCheck } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { PublicNav } from '@/components/public/PublicNav';
@@ -51,13 +53,35 @@ export default async function AccompagnementHubPage() {
       <PublicBottomNav active="accompagnement" />
       <DisclaimerBar />
 
-      <div className="page-head pw">
-        <div className="k">Accompagnement</div>
-        <h1>Tous les accompagnements disponibles</h1>
-        <p>
-          Choisissez la situation qui vous concerne : chaque carte ouvre directement la demande
-          correspondante, avec ses pièces à fournir et son tarif.
-        </p>
+      <div className="page-head with-visual pw">
+        <div>
+          <div className="k">Accompagnement</div>
+          <h1>Tous les accompagnements disponibles</h1>
+          <p>
+            Choisissez la situation qui vous concerne : chaque carte ouvre directement la demande
+            correspondante, avec ses pièces à fournir et son tarif.
+          </p>
+        </div>
+        <HeroPanel
+          icon={PenLine}
+          title="Votre demande en 3 temps"
+          subtitle="Simple, en ligne, sans déplacement"
+          variant="steps"
+          rows={[
+            { label: 'Choisir sa catégorie', sub: 'École, filière, niveau', state: 'done' },
+            { label: 'Envoyer ses pièces', sub: 'Un seul document PDF', state: 'now' },
+            { label: 'Suivre son dossier', sub: 'Jusqu’à la preuve de dépôt', state: 'next' },
+          ]}
+          floats={[
+            { icon: ShieldCheck, title: 'Pièces vérifiées', sub: 'Avant tout dépôt', tone: 'gold' },
+            {
+              icon: FileCheck2,
+              title: 'Preuve de dépôt',
+              sub: 'Téléchargeable en ligne',
+              tone: 'success',
+            },
+          ]}
+        />
       </div>
 
       <div className="pw content-pad">

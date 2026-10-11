@@ -3,6 +3,8 @@
 // visible ici sans redéploiement).
 export const dynamic = 'force-dynamic';
 
+import { HeroPanel } from '@/components/public/HeroPanel';
+import { Clock, MessageCircle } from 'lucide-react';
 import type { Metadata } from 'next';
 import { PublicNav } from '@/components/public/PublicNav';
 import { PublicBottomNav } from '@/components/public/PublicBottomNav';
@@ -27,13 +29,40 @@ export default async function ContactPage() {
       <PublicNav active="contact" />
       <PublicBottomNav active="contact" />
 
-      <div className="page-head pw">
-        <div className="k">Contact</div>
-        <h1>Une question ? Parlons-en.</h1>
-        <p>
-          Écrivez-nous sur WhatsApp pour une réponse rapide, par e-mail, ou via le formulaire
-          ci-dessous.
-        </p>
+      <div className="page-head with-visual pw">
+        <div>
+          <div className="k">Contact</div>
+          <h1>Une question ? Parlons-en.</h1>
+          <p>
+            Écrivez-nous sur WhatsApp pour une réponse rapide, par e-mail, ou via le formulaire
+            ci-dessous.
+          </p>
+        </div>
+        <HeroPanel
+          icon={MessageCircle}
+          title="Équipe Educ Bénin"
+          subtitle="Cotonou · répond sur WhatsApp"
+          variant="chat"
+          rows={[
+            {
+              label: 'Bonjour, je voudrais savoir quelles pièces fournir pour mon dossier.',
+              from: 'them',
+            },
+            {
+              label:
+                'Bonjour ! Indiquez-nous votre école et votre filière, on vous envoie la liste.',
+              from: 'us',
+            },
+          ]}
+          floats={[
+            {
+              icon: Clock,
+              title: 'Réponse rapide',
+              sub: 'Sur WhatsApp',
+              tone: 'success',
+            },
+          ]}
+        />
       </div>
 
       <div className="section pw">
