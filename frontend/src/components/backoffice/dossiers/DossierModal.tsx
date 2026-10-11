@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import jsPDF from 'jspdf';
+import { authSections, buildKvPdf, demandeSections } from '@/lib/dossier-pdf';
 import { invalidateCachePrefix } from '@/lib/useApi';
 import {
   STAGE_NAMES,
@@ -58,16 +58,6 @@ function countryLabel(iso2: string | undefined | null): string {
   if (!iso2) return '—';
   const c = findCountry(iso2);
   return c ? `${c.flag} ${c.nameFr}` : iso2;
-}
-
-// Flag emoji are regional-indicator surrogate pairs that jsPDF's standard
-// (WinAnsi-only) fonts cannot encode — passing them to doc.text() corrupts
-// the whole line's glyph widths, not just the emoji itself. PDF export uses
-// the plain country name only; the emoji stays screen-only via countryLabel.
-function countryLabelPlain(iso2: string | undefined | null): string {
-  if (!iso2) return '—';
-  const c = findCountry(iso2);
-  return c ? c.nameFr : iso2;
 }
 
 // The auth-send button always stays clickable at stage 2, whether this is
@@ -161,155 +151,6 @@ function KvList({ pairs }: { pairs: [string, string | undefined][] }) {
       ))}
     </dl>
   );
-}
-
-// Brand tokens (--prod-primary / --prod-ink / --prod-ink-faint / --prod-border,
-// light-mode values from globals.css — PDF is a print artifact, independent of
-// the viewer's OS theme) as plain RGB, since jsPDF has no CSS-variable concept.
-const PDF_PRIMARY: [number, number, number] = [79, 70, 229];
-const PDF_PRIMARY_DARK: [number, number, number] = [55, 48, 163];
-const PDF_INK: [number, number, number] = [30, 27, 51];
-const PDF_INK_FAINT: [number, number, number] = [110, 106, 130];
-const PDF_BORDER: [number, number, number] = [228, 225, 240];
-
-const PDF_MARGIN_X = 16;
-const PDF_PAGE_BOTTOM = 282;
-const PDF_LABEL_WIDTH = 52;
-
-// Rasterizes the small square brand mark (public/logo/mark.svg) to a PNG data
-// URL once per session — jsPDF.addImage() has no native SVG support, and a
-// tiny flat-color mark rasterizes crisply at PDF header size (unlike the
-// full text lockup, which would need real font embedding to stay sharp).
-let logoDataUrlPromise: Promise<string | null> | null = null;
-function loadLogoDataUrl(): Promise<string | null> {
-  if (typeof window === 'undefined') return Promise.resolve(null);
-  logoDataUrlPromise ??= (async () => {
-    try {
-      const res = await fetch('/logo/mark.svg');
-      const svgText = await res.text();
-      const url = URL.createObjectURL(new Blob([svgText], { type: 'image/svg+xml' }));
-      try {
-        return await new Promise<string>((resolve, reject) => {
-          const img = new Image();
-          img.onload = () => {
-            const size = 128;
-            const canvas = document.createElement('canvas');
-            canvas.width = size;
-            canvas.height = size;
-            const ctx = canvas.getContext('2d');
-            if (!ctx) {
-              reject(new Error('2D canvas context unavailable'));
-              return;
-            }
-            ctx.drawImage(img, 0, 0, size, size);
-            resolve(canvas.toDataURL('image/png'));
-          };
-          img.onerror = () => reject(new Error('logo image failed to load'));
-          img.src = url;
-        });
-      } finally {
-        URL.revokeObjectURL(url);
-      }
-    } catch {
-      return null;
-    }
-  })();
-  return logoDataUrlPromise;
-}
-
-async function downloadKvPdf(
-  docTitle: string,
-  reference: string,
-  sections: { heading: string; pairs: [string, string | undefined][] }[],
-  filename: string,
-) {
-  const doc = new jsPDF();
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const contentWidth = pageWidth - PDF_MARGIN_X * 2;
-  const logo = await loadLogoDataUrl();
-
-  function drawHeader() {
-    doc.setFillColor(...PDF_PRIMARY);
-    doc.rect(0, 0, pageWidth, 26, 'F');
-    if (logo) doc.addImage(logo, 'PNG', PDF_MARGIN_X, 6, 14, 14);
-    doc.setTextColor(255, 255, 255);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(13);
-    doc.text('EDUC BÉNIN', PDF_MARGIN_X + 18, 13);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
-    doc.text('Dossier de probatoire spécialité — FSS/UAC', PDF_MARGIN_X + 18, 19);
-  }
-
-  function drawFooter(pageNum: number, pageCount: number) {
-    doc.setDrawColor(...PDF_BORDER);
-    doc.line(PDF_MARGIN_X, 288, pageWidth - PDF_MARGIN_X, 288);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(...PDF_INK_FAINT);
-    const generated = `Généré depuis le back-office Educ Bénin · ${new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}`;
-    doc.text(generated, PDF_MARGIN_X, 293);
-    doc.text(`Page ${pageNum} / ${pageCount}`, pageWidth - PDF_MARGIN_X, 293, { align: 'right' });
-  }
-
-  drawHeader();
-  let y = 38;
-  doc.setTextColor(...PDF_INK);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
-  doc.text(docTitle, PDF_MARGIN_X, y);
-  y += 6.5;
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9.5);
-  doc.setTextColor(...PDF_PRIMARY_DARK);
-  doc.text(`Réf. ${reference}`, PDF_MARGIN_X, y);
-  y += 9;
-
-  function ensureSpace(nextLineHeight: number) {
-    if (y + nextLineHeight > PDF_PAGE_BOTTOM) {
-      doc.addPage();
-      drawHeader();
-      y = 38;
-    }
-  }
-
-  for (const section of sections) {
-    ensureSpace(14);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10.5);
-    doc.setTextColor(...PDF_PRIMARY_DARK);
-    doc.text(section.heading.toUpperCase(), PDF_MARGIN_X, y);
-    y += 2.5;
-    doc.setDrawColor(...PDF_PRIMARY);
-    doc.line(PDF_MARGIN_X, y, PDF_MARGIN_X + contentWidth, y);
-    y += 6.5;
-
-    for (const [label, rawValue] of section.pairs) {
-      const value = rawValue || '—';
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9.5);
-      const valueLines = doc.splitTextToSize(value, contentWidth - PDF_LABEL_WIDTH);
-      const lineHeight = 5;
-      const blockHeight = Math.max(1, valueLines.length) * lineHeight;
-      ensureSpace(blockHeight);
-
-      doc.setTextColor(...PDF_INK_FAINT);
-      doc.text(label, PDF_MARGIN_X, y);
-      doc.setTextColor(...PDF_INK);
-      doc.setFont('helvetica', 'bold');
-      doc.text(valueLines, PDF_MARGIN_X + PDF_LABEL_WIDTH, y);
-      y += blockHeight + 2;
-    }
-    y += 3;
-  }
-
-  const pageCount = doc.getNumberOfPages();
-  for (let p = 1; p <= pageCount; p++) {
-    doc.setPage(p);
-    drawFooter(p, pageCount);
-  }
-
-  doc.save(filename);
 }
 
 type ConfirmState =
@@ -648,69 +489,18 @@ export function DossierModal({
 
   function downloadDemandePdf() {
     if (!dossier) return;
-    void downloadKvPdf(
-      'Informations de la demande',
-      dossier.reference,
-      [
-        {
-          heading: 'Informations de la demande',
-          pairs: [
-            ['Nom', dossier.nom],
-            ['Prénom(s)', dossier.prenom],
-            ['WhatsApp', dossier.whatsapp],
-            ['Nationalité', countryLabelPlain(dossier.nationalite)],
-            ['Spécialité(s)', specialtyLabel(dossier.specialtyCodes)],
-          ],
-        },
-      ],
+    buildKvPdf('Informations de la demande', dossier.reference, demandeSections(dossier)).save(
       `demande-${dossier.reference}.pdf`,
     );
   }
 
   function downloadAuthPdf() {
     if (!dossier?.authFormData) return;
-    const d = dossier.authFormData;
-    void downloadKvPdf(
+    buildKvPdf(
       'Authentification de diplôme — réponses soumises',
       dossier.reference,
-      [
-        {
-          heading: 'Informations personnelles',
-          pairs: [
-            ['Nom', d.nom],
-            ['Prénom(s)', d.prenom],
-            ['Date de naissance', d.naissance],
-            ['Lieu de naissance', d.lieuNaissance],
-            ['Nationalité', countryLabelPlain(d.nationalite)],
-            ['Adresse actuelle', d.adresse],
-            ["Pièce d'identité", `${d.piece} · ${d.pieceRef}`],
-            ['E-mail', d.email],
-            ['Téléphone', d.tel],
-          ],
-        },
-        {
-          heading: 'Diplôme du Baccalauréat',
-          pairs: [
-            ['Institution', d.bac.institution],
-            ['E-mail institution', d.bac.email],
-            ["Année d'obtention", d.bac.annee],
-            ["Pays d'obtention", countryLabelPlain(d.bac.pays)],
-            ['Adresse institution', d.bac.adresse],
-          ],
-        },
-        {
-          heading: 'Diplôme du Doctorat',
-          pairs: [
-            ['Institution', d.doctorat.institution],
-            ['E-mail institution', d.doctorat.email],
-            ["Année d'obtention", d.doctorat.annee],
-            ["Pays d'obtention", countryLabelPlain(d.doctorat.pays)],
-            ['Adresse institution', d.doctorat.adresse],
-          ],
-        },
-      ],
-      `authentification-${dossier.reference}.pdf`,
-    );
+      authSections(dossier.authFormData),
+    ).save(`authentification-${dossier.reference}.pdf`);
   }
 
   return (

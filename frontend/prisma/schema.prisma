@@ -688,6 +688,25 @@ model SiteSettings {
   updatedAt       DateTime @updatedAt
 }
 
+// Anonymous page-view analytics for the public site (back-office
+// "Statistiques"). No personal data: visitorId/sessionId are random ids
+// generated in the browser (localStorage / sessionStorage), no IP stored;
+// country comes from the hosting edge header (x-vercel-ip-country).
+model PageView {
+  id        String   @id @default(cuid())
+  visitorId String
+  sessionId String
+  path      String
+  referrer  String? // hostname only, null = direct / internal
+  source    String // "Direct", "Google", "Facebook", "WhatsApp", utm_source…
+  country   String? // ISO 3166-1 alpha-2
+  device    String // "mobile" | "tablet" | "desktop"
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([visitorId, createdAt])
+}
+
 // Messages sent from the public /contact form, read in the back-office.
 model ContactMessage {
   id        String   @id @default(cuid())

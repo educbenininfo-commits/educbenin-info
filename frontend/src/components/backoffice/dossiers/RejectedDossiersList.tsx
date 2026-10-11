@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { CalendarClock, FileQuestion, FolderX } from 'lucide-react';
 import { useApi, invalidateCache } from '@/lib/useApi';
 import {
   displayName,
@@ -13,6 +14,9 @@ import {
 import { restoreDossier } from '@/lib/dossiers-admin-api';
 import { ecoleBadgeClass } from '@/lib/ecole-display';
 import { ListGridToggle, type ViewMode } from '@/components/backoffice/ListGridToggle';
+import { StatCard } from '@/components/backoffice/StatCard';
+import { DateRangeFilter } from '@/components/backoffice/DateRangeFilter';
+import { DATE_RANGE_LABELS, inDateRange, type DateRangePreset } from '@/lib/date-range';
 import { DossierModal } from './DossierModal';
 
 function subLabel(d: DossierListItem): string {
@@ -31,6 +35,7 @@ export function RejectedDossiersList() {
   const [error, setError] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [view, setView] = useState<ViewMode>('list');
+  const [period, setPeriod] = useState<DateRangePreset>('all');
 
   const { data, loading, refresh } = useApi<DossiersResponse>('/api/admin/dossiers?stage=0');
   const items = data?.items ?? [];
@@ -51,7 +56,17 @@ export function RejectedDossiersList() {
     }
   }
 
-  const visibleItems = items.filter((d) => matchesDossierSearch(d, query));
+  // A rejected dossier's stageChangedAt is its rejection date, so the période
+  // filter and the cadrans count rejections, not submissions.
+  const inPeriod = items.filter((d) => inDateRange(d.stageChangedAt, period));
+  const visibleItems = inPeriod.filter((d) => matchesDossierSearch(d, query));
+  const sevenDaysAgo = Date.now() - 7 * 24 * 3600 * 1000;
+  const kpi = {
+    total: inPeriod.length,
+    semaine: items.filter((d) => new Date(d.stageChangedAt).getTime() >= sevenDaysAgo).length,
+    sansMotif: inPeriod.filter((d) => !d.motifRejet?.trim()).length,
+  };
+  const v = (n: number) => (loading && !data ? '—' : n);
 
   const restoreButton = (d: DossierListItem) => (
     <button
@@ -69,7 +84,42 @@ export function RejectedDossiersList() {
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 24 }}>
+      <div className="bo-page-head">
+        <div>
+          <h3 className="bo-h1">Dossiers rejetés</h3>
+          <div className="bo-sub">Restaurables à tout moment vers « Dossiers reçus ».</div>
+        </div>
+        <div className="bo-head-actions">
+          <DateRangeFilter value={period} onChange={setPeriod} />
+        </div>
+      </div>
+
+      <div className="stat-grid kpi-3">
+        <StatCard
+          label="Dossiers rejetés"
+          value={v(kpi.total)}
+          icon={FolderX}
+          chip="danger"
+          caption={DATE_RANGE_LABELS[period]}
+          featured
+        />
+        <StatCard
+          label="Rejetés cette semaine"
+          value={v(kpi.semaine)}
+          icon={CalendarClock}
+          chip="warning"
+          caption="7 derniers jours"
+        />
+        <StatCard
+          label="Sans motif renseigné"
+          value={v(kpi.sansMotif)}
+          icon={FileQuestion}
+          chip="violet"
+          caption="À compléter pour l’historique"
+        />
+      </div>
+
+      <div className="list-toolbar" style={{ justifyContent: 'flex-end' }}>
         <ListGridToggle mode={view} onChange={setView} />
       </div>
 

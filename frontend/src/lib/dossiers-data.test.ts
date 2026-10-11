@@ -12,6 +12,7 @@ function item(overrides: Partial<DossierListItem> = {}): DossierListItem {
     specialtyCodes: [],
     stage: 1,
     stageChangedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
     motifRejet: null,
     correctionRequestedAt: null,
     ecoleId: 'ecole-fss',

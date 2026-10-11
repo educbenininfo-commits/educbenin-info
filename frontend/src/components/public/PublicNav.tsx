@@ -63,9 +63,9 @@ export function PublicNav({ active }: { active: string }) {
             </Link>
           ))}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div className="p-nav-right">
           <ThemeToggle />
-          <Link href="/accompagnement" className="btn btn-primary btn-sm">
+          <Link href="/accompagnement" className="btn btn-primary">
             Faire ma demande
           </Link>
         </div>

@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useApi } from '@/lib/useApi';
+import { useLiveVisitors } from '@/lib/useLiveVisitors';
 import { FinanceChart } from '@/components/backoffice/FinanceChart';
 import { fmtF2 } from '@/lib/format';
 import {
@@ -28,6 +29,22 @@ import type { TeamResponse } from '@/lib/admin-team-api';
 import type { TarifsResponse, TarifBaremeRow } from '@/lib/admin-tarifs-api';
 import { useBackofficeAdmin } from '@/contexts/BackofficeAdminContext';
 import { fetchMaintenanceState, setMaintenanceMode } from '@/lib/admin-maintenance-api';
+import {
+  Activity,
+  BadgeCheck,
+  Banknote,
+  Clock,
+  FileCheck2,
+  FileClock,
+  FileSearch,
+  FileX2,
+  Hourglass,
+  Inbox,
+  PieChart,
+  TrendingUp,
+  Wallet,
+  type LucideIcon,
+} from 'lucide-react';
 
 interface EnAttenteRow {
   id: string;
@@ -49,13 +66,13 @@ interface SummaryResponse {
   activiteRecente: ActivityEvent[];
 }
 
-const KPI_DEFS: { key: string; l: string; cls: string }[] = [
-  { key: '1', l: 'En cours de traitement', cls: 'accent' },
-  { key: '2', l: 'Authentification du diplôme', cls: 'accent' },
-  { key: '3', l: 'Inscription en ligne', cls: 'warn' },
-  { key: '4', l: 'Dépôt en cours', cls: 'warn' },
-  { key: '5', l: 'Déposés avec succès', cls: 'ok' },
-  { key: '0', l: 'Rejetés', cls: 'danger' },
+const KPI_DEFS: { key: string; l: string; icon: LucideIcon; chip: string }[] = [
+  { key: '1', l: 'En cours de traitement', icon: FileSearch, chip: '' },
+  { key: '2', l: 'Authentification du diplôme', icon: BadgeCheck, chip: 'violet' },
+  { key: '3', l: 'Inscription en ligne', icon: FileClock, chip: 'warning' },
+  { key: '4', l: 'Dépôt en cours', icon: Hourglass, chip: 'gold' },
+  { key: '5', l: 'Déposés avec succès', icon: FileCheck2, chip: 'success' },
+  { key: '0', l: 'Rejetés', icon: FileX2, chip: 'danger' },
 ];
 
 const FIN_FACTURE = [1250000, 1400000, 1600000, 1800000, 2100000, 2450000];
@@ -65,9 +82,9 @@ const totalEncaisse = FIN_ENCAISSE.reduce((a, b) => a + b, 0);
 const reste = totalFacture - totalEncaisse;
 
 const FIN_MOYENS: { label: string; pct: number; color: string }[] = [
-  { label: 'Mobile Money', pct: 62, color: '#4F46E5' },
-  { label: 'Espèces', pct: 23, color: '#9C6F17' },
-  { label: 'Virement', pct: 15, color: '#8B84C7' },
+  { label: 'Mobile Money', pct: 62, color: '#1d4ed8' },
+  { label: 'Espèces', pct: 23, color: '#d97706' },
+  { label: 'Virement', pct: 15, color: '#94a3b8' },
 ];
 
 interface DossiersResponse {
@@ -90,7 +107,9 @@ export default function TableauDeBordPage() {
   // /api/admin/maintenance's own comment for why this bypasses the regular
   // per-module permission grid). Rewritten in front of every public page by
   // middleware.ts, in production only.
-  const { role } = useBackofficeAdmin();
+  const { role, email } = useBackofficeAdmin();
+  const live = useLiveVisitors();
+  const firstName = email.split('@')[0];
   const isSuperadmin = role === 'SUPERADMIN';
   const [maintenance, setMaintenance] = useState<boolean | null>(null);
   const [maintenanceConfirm, setMaintenanceConfirm] = useState(false);
@@ -293,30 +312,25 @@ export default function TableauDeBordPage() {
 
   return (
     <>
-      <div
-        className="bo-header-wrap"
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          flexWrap: 'wrap',
-          gap: 16,
-          marginBottom: 24,
-        }}
-      >
-        <h3 className="bo-h1" style={{ marginBottom: 0, marginTop: 4 }}>
-          Tableau de bord
-        </h3>
+      <div className="bo-page-head">
+        <div>
+          <h3 className="bo-h1">Ravi de vous revoir, {firstName}</h3>
+          <div className="bo-sub">Le point sur les dossiers d&rsquo;accompagnement Educ Bénin.</div>
+        </div>
 
         {isSuperadmin && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <div className="bo-head-actions">
+            <Link href="/admin/statistiques" className="live-pill" title="Voir les statistiques">
+              <span className="live-dot" aria-hidden="true" />
+              {live == null ? '—' : live.live} en direct
+            </Link>
             {maintenance !== null && (
               <span className={`pill ${maintenance ? 'danger' : 'ok'}`}>
                 {maintenance ? 'Site en maintenance' : 'Site en ligne'}
               </span>
             )}
             {maintenanceConfirm ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <>
                 <span className="hint">
                   {maintenance
                     ? 'Remettre le site en ligne ?'
@@ -338,7 +352,7 @@ export default function TableauDeBordPage() {
                 >
                   Annuler
                 </button>
-              </div>
+              </>
             ) : (
               <button
                 type="button"
@@ -355,54 +369,83 @@ export default function TableauDeBordPage() {
       </div>
 
       <div className="dash-kpis">
+        <div id="kpiBlockGeneral">
+          <div className="section-lbl" style={{ marginTop: 0 }}>
+            Vue d&rsquo;ensemble de tous les dossiers
+          </div>
+          <div className="stat-grid kpi-6">
+            {KPI_DEFS.map((k) => {
+              const Icon = k.icon;
+              return (
+                <div key={k.key} className="stat-card">
+                  <div className="top">
+                    <span className="lbl">{k.l}</span>
+                    <span className={`icon-chip ${k.chip}`}>
+                      <Icon />
+                    </span>
+                  </div>
+                  <div className="val">
+                    {loading && !summary ? '—' : (summary?.kpis[k.key] ?? 0)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
         <div id="kpiBlockFinance">
           <div className="section-lbl" style={{ marginTop: 0 }}>
             Suivi financier — interne, non visible du candidat
           </div>
-          <div className="kpi-grid fin-kpi">
-            <div className="kpi accent">
-              <div className="n mono" style={{ fontSize: 18 }}>
-                {fmtF2(totalFacture)}
+          <div className="stat-grid">
+            <div className="stat-card featured">
+              <div className="top">
+                <span className="lbl">Total facturé (6 mois)</span>
+                <span className="icon-chip">
+                  <Banknote />
+                </span>
               </div>
-              <div className="l">Total facturé (6 mois)</div>
+              <div className="val">{fmtF2(totalFacture)}</div>
             </div>
-            <div className="kpi ok">
-              <div className="n mono" style={{ fontSize: 18 }}>
-                {fmtF2(totalEncaisse)}
+            <div className="stat-card">
+              <div className="top">
+                <span className="lbl">Total encaissé</span>
+                <span className="icon-chip success">
+                  <TrendingUp />
+                </span>
               </div>
-              <div className="l">Total encaissé</div>
+              <div className="val">{fmtF2(totalEncaisse)}</div>
             </div>
-            <div className="kpi warn">
-              <div className="n mono" style={{ fontSize: 18 }}>
-                {fmtF2(reste)}
+            <div className="stat-card">
+              <div className="top">
+                <span className="lbl">Reste à payer (dossiers ouverts)</span>
+                <span className="icon-chip warning">
+                  <Wallet />
+                </span>
               </div>
-              <div className="l">Reste à payer (dossiers ouverts)</div>
+              <div className="val">{fmtF2(reste)}</div>
             </div>
-          </div>
-        </div>
-        <div id="kpiBlockGeneral">
-          <div className="bo-sub">Vue d&rsquo;ensemble de tous les dossiers</div>
-          <div className="kpi-grid">
-            {KPI_DEFS.map((k) => (
-              <div key={k.key} className={`kpi ${k.cls}`}>
-                <div className="n mono">
-                  {loading && !summary ? '—' : (summary?.kpis[k.key] ?? 0)}
-                </div>
-                <div className="l">{k.l}</div>
-              </div>
-            ))}
           </div>
         </div>
       </div>
 
       <div className="two-col" style={{ marginTop: 22 }}>
         <div className="panel">
-          <h3>Évolution des encaissements</h3>
+          <h3>
+            <span className="icon-chip">
+              <TrendingUp />
+            </span>
+            Évolution des encaissements
+          </h3>
           <div className="sub">Facturé vs. encaissé, 6 derniers mois — survolez pour le détail</div>
           <FinanceChart />
         </div>
         <div className="panel">
-          <h3>Répartition par moyen de paiement</h3>
+          <h3>
+            <span className="icon-chip gold">
+              <PieChart />
+            </span>
+            Répartition par moyen de paiement
+          </h3>
           <div className="sub">Part de l&rsquo;encaissé, 6 derniers mois</div>
           <div>
             {FIN_MOYENS.map((m) => (
@@ -428,13 +471,26 @@ export default function TableauDeBordPage() {
 
       <div className="two-col" style={{ marginTop: 22 }}>
         <div className="panel">
-          <h3>Dossiers en attente depuis plus de 5 jours</h3>
+          <h3>
+            <span className="icon-chip warning">
+              <Clock />
+            </span>
+            Dossiers en attente depuis plus de 5 jours
+          </h3>
           <div className="sub">Nécessitent une action de l&rsquo;équipe</div>
           {(() => {
             if (loading && !summary) return <p className="hint">Chargement…</p>;
             const rows = summary?.enAttente ?? [];
             if (rows.length === 0) {
-              return <p className="hint">Aucun dossier en attente depuis plus de 5 jours.</p>;
+              return (
+                <div className="empty-state">
+                  <div className="tile">
+                    <Inbox size={20} />
+                  </div>
+                  <strong>Rien en attente</strong>
+                  Aucun dossier en attente depuis plus de 5 jours.
+                </div>
+              );
             }
             return rows.map((d) => (
               <div key={d.id} className="alert-row">
@@ -447,13 +503,26 @@ export default function TableauDeBordPage() {
           })()}
         </div>
         <div className="panel">
-          <h3>Activité récente</h3>
+          <h3>
+            <span className="icon-chip violet">
+              <Activity />
+            </span>
+            Activité récente
+          </h3>
           <div className="sub">Dernières actions du back-office</div>
           {(() => {
             if (loading && !summary) return <p className="hint">Chargement…</p>;
             const rows = summary?.activiteRecente ?? [];
             if (rows.length === 0) {
-              return <p className="hint">Aucune activité récente.</p>;
+              return (
+                <div className="empty-state">
+                  <div className="tile">
+                    <Activity size={20} />
+                  </div>
+                  <strong>Pas encore d&rsquo;activité</strong>
+                  Les dernières actions de l&rsquo;équipe s&rsquo;afficheront ici.
+                </div>
+              );
             }
             return rows.map((a, i) => (
               <div key={`${a.dossierId}-${i}`} className="alert-row">

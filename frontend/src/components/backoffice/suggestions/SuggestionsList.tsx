@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Ban, Lightbulb, ListPlus, Sparkles } from 'lucide-react';
 import {
   fetchSuggestions,
   updateSuggestionStatut,
@@ -8,6 +9,9 @@ import {
   type SuggestionStatut,
 } from '@/lib/admin-suggestions-api';
 import { ListGridToggle, type ViewMode } from '@/components/backoffice/ListGridToggle';
+import { StatCard } from '@/components/backoffice/StatCard';
+import { DateRangeFilter } from '@/components/backoffice/DateRangeFilter';
+import { DATE_RANGE_LABELS, inDateRange, type DateRangePreset } from '@/lib/date-range';
 
 const STATUT_FILTERS: { label: string; statut: 'all' | SuggestionStatut }[] = [
   { label: 'Tous', statut: 'all' },
@@ -36,23 +40,19 @@ export function SuggestionsList() {
   const [statut, setStatut] = useState<'all' | SuggestionStatut>('all');
   const [sort, setSort] = useState<'date' | 'statut'>('date');
   const [q, setQ] = useState('');
+  const [period, setPeriod] = useState<DateRangePreset>('all');
   const [view, setView] = useState<ViewMode>('list');
-  const [items, setItems] = useState<Suggestion[]>([]);
-  const [counts, setCounts] = useState<Record<string, number>>({
-    all: 0,
-    nouveau: 0,
-    vu: 0,
-    a_ajouter: 0,
-    refuse: 0,
-  });
+  const [allItems, setAllItems] = useState<Suggestion[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Fetches every suggestion (search + sort applied server-side); the période
+  // and statut filters, the chip counts and the cadrans are then derived
+  // client-side from the same set so they always agree with each other.
   async function load() {
     setLoading(true);
     try {
-      const res = await fetchSuggestions({ statut, sort, ...(q ? { q } : {}) });
-      setItems(res.items);
-      setCounts(res.counts);
+      const res = await fetchSuggestions({ statut: 'all', sort, ...(q ? { q } : {}) });
+      setAllItems(res.items);
     } finally {
       setLoading(false);
     }
@@ -60,11 +60,11 @@ export function SuggestionsList() {
 
   useEffect(() => {
     void load();
-    // Only statut/sort should re-trigger an immediate reload; `q` has its
-    // own debounced effect below. (No react-hooks/exhaustive-deps plugin is
+    // Only sort should re-trigger an immediate reload; `q` has its own
+    // debounced effect below. (No react-hooks/exhaustive-deps plugin is
     // configured in this repo's eslint.config.mjs, so no disable directive
     // is needed here.)
-  }, [statut, sort]);
+  }, [sort]);
 
   // Simple debounce for the free-text search, avoiding a request per keystroke.
   useEffect(() => {
@@ -73,7 +73,7 @@ export function SuggestionsList() {
   }, [q]);
 
   async function handleStatutChange(id: string, next: SuggestionStatut) {
-    setItems((prev) => prev.map((s) => (s.id === id ? { ...s, statut: next } : s)));
+    setAllItems((prev) => prev.map((s) => (s.id === id ? { ...s, statut: next } : s)));
     try {
       await updateSuggestionStatut(id, next);
       void load();
@@ -82,24 +82,64 @@ export function SuggestionsList() {
     }
   }
 
+  const inPeriod = allItems.filter((s) => inDateRange(s.createdAt, period));
+  const items = inPeriod.filter((s) => statut === 'all' || s.statut === statut);
+  const counts: Record<string, number> = { all: inPeriod.length };
+  for (const s of inPeriod) counts[s.statut] = (counts[s.statut] ?? 0) + 1;
+  const v = (n: number | undefined) => (loading && allItems.length === 0 ? '—' : (n ?? 0));
+
   return (
     <>
-      <div>
-        <h3 className="bo-h1" style={{ marginBottom: 2 }}>
-          Suggestions
-        </h3>
-        <div className="bo-sub" style={{ marginBottom: 0 }}>
-          Écoles et filières suggérées par les visiteurs — depuis la page d&rsquo;accueil et la page
-          École — INMeS. Sert d&rsquo;indicateur pour prioriser les prochains établissements à
-          ajouter.
+      <div className="bo-page-head">
+        <div>
+          <h3 className="bo-h1">Suggestions</h3>
+          <div className="bo-sub">
+            Écoles et filières suggérées par les visiteurs — depuis la page d&rsquo;accueil et la
+            page École — INMeS. Sert d&rsquo;indicateur pour prioriser les prochains établissements
+            à ajouter.
+          </div>
         </div>
+        <div className="bo-head-actions">
+          <DateRangeFilter value={period} onChange={setPeriod} />
+        </div>
+      </div>
+
+      <div className="stat-grid">
+        <StatCard
+          label="Suggestions reçues"
+          value={v(counts.all)}
+          icon={Lightbulb}
+          caption={DATE_RANGE_LABELS[period]}
+          featured
+        />
+        <StatCard
+          label="Nouvelles"
+          value={v(counts.nouveau)}
+          icon={Sparkles}
+          chip="gold"
+          caption="Pas encore consultées"
+        />
+        <StatCard
+          label="À ajouter"
+          value={v(counts.a_ajouter)}
+          icon={ListPlus}
+          chip="success"
+          caption="Retenues pour le catalogue"
+        />
+        <StatCard
+          label="Refusées"
+          value={v(counts.refuse)}
+          icon={Ban}
+          chip="danger"
+          caption="Écartées après examen"
+        />
       </div>
 
       <div
         style={{
           display: 'flex',
           gap: 10,
-          marginTop: 16,
+          marginTop: 22,
           flexWrap: 'wrap',
           alignItems: 'center',
           justifyContent: 'space-between',

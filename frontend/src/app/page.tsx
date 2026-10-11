@@ -8,6 +8,7 @@
 export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
+import { ArrowRight, BadgeCheck, BellRing, FileCheck2, GraduationCap } from 'lucide-react';
 import { PublicNav } from '@/components/public/PublicNav';
 import { PublicBottomNav } from '@/components/public/PublicBottomNav';
 import { HowItWorksSection } from '@/components/public/HowItWorksSection';
@@ -18,12 +19,12 @@ import { getContactSettings } from '@/lib/server/site-settings';
 import { ecoleSlug, ecoleBadge, ecoleDescription, ecoleHighlightPill } from '@/lib/ecole-display';
 import { formatWhatsapp, whatsappLink } from '@/lib/contact-display';
 
-const HERO_TRACK: { label: string; done: boolean; num: string }[] = [
-  { label: 'Dossier en cours de traitement', done: true, num: '✓' },
-  { label: 'Authentification du diplôme', done: true, num: '✓' },
-  { label: 'Inscription en ligne', done: false, num: '3' },
-  { label: 'Dépôt de dossier en cours', done: false, num: '4' },
-  { label: 'Dossier déposé avec succès', done: false, num: '5' },
+const HERO_TRACK: { label: string; state: 'done' | 'now' | 'next' }[] = [
+  { label: 'Dossier en cours de traitement', state: 'done' },
+  { label: 'Authentification du diplôme', state: 'done' },
+  { label: 'Inscription en ligne', state: 'now' },
+  { label: 'Dépôt de dossier en cours', state: 'next' },
+  { label: 'Dossier déposé avec succès', state: 'next' },
 ];
 
 // Minimal, strictly factual JSON-LD (name/url/description/logo only) — no
@@ -60,52 +61,106 @@ export default async function Home() {
         </div>
       </div>
 
-      <div className="hero pw">
-        <div className="hero-text">
-          <div className="eyebrow">Plateforme d&rsquo;accompagnement · Cotonou, UAC</div>
-          <h1>Un accompagnement clair, pour chaque établissement, à chaque étape du dossier.</h1>
-          <p className="lead">
-            Educ Bénin accompagne les candidats de la FSS et de l&rsquo;INMeS : rassemblement des
-            pièces, authentification de diplôme pour les candidats étrangers, inscription en ligne
-            et dépôt du dossier — avec un suivi clair à chaque étape.
-          </p>
-        </div>
-
-        <div className="hero-art">
-          <div className="seal" />
-          <div
-            style={{
-              fontSize: 12,
-              opacity: 0.75,
-              marginBottom: 14,
-              letterSpacing: '.05em',
-              textTransform: 'uppercase',
-            }}
-          >
-            État du dossier — Dr. LISSANON Luc.
+      <div className="hero-bleed">
+        <div className="hero pw">
+          <div className="hero-text">
+            <span className="eyebrow-chip">
+              <span className="dot" />
+              Plateforme d&rsquo;accompagnement · Cotonou, UAC
+            </span>
+            <h1>
+              Un accompagnement clair,{' '}
+              <span className="hl">pour chaque établissement, à chaque étape du dossier.</span>
+            </h1>
+            <p className="lead">
+              Educ Bénin accompagne les candidats de la FSS et de l&rsquo;INMeS : rassemblement des
+              pièces, authentification de diplôme pour les candidats étrangers, inscription en ligne
+              et dépôt du dossier — avec un suivi clair à chaque étape.
+            </p>
+            <div className="hero-actions">
+              <a href="#etablissements" className="btn btn-primary btn-lg">
+                Choisir mon établissement <ArrowRight size={18} />
+              </a>
+              <Link href="/suivre-mon-dossier" className="btn btn-outline btn-lg">
+                Suivre mon dossier
+              </Link>
+            </div>
+            <ul className="hero-checks">
+              <li>FSS et INMeS</li>
+              <li>Suivi de dossier en ligne</li>
+              <li>Accompagnement sur WhatsApp</li>
+            </ul>
           </div>
-          <div className="hero-track">
-            {HERO_TRACK.map((row) => (
-              <div key={row.label} className={`row${row.done ? ' done' : ''}`}>
-                <span className="num">{row.num}</span>
-                <span className="label">{row.label}</span>
+
+          <div className="hero-visual" aria-hidden="true">
+            <div className="phone">
+              <div className="phone-head">
+                Educ Bénin <span className="badge">1</span>
               </div>
+              <div className="phone-card">
+                <div className="k">Probatoire spécialité · D.E.S.</div>
+                <div className="t">Dr. LISSANON Luc.</div>
+              </div>
+              <div className="phone-track">
+                {HERO_TRACK.map((row, i) => (
+                  <div key={row.label} className={`row ${row.state}`}>
+                    <span className="num">{row.state === 'done' ? '✓' : i + 1}</span>
+                    <span className="label">{row.label}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="phone-cta">Suivre mon dossier</div>
+            </div>
+            <div className="float-card a">
+              <span className="icon-chip success">
+                <BellRing />
+              </span>
+              <span>
+                <strong>Dossier reçu</strong>
+                EB-202610-014 · D.E.S.
+              </span>
+            </div>
+            <div className="float-card b">
+              <span className="icon-chip gold">
+                <BadgeCheck />
+              </span>
+              <span>
+                <strong>Diplôme authentifié</strong>
+                Étape validée
+              </span>
+            </div>
+            <div className="float-card c">
+              <span className="icon-chip">
+                <FileCheck2 />
+              </span>
+              <span>
+                <strong>Preuve de dépôt</strong>
+                Disponible au téléchargement
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="band-bleed">
+        <div className="band pw">
+          <span>
+            <strong>Un seul interlocuteur pour tout votre dossier.</strong> Pièces,
+            authentification, inscription et dépôt.
+          </span>
+          <div className="band-pills">
+            {ecoles.map((ecole) => (
+              <Link key={ecole.id} href={`/${ecoleSlug(ecole.nom)}`} className="band-pill">
+                <GraduationCap size={16} /> {ecole.nom}
+              </Link>
             ))}
           </div>
-        </div>
-
-        <div className="hero-actions">
-          <a href="#etablissements" className="btn btn-primary">
-            Choisir mon établissement
-          </a>
-          <Link href="/suivre-mon-dossier" className="btn btn-outline">
-            Suivre mon dossier
-          </Link>
         </div>
       </div>
 
       <div className="section-bleed" id="etablissements">
         <div className="section pw">
+          <span className="section-kicker">Établissements accompagnés</span>
           <h2>Choisissez votre établissement</h2>
           <p className="sub">
             Deux établissements accompagnés aujourd&rsquo;hui — d&rsquo;autres facultés et instituts
@@ -122,7 +177,9 @@ export default async function Home() {
                   <span className="pill neutral">{ecoleHighlightPill(ecole.categories)}</span>
                   <span className="pill ok">Accompagnement disponible</span>
                 </div>
-                <span className="cta">Voir les filières {ecole.nom} →</span>
+                <span className="cta">
+                  Voir les filières {ecole.nom} <ArrowRight size={16} />
+                </span>
               </Link>
             ))}
           </div>

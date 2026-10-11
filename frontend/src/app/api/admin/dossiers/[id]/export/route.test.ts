@@ -60,6 +60,11 @@ const dossier = {
   diplomaDoctoratTranslatedUrl: null,
   ficheUrl: null,
   recepisseUrl: null,
+  createdAt: new Date('2026-10-01T09:00:00Z'),
+  stageChangedAt: new Date('2026-10-03T09:00:00Z'),
+  ecole: { nom: 'FSS' },
+  categorie: { libelle: 'Probatoire spécialité (D.E.S.)', libelleCourt: 'D.E.S.' },
+  filiere: null,
   comments: [],
 };
 
@@ -109,5 +114,60 @@ describe('GET /api/admin/dossiers/[id]/export', () => {
         metadata: expect.objectContaining({ files: ['piece-jointe.pdf'] }),
       }),
     );
+  });
+  it('includes the filled forms as PDFs and the attachments under pieces-jointes/', async () => {
+    const authFormData = {
+      nom: 'Sossou',
+      prenom: 'Théodore',
+      naissance: '1990-01-01',
+      lieuNaissance: 'Cotonou',
+      nationalite: 'FR',
+      adresse: 'Paris',
+      piece: 'Passeport',
+      pieceRef: 'P123',
+      email: 't@example.com',
+      tel: '+33600000000',
+      bac: {
+        institution: 'Lycée',
+        email: 'l@example.com',
+        annee: '2008',
+        pays: 'FR',
+        adresse: 'Lyon',
+      },
+      doctorat: {
+        institution: 'Univ',
+        email: 'u@example.com',
+        annee: '2016',
+        pays: 'FR',
+        adresse: 'Lyon',
+      },
+    };
+    prismaMock.dossier.findUnique.mockResolvedValueOnce({
+      ...dossier,
+      authFormData,
+      comments: [
+        { type: 'public', authorName: 'Équipe', text: 'Dossier complet', createdAt: new Date() },
+      ],
+    } as never);
+    mockDownloadObject.mockImplementation(async (path) =>
+      path === 'dossiers/EB-2026-000401/piece-jointe' ? Buffer.from('%PDF-1.4') : null,
+    );
+
+    const res = await GET(makeReq('d1'), paramsOf('d1'));
+    const zip = Buffer.from(await res.arrayBuffer()).toString('latin1');
+
+    // ZIP entry names are stored uncompressed in the local/central headers.
+    expect(zip).toContain('01-formulaire-demande.pdf');
+    expect(zip).toContain('02-formulaire-authentification.pdf');
+    expect(zip).toContain('03-recapitulatif.pdf');
+    expect(zip).toContain('pieces-jointes/piece-jointe.pdf');
+  });
+
+  it('omits the authentication form when the candidate never submitted it', async () => {
+    prismaMock.dossier.findUnique.mockResolvedValueOnce(dossier as never);
+    const res = await GET(makeReq('d1'), paramsOf('d1'));
+    const zip = Buffer.from(await res.arrayBuffer()).toString('latin1');
+    expect(zip).toContain('01-formulaire-demande.pdf');
+    expect(zip).not.toContain('02-formulaire-authentification.pdf');
   });
 });

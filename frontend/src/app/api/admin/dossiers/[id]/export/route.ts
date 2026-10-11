@@ -1,9 +1,12 @@
-// GET /api/admin/dossiers/[id]/export — SUPERADMIN only. Streams a ZIP
-// archive containing every stored file for a dossier plus a plain-text
-// summary of all its data fields — "toutes les informations et fichiers
-// d'un candidat" in one download, for archival/investigation purposes. Not
-// styled (unlike the candidate-facing PDF exports in DossierModal) — this is
-// an internal export, exhaustiveness matters more than presentation.
+// GET /api/admin/dossiers/[id]/export — SUPERADMIN only. Builds a ZIP with
+// everything about one candidate's dossier, ready to archive or forward:
+//   01-formulaire-demande.pdf          the filled request form
+//   02-formulaire-authentification.pdf the filled diploma-authentication form (if submitted)
+//   03-recapitulatif.pdf               stage, payment, rejection reason, public comments
+//   pieces-jointes/…                   every stored file (dossier PDF, diplomas,
+//                                      translations, fiche d'inscription, preuve de dépôt)
+// The two forms are rendered by the same builders as the modal's "PDF"
+// buttons (lib/dossier-pdf.ts), so the archive matches what the team sees.
 export const runtime = 'nodejs';
 
 import 'server-only';
@@ -14,8 +17,8 @@ import { enforceAdminRateLimit } from '@/lib/server/middleware/rate-limit-by-use
 import { prisma } from '@/lib/server/prisma';
 import { logAdminAction } from '@/lib/server/admin/audit';
 import { downloadObject } from '@/lib/server/upload/supabase-storage-client';
-import { specialtyLabel } from '@/lib/dossiers-data';
-import type { AuthForm } from '@/lib/dossiers-data';
+import { STAGE_NAMES, type AuthForm } from '@/lib/dossiers-data';
+import { authSections, buildKvPdf, demandeSections, type PdfSection } from '@/lib/dossier-pdf';
 
 type FileField =
   | 'pieceJointeUrl'
@@ -27,88 +30,85 @@ type FileField =
   | 'recepisseUrl';
 
 const FILE_FIELDS: { field: FileField; name: string }[] = [
-  { field: 'pieceJointeUrl', name: 'piece-jointe.pdf' },
-  { field: 'diplomaBacUrl', name: 'diplome-bac.pdf' },
-  { field: 'diplomaBacTranslatedUrl', name: 'diplome-bac-traduit.pdf' },
-  { field: 'diplomaDoctoratUrl', name: 'diplome-doctorat.pdf' },
-  { field: 'diplomaDoctoratTranslatedUrl', name: 'diplome-doctorat-traduit.pdf' },
-  { field: 'ficheUrl', name: 'fiche-inscription.pdf' },
-  { field: 'recepisseUrl', name: 'recepisse.pdf' },
+  { field: 'pieceJointeUrl', name: 'piece-jointe' },
+  { field: 'diplomaBacUrl', name: 'diplome-bac' },
+  { field: 'diplomaBacTranslatedUrl', name: 'diplome-bac-traduit' },
+  { field: 'diplomaDoctoratUrl', name: 'diplome-doctorat' },
+  { field: 'diplomaDoctoratTranslatedUrl', name: 'diplome-doctorat-traduit' },
+  { field: 'ficheUrl', name: 'fiche-inscription' },
+  { field: 'recepisseUrl', name: 'preuve-de-depot' },
 ];
 
-function buildResume(d: NonNullable<Awaited<ReturnType<typeof fetchDossier>>>): string {
-  const lines: string[] = [];
-  lines.push(`Dossier ${d.reference}`);
-  lines.push('='.repeat(`Dossier ${d.reference}`.length));
-  lines.push('');
-  lines.push('DEMANDE');
-  lines.push('-'.repeat(7));
-  lines.push(`Nom : ${d.nom}`);
-  lines.push(`Prénom(s) : ${d.prenom}`);
-  lines.push(`WhatsApp : ${d.whatsapp}`);
-  lines.push(`Nationalité : ${d.nationalite ?? '—'}`);
-  lines.push(`Spécialité(s) : ${specialtyLabel(d.specialtyCodes)}`);
-  lines.push(`Étape actuelle : ${d.stage}`);
-  if (d.motifRejet) lines.push(`Motif de rejet : ${d.motifRejet}`);
-  lines.push('');
-
-  const auth = d.authFormData as AuthForm | null;
-  if (auth) {
-    lines.push('AUTHENTIFICATION DE DIPLÔME');
-    lines.push('-'.repeat(27));
-    lines.push(`Nom : ${auth.nom}`);
-    lines.push(`Prénom(s) : ${auth.prenom}`);
-    lines.push(`Date de naissance : ${auth.naissance}`);
-    lines.push(`Lieu de naissance : ${auth.lieuNaissance}`);
-    lines.push(`Nationalité : ${auth.nationalite}`);
-    lines.push(`Adresse actuelle : ${auth.adresse}`);
-    lines.push(`Pièce d'identité : ${auth.piece} · ${auth.pieceRef}`);
-    lines.push(`E-mail : ${auth.email}`);
-    lines.push(`Téléphone : ${auth.tel}`);
-    lines.push('');
-    lines.push('Diplôme du Baccalauréat');
-    lines.push(`  Institution : ${auth.bac.institution}`);
-    lines.push(`  E-mail institution : ${auth.bac.email}`);
-    lines.push(`  Année d'obtention : ${auth.bac.annee}`);
-    lines.push(`  Pays d'obtention : ${auth.bac.pays}`);
-    lines.push(`  Adresse institution : ${auth.bac.adresse}`);
-    lines.push('');
-    lines.push('Diplôme du Doctorat');
-    lines.push(`  Institution : ${auth.doctorat.institution}`);
-    lines.push(`  E-mail institution : ${auth.doctorat.email}`);
-    lines.push(`  Année d'obtention : ${auth.doctorat.annee}`);
-    lines.push(`  Pays d'obtention : ${auth.doctorat.pays}`);
-    lines.push(`  Adresse institution : ${auth.doctorat.adresse}`);
-    lines.push('');
-  }
-
-  lines.push('PAIEMENT (interne)');
-  lines.push('-'.repeat(19));
-  lines.push(`Montant : ${d.montant} FCFA`);
-  if (d.montantSupplement) lines.push(`Supplément : ${d.montantSupplement} FCFA`);
-  lines.push(`Payé : ${d.paye} FCFA`);
-  lines.push(`Moyen de paiement : ${d.moyen}`);
-  lines.push('');
-
-  const publicComments = d.comments.filter((c) => c.type === 'public');
-  if (publicComments.length > 0) {
-    lines.push('COMMENTAIRES PUBLICS');
-    lines.push('-'.repeat(20));
-    for (const c of publicComments) {
-      lines.push(`[${c.createdAt.toISOString()}] ${c.authorName}: ${c.text}`);
-    }
-    lines.push('');
-  }
-
-  lines.push(`Exporté le ${new Date().toLocaleString('fr-FR')}`);
-  return lines.join('\n');
+/** Storage paths carry no extension — pick one from the file's magic bytes. */
+function extensionOf(buf: Buffer): string {
+  if (buf.subarray(0, 4).toString('latin1') === '%PDF') return 'pdf';
+  if (buf[0] === 0x89 && buf.subarray(1, 4).toString('latin1') === 'PNG') return 'png';
+  if (buf[0] === 0xff && buf[1] === 0xd8) return 'jpg';
+  if (buf.subarray(8, 12).toString('latin1') === 'WEBP') return 'webp';
+  return 'bin';
 }
 
 function fetchDossier(id: string) {
   return prisma.dossier.findUnique({
     where: { id },
-    include: { comments: { orderBy: { createdAt: 'asc' } } },
+    include: {
+      comments: { orderBy: { createdAt: 'asc' } },
+      ecole: { select: { nom: true } },
+      categorie: { select: { libelle: true, libelleCourt: true } },
+      filiere: { select: { nom: true } },
+    },
   });
+}
+
+type FullDossier = NonNullable<Awaited<ReturnType<typeof fetchDossier>>>;
+
+const fcfa = (n: number) => `${n.toLocaleString('fr-FR').replace(/[\u202f\u00a0]/g, ' ')} FCFA`;
+const dateFr = (d: Date) =>
+  d.toLocaleString('fr-FR', {
+    dateStyle: 'long',
+    timeStyle: 'short',
+    timeZone: 'Africa/Porto-Novo',
+  });
+
+function recapSections(d: FullDossier): PdfSection[] {
+  const sections: PdfSection[] = [
+    {
+      heading: 'Suivi du dossier',
+      pairs: [
+        ['Référence', d.reference],
+        ['Candidat', `${d.prenom} ${d.nom}`],
+        ['École', d.ecole?.nom],
+        ['Catégorie', d.categorie?.libelleCourt ?? d.categorie?.libelle],
+        ['Étape actuelle', STAGE_NAMES[d.stage] ?? String(d.stage)],
+        ['Demande reçue le', dateFr(d.createdAt)],
+        ["Dernier changement d'étape", dateFr(d.stageChangedAt)],
+        ...(d.motifRejet ? ([['Motif de rejet', d.motifRejet]] as PdfSection['pairs']) : []),
+      ],
+    },
+    {
+      heading: 'Paiement (interne)',
+      pairs: [
+        ['Montant', fcfa(d.montant)],
+        ...(d.montantSupplement
+          ? ([['Supplément', fcfa(d.montantSupplement)]] as PdfSection['pairs'])
+          : []),
+        ['Payé', fcfa(d.paye)],
+        ['Moyen de paiement', d.moyen],
+      ],
+    },
+  ];
+  const publicComments = d.comments.filter((c) => c.type === 'public');
+  if (publicComments.length > 0) {
+    sections.push({
+      heading: 'Commentaires transmis au candidat',
+      pairs: publicComments.map((c) => [`${dateFr(c.createdAt)}`, `${c.authorName} : ${c.text}`]),
+    });
+  }
+  return sections;
+}
+
+function pdfBuffer(doc: ReturnType<typeof buildKvPdf>): Buffer {
+  return Buffer.from(doc.output('arraybuffer'));
 }
 
 export async function GET(
@@ -128,17 +128,51 @@ export async function GET(
   }
 
   const archive = new ZipArchive({ zlib: { level: 9 } });
-  archive.append(buildResume(dossier), { name: `resume-${dossier.reference}.txt` });
+  const ref = dossier.reference;
 
-  const presentFiles: string[] = [];
-  for (const { field, name } of FILE_FIELDS) {
-    const path = dossier[field];
-    const buffer = await downloadObject(path);
-    if (buffer) {
-      archive.append(buffer, { name });
-      presentFiles.push(name);
-    }
+  archive.append(
+    pdfBuffer(
+      buildKvPdf(
+        'Informations de la demande',
+        ref,
+        demandeSections({
+          nom: dossier.nom,
+          prenom: dossier.prenom,
+          whatsapp: dossier.whatsapp,
+          nationalite: dossier.nationalite,
+          specialtyCodes: dossier.specialtyCodes,
+          ecoleNom: dossier.ecole?.nom ?? null,
+          categorieLabel: dossier.categorie?.libelleCourt ?? dossier.categorie?.libelle ?? null,
+          filiereLabel: dossier.filiere?.nom ?? null,
+        }),
+      ),
+    ),
+    { name: '01-formulaire-demande.pdf' },
+  );
+
+  const authForm = dossier.authFormData as AuthForm | null;
+  if (authForm) {
+    archive.append(
+      pdfBuffer(
+        buildKvPdf('Authentification de diplôme — réponses soumises', ref, authSections(authForm)),
+      ),
+      { name: '02-formulaire-authentification.pdf' },
+    );
   }
+
+  archive.append(pdfBuffer(buildKvPdf('Récapitulatif du dossier', ref, recapSections(dossier))), {
+    name: '03-recapitulatif.pdf',
+  });
+
+  const buffers = await Promise.all(FILE_FIELDS.map(({ field }) => downloadObject(dossier[field])));
+  const presentFiles: string[] = [];
+  FILE_FIELDS.forEach(({ name }, i) => {
+    const buffer = buffers[i];
+    if (!buffer) return;
+    const fileName = `${name}.${extensionOf(buffer)}`;
+    archive.append(buffer, { name: `pieces-jointes/${fileName}` });
+    presentFiles.push(fileName);
+  });
   void archive.finalize();
 
   await logAdminAction(prisma, {
@@ -146,7 +180,7 @@ export async function GET(
     action: 'dossier.zip_export',
     targetType: 'Dossier',
     targetId: id,
-    metadata: { reference: dossier.reference, files: presentFiles },
+    metadata: { reference: ref, files: presentFiles, authForm: Boolean(authForm) },
   });
 
   const chunks: Buffer[] = [];
@@ -159,7 +193,7 @@ export async function GET(
     status: 200,
     headers: {
       'Content-Type': 'application/zip',
-      'Content-Disposition': `attachment; filename="dossier-${dossier.reference}.zip"`,
+      'Content-Disposition': `attachment; filename="dossier-${ref}.zip"`,
     },
   });
 }

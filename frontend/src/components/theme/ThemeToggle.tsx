@@ -8,6 +8,7 @@
 // survives reloads; layout.tsx's inline script applies it before first
 // paint to avoid a flash of the wrong theme.
 import { useEffect, useState } from 'react';
+import { Monitor, Moon, Sun } from 'lucide-react';
 import { THEME_STORAGE_KEY } from '@/lib/theme';
 
 type ThemeChoice = 'system' | 'light' | 'dark';
@@ -48,7 +49,7 @@ export function ThemeToggle() {
         aria-label="Système"
         onClick={() => choose('system')}
       >
-        🖥
+        <Monitor size={15} />
       </button>
       <button
         type="button"
@@ -57,7 +58,7 @@ export function ThemeToggle() {
         aria-label="Clair"
         onClick={() => choose('light')}
       >
-        ☀
+        <Sun size={15} />
       </button>
       <button
         type="button"
@@ -66,7 +67,7 @@ export function ThemeToggle() {
         aria-label="Sombre"
         onClick={() => choose('dark')}
       >
-        ☾
+        <Moon size={15} />
       </button>
     </div>
   );

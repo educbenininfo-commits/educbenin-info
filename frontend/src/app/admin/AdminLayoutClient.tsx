@@ -21,6 +21,10 @@ import { BackofficeBottomNav } from '@/components/backoffice/BackofficeBottomNav
 import { BackofficeAdminProvider } from '@/contexts/BackofficeAdminContext';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { PushSetup } from '@/components/pwa/PushSetup';
+import { ExternalLink, LogOut, Menu, Search } from 'lucide-react';
+import { useBoNavMode } from '@/lib/bo-nav-mode';
+import { useAuth } from '@/contexts/AuthContext';
+import { fetchMaintenanceState } from '@/lib/admin-maintenance-api';
 
 interface AdminMe {
   admin: { id: string; email: string; role: 'ADMIN' | 'SUPERADMIN' };
@@ -79,6 +83,26 @@ export function AdminLayoutClient({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [admin, setAdmin] = useState<AdminMe['admin'] | null>(null);
   const [checked, setChecked] = useState(false);
+  const [maintenance, setMaintenance] = useState(false);
+  const navMode = useBoNavMode();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    setDrawerOpen(false);
+  }, [pathname]);
+  const { logout } = useAuth();
+
+  async function handleLogout() {
+    await logout();
+    router.push('/connexion');
+  }
+
+  useEffect(() => {
+    if (!admin) return;
+    void fetchMaintenanceState()
+      .then((r) => setMaintenance(r.enabled))
+      .catch(() => setMaintenance(false));
+  }, [admin]);
 
   useEffect(() => {
     let cancelled = false;
@@ -124,21 +148,64 @@ export function AdminLayoutClient({ children }: { children: ReactNode }) {
   return (
     <BackofficeAdminProvider admin={admin}>
       <PushSetup />
-      <div className="prod bo">
-        <BackofficeSidebar />
+      <div className={`prod bo nav-${navMode}`}>
+        <BackofficeSidebar mobileOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
+        {drawerOpen && <div className="bo-drawer-ov" onClick={() => setDrawerOpen(false)} />}
         <BackofficeBottomNav />
         <div className="bo-main">
-          <div className="bo-top">
-            <AdminSearchBox pathname={pathname} />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <ThemeToggle />
-              <div className="bo-user">
-                <div className="avatar">{admin.email.slice(0, 2).toUpperCase()}</div>
-                {admin.email} ·{' '}
-                {admin.role === 'SUPERADMIN' ? 'Super-administrateur' : 'Administrateur'}
-              </div>
+          <header className="bo-top">
+            <button
+              type="button"
+              className="btn-icon bo-burger"
+              aria-label="Ouvrir le menu"
+              onClick={() => setDrawerOpen(true)}
+            >
+              <Menu />
+            </button>
+            <div className="bo-top-site">
+              <img src="/logo/mark.svg" alt="" className="mark" />
+              <span className="txt">
+                <strong>Educ Bénin</strong>
+                <small className={maintenance ? 'maint' : 'live'}>
+                  <i /> {maintenance ? 'Maintenance' : 'En ligne'}
+                </small>
+              </span>
             </div>
-          </div>
+            <div className="bo-search-wrap">
+              <Search size={16} aria-hidden="true" />
+              <AdminSearchBox pathname={pathname} />
+            </div>
+            <div className="bo-top-actions">
+              <ThemeToggle />
+              <a
+                className="btn-icon"
+                href="/"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Voir le site"
+                aria-label="Voir le site"
+              >
+                <ExternalLink />
+              </a>
+              <div className="bo-user" title={admin.email}>
+                <div className="avatar">{admin.email.slice(0, 2).toUpperCase()}</div>
+                <span className="who">
+                  <strong>{admin.email.split('@')[0]}</strong>
+                  <small>
+                    {admin.role === 'SUPERADMIN' ? 'Super-administrateur' : 'Administrateur'}
+                  </small>
+                </span>
+              </div>
+              <button
+                type="button"
+                className="btn btn-outline btn-sm bo-logout"
+                onClick={handleLogout}
+              >
+                <LogOut size={15} />
+                <span>Se déconnecter</span>
+              </button>
+            </div>
+          </header>
           <div className="bo-content">{children}</div>
         </div>
       </div>

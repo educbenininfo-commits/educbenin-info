@@ -1,6 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { CheckCheck, Eye, Inbox, MailPlus, Settings2 } from 'lucide-react';
+import { StatCard } from '@/components/backoffice/StatCard';
+import { DateRangeFilter } from '@/components/backoffice/DateRangeFilter';
+import { DATE_RANGE_LABELS, inDateRange, type DateRangePreset } from '@/lib/date-range';
 import { CountryPhoneInput } from '@/components/forms/CountryPhoneInput';
 import {
   fetchContactMessages,
@@ -46,13 +50,8 @@ export function ContactAdmin() {
   // ---- messages ----
   const [statut, setStatut] = useState<'all' | ContactMessageStatut>('all');
   const [q, setQ] = useState('');
-  const [items, setItems] = useState<ContactMessage[]>([]);
-  const [counts, setCounts] = useState<Record<string, number>>({
-    all: 0,
-    nouveau: 0,
-    lu: 0,
-    traite: 0,
-  });
+  const [period, setPeriod] = useState<DateRangePreset>('all');
+  const [allItems, setAllItems] = useState<ContactMessage[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -66,17 +65,14 @@ export function ContactAdmin() {
   async function load() {
     setLoading(true);
     try {
-      const res = await fetchContactMessages({ statut, ...(q ? { q } : {}) });
-      setItems(res.items);
-      setCounts(res.counts);
+      // Every status at once: période/statut filters, chip counts and the
+      // cadrans are derived client-side from this one set.
+      const res = await fetchContactMessages({ statut: 'all', ...(q ? { q } : {}) });
+      setAllItems(res.items);
     } finally {
       setLoading(false);
     }
   }
-
-  useEffect(() => {
-    void load();
-  }, [statut]);
 
   useEffect(() => {
     const t = setTimeout(() => void load(), 300);
@@ -102,7 +98,7 @@ export function ContactAdmin() {
   }
 
   async function handleStatutChange(id: string, next: ContactMessageStatut) {
-    setItems((prev) => prev.map((m) => (m.id === id ? { ...m, statut: next } : m)));
+    setAllItems((prev) => prev.map((m) => (m.id === id ? { ...m, statut: next } : m)));
     try {
       await updateContactMessageStatut(id, next);
     } finally {
@@ -110,69 +106,59 @@ export function ContactAdmin() {
     }
   }
 
+  const inPeriod = allItems.filter((m) => inDateRange(m.createdAt, period));
+  const items = inPeriod.filter((m) => statut === 'all' || m.statut === statut);
+  const counts: Record<string, number> = { all: inPeriod.length };
+  for (const m of inPeriod) counts[m.statut] = (counts[m.statut] ?? 0) + 1;
+  const v = (n: number | undefined) => (loading && allItems.length === 0 ? '—' : (n ?? 0));
+
   return (
     <>
-      <div>
-        <h3 className="bo-h1" style={{ marginBottom: 2 }}>
-          Contact &amp; messages
-        </h3>
-        <div className="bo-sub" style={{ marginBottom: 0 }}>
-          Coordonnées affichées sur le site, et messages envoyés depuis le formulaire de la page
-          Contact.
+      <div className="bo-page-head">
+        <div>
+          <h3 className="bo-h1">Contact &amp; messages</h3>
+          <div className="bo-sub">
+            Messages envoyés depuis le formulaire de la page Contact, et coordonnées affichées sur
+            le site.
+          </div>
+        </div>
+        <div className="bo-head-actions">
+          <DateRangeFilter value={period} onChange={setPeriod} />
         </div>
       </div>
 
-      <div className="panel" style={{ marginTop: 18 }}>
-        <h3>Coordonnées affichées sur le site</h3>
-        <div className="sub">
-          Mises à jour ici, elles changent partout : page Contact, pied de page, page
-          Non-affiliation et page de maintenance.
-        </div>
-        {settingsLoaded ? (
-          <>
-            <div className="row2">
-              <div className="field">
-                <label htmlFor="bo-contact-email">E-mail de contact</label>
-                <input
-                  id="bo-contact-email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="bo-contact-wa">Numéro WhatsApp</label>
-                <CountryPhoneInput id="bo-contact-wa" value={whatsapp} onChange={setWhatsapp} />
-              </div>
-            </div>
-            {settingsMsg && (
-              <p
-                className={settingsMsg.ok ? 'hint' : 'err-msg'}
-                style={{
-                  marginBottom: 10,
-                  ...(settingsMsg.ok ? { color: 'var(--prod-success)' } : {}),
-                }}
-              >
-                {settingsMsg.text}
-              </p>
-            )}
-            <button
-              type="button"
-              className="btn btn-primary btn-sm"
-              disabled={saving || !email.trim()}
-              onClick={() => void saveSettings()}
-            >
-              {saving ? 'Enregistrement…' : 'Enregistrer et propager'}
-            </button>
-          </>
-        ) : (
-          <div className="hint">Chargement…</div>
-        )}
+      <div className="stat-grid">
+        <StatCard
+          label="Messages reçus"
+          value={v(counts.all)}
+          icon={Inbox}
+          caption={DATE_RANGE_LABELS[period]}
+          featured
+        />
+        <StatCard
+          label="Nouveaux"
+          value={v(counts.nouveau)}
+          icon={MailPlus}
+          chip="gold"
+          caption="En attente de lecture"
+        />
+        <StatCard
+          label="Lus"
+          value={v(counts.lu)}
+          icon={Eye}
+          chip="violet"
+          caption="Lus, pas encore traités"
+        />
+        <StatCard
+          label="Traités"
+          value={v(counts.traite)}
+          icon={CheckCheck}
+          chip="success"
+          caption="Réponse apportée"
+        />
       </div>
 
-      <h3 style={{ fontSize: 16, marginTop: 28 }}>Messages reçus</h3>
-
-      <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 10, marginTop: 22, flexWrap: 'wrap' }}>
         <input
           type="search"
           placeholder="Rechercher par nom, e-mail, sujet ou contenu…"
@@ -243,6 +229,59 @@ export function ContactAdmin() {
           ))}
         </div>
       )}
+
+      <div className="panel" style={{ marginTop: 28 }}>
+        <h3>
+          <span className="icon-chip">
+            <Settings2 />
+          </span>
+          Coordonnées affichées sur le site
+        </h3>
+        <div className="sub">
+          Mises à jour ici, elles changent partout : page Contact, pied de page, page
+          Non-affiliation et page de maintenance.
+        </div>
+        {settingsLoaded ? (
+          <>
+            <div className="row2">
+              <div className="field">
+                <label htmlFor="bo-contact-email">E-mail de contact</label>
+                <input
+                  id="bo-contact-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="bo-contact-wa">Numéro WhatsApp</label>
+                <CountryPhoneInput id="bo-contact-wa" value={whatsapp} onChange={setWhatsapp} />
+              </div>
+            </div>
+            {settingsMsg && (
+              <p
+                className={settingsMsg.ok ? 'hint' : 'err-msg'}
+                style={{
+                  marginBottom: 10,
+                  ...(settingsMsg.ok ? { color: 'var(--prod-success)' } : {}),
+                }}
+              >
+                {settingsMsg.text}
+              </p>
+            )}
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              disabled={saving || !email.trim()}
+              onClick={() => void saveSettings()}
+            >
+              {saving ? 'Enregistrement…' : 'Enregistrer et propager'}
+            </button>
+          </>
+        ) : (
+          <div className="hint">Chargement…</div>
+        )}
+      </div>
     </>
   );
 }

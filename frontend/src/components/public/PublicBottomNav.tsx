@@ -2,6 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import {
+  ClipboardCheck,
+  GraduationCap,
+  House,
+  Mail,
+  Menu,
+  PenLine,
+  School,
+  type LucideIcon,
+} from 'lucide-react';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { fetchPublicEcoles, type PublicEcole } from '@/lib/ecoles-public-api';
 import { ecoleSlug } from '@/lib/ecole-display';
@@ -13,14 +23,14 @@ import { ecoleSlug } from '@/lib/ecole-display';
 // list is fetched the same way (GET /api/ecoles, client-side) so a school
 // added later appears in both without a second place to update.
 
-const NAV_ITEMS: { key: string; href: string; icon: string; label: string }[] = [
-  { key: 'home', href: '/', icon: '⌂', label: 'Accueil' },
-  { key: 'accompagnement', href: '/accompagnement', icon: '✎', label: 'Demande' },
+const NAV_ITEMS: { key: string; href: string; icon: LucideIcon; label: string }[] = [
+  { key: 'home', href: '/', icon: House, label: 'Accueil' },
+  { key: 'accompagnement', href: '/accompagnement', icon: PenLine, label: 'Demande' },
 ];
 
-const NAV_ITEMS_AFTER_MORE: { key: string; href: string; icon: string; label: string }[] = [
-  { key: 'ecole-toutes', href: '/ecoles', icon: '◧', label: 'École' },
-  { key: 'suivi', href: '/suivre-mon-dossier', icon: '◔', label: 'Suivi' },
+const NAV_ITEMS_AFTER_MORE: { key: string; href: string; icon: LucideIcon; label: string }[] = [
+  { key: 'ecole-toutes', href: '/ecoles', icon: GraduationCap, label: 'École' },
+  { key: 'suivi', href: '/suivre-mon-dossier', icon: ClipboardCheck, label: 'Suivi' },
 ];
 
 export function PublicBottomNav({ active }: { active: string }) {
@@ -48,7 +58,9 @@ export function PublicBottomNav({ active }: { active: string }) {
             href={item.href}
             className={`p-bn-item${item.key === active ? ' on' : ''}`}
           >
-            <span className="ic">{item.icon}</span>
+            <span className="ic">
+              <item.icon size={19} strokeWidth={1.9} />
+            </span>
             <span className="lbl">{item.label}</span>
           </Link>
         ))}
@@ -58,7 +70,9 @@ export function PublicBottomNav({ active }: { active: string }) {
           title="Plus de pages"
           onClick={() => setOpen(true)}
         >
-          <span className="ic">☰</span>
+          <span className="ic">
+            <Menu size={20} />
+          </span>
           <span className="lbl">Menu</span>
         </button>
         {NAV_ITEMS_AFTER_MORE.map((item) => (
@@ -67,7 +81,9 @@ export function PublicBottomNav({ active }: { active: string }) {
             href={item.href}
             className={`p-bn-item${item.key === active || (item.key === 'ecole-toutes' && ecoleActive) ? ' on' : ''}`}
           >
-            <span className="ic">{item.icon}</span>
+            <span className="ic">
+              <item.icon size={19} strokeWidth={1.9} />
+            </span>
             <span className="lbl">{item.label}</span>
           </Link>
         ))}
@@ -89,32 +105,44 @@ export function PublicBottomNav({ active }: { active: string }) {
             <ThemeToggle />
           </div>
           <Link href="/" onClick={() => setOpen(false)}>
-            <span className="ic">⌂</span>
+            <span className="ic">
+              <House size={17} />
+            </span>
             Accueil
           </Link>
           <div className="sep" />
           <Link href="/ecoles" onClick={() => setOpen(false)}>
-            <span className="ic">◧</span>
+            <span className="ic">
+              <GraduationCap size={17} />
+            </span>
             Toutes les écoles
           </Link>
           {ecoles.map((ecole) => (
             <Link key={ecole.id} href={`/${ecoleSlug(ecole.nom)}`} onClick={() => setOpen(false)}>
-              <span className="ic">▫</span>
+              <span className="ic">
+                <School size={17} />
+              </span>
               École — {ecole.nom}
             </Link>
           ))}
           <div className="sep" />
           <Link href="/accompagnement" onClick={() => setOpen(false)}>
-            <span className="ic">✎</span>
+            <span className="ic">
+              <PenLine size={17} />
+            </span>
             Accompagnement (toutes les demandes)
           </Link>
           <Link href="/suivre-mon-dossier" onClick={() => setOpen(false)}>
-            <span className="ic">◔</span>
+            <span className="ic">
+              <ClipboardCheck size={17} />
+            </span>
             Suivre mon dossier
           </Link>
           <div className="sep" />
           <Link href="/contact" onClick={() => setOpen(false)}>
-            <span className="ic">✆</span>
+            <span className="ic">
+              <Mail size={17} />
+            </span>
             Contact
           </Link>
         </div>

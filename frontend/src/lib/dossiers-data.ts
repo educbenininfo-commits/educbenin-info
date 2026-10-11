@@ -48,6 +48,8 @@ type DossierCore = {
 };
 
 export type DossierListItem = DossierCore & {
+  /** Date de création du dossier (dépôt de la demande). */
+  createdAt: string;
   // Multi-school scope (2026-09) — always present (Ecole/Categorie are
   // required on Dossier), used for the École/Catégorie badge
   // (10-backoffice-dossiers.md). Only the list/grid endpoint joins these —

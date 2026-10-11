@@ -1,37 +1,98 @@
-// BO_NAV — educbenin-prototype.html, extended by the multi-school prompts
-// (10-13: Suggestions, École & WhatsApp renamed from Spécialités &
-// WhatsApp). Real routes are prefixed with /admin (the prototype's urlMap
-// put these on a separate back.educbenin.info subdomain, which this
-// project isn't setting up — a plain path prefix avoids colliding with the
-// public /specialites route instead).
-//
-// Single source of truth for both the desktop sidebar (BackofficeSidebar)
-// and the mobile "more" sheet (BackofficeBottomNav) — per
-// 16-menu-mobile-bandeau.md's explicit "un seul jeu de libellés, pas deux
-// maintenus séparément".
+// Back-office navigation — single source of truth for both the desktop
+// sidebar (BackofficeSidebar) and the mobile "Menu" sheet
+// (BackofficeBottomNav): one set of labels, never two maintained separately.
+// Real routes are prefixed with /admin.
+import {
+  Activity,
+  BarChart3,
+  Banknote,
+  FolderOpen,
+  FolderX,
+  GraduationCap,
+  Inbox,
+  LayoutGrid,
+  Lightbulb,
+  Settings,
+  Users,
+  type LucideIcon,
+} from 'lucide-react';
 
-export const BACKOFFICE_NAV: {
+export interface BackofficeNavItem {
   key: string;
   href: string;
-  icon: string;
+  icon: LucideIcon;
   label: string;
+  /** Sidebar group heading; items without one sit above the first group. */
+  section?: 'Analyse' | 'Dossiers' | 'Échanges' | 'Contenu' | 'Réglages';
   /** Hidden from ADMIN — only SUPERADMIN sees this item (e.g. Connexions). */
   superadminOnly?: boolean;
-}[] = [
-  { key: 'dashboard', href: '/admin/tableau-de-bord', icon: '◧', label: 'Tableau de bord' },
-  { key: 'dossiers', href: '/admin/dossiers', icon: '▤', label: 'Dossiers' },
-  { key: 'rejetes', href: '/admin/dossiers-rejetes', icon: '⊘', label: 'Dossiers rejetés' },
-  { key: 'suggestions', href: '/admin/suggestions', icon: '✉', label: 'Suggestions' },
-  { key: 'contact', href: '/admin/contact', icon: '✆', label: 'Contact & messages' },
-  { key: 'ecole-whatsapp', href: '/admin/ecole-whatsapp', icon: '☎', label: 'École & WhatsApp' },
-  { key: 'tarifs', href: '/admin/tarifs', icon: '₣', label: 'Tarifs' },
-  { key: 'comptes', href: '/admin/comptes-admin', icon: '◎', label: 'Comptes admin & rôles' },
+}
+
+export const BACKOFFICE_NAV: BackofficeNavItem[] = [
+  { key: 'dashboard', href: '/admin/tableau-de-bord', icon: LayoutGrid, label: 'Tableau de bord' },
+  {
+    key: 'statistiques',
+    href: '/admin/statistiques',
+    icon: BarChart3,
+    label: 'Statistiques',
+    section: 'Analyse',
+  },
+  {
+    key: 'dossiers',
+    href: '/admin/dossiers',
+    icon: FolderOpen,
+    label: 'Dossiers',
+    section: 'Dossiers',
+  },
+  {
+    key: 'rejetes',
+    href: '/admin/dossiers-rejetes',
+    icon: FolderX,
+    label: 'Dossiers rejetés',
+    section: 'Dossiers',
+  },
+  {
+    key: 'suggestions',
+    href: '/admin/suggestions',
+    icon: Lightbulb,
+    label: 'Suggestions',
+    section: 'Échanges',
+  },
+  {
+    key: 'contact',
+    href: '/admin/contact',
+    icon: Inbox,
+    label: 'Contact & messages',
+    section: 'Échanges',
+  },
+  {
+    key: 'ecole-whatsapp',
+    href: '/admin/ecole-whatsapp',
+    icon: GraduationCap,
+    label: 'École & WhatsApp',
+    section: 'Contenu',
+  },
+  { key: 'tarifs', href: '/admin/tarifs', icon: Banknote, label: 'Tarifs', section: 'Contenu' },
+  {
+    key: 'comptes',
+    href: '/admin/comptes-admin',
+    icon: Users,
+    label: 'Comptes admin & rôles',
+    section: 'Réglages',
+  },
   {
     key: 'connexions',
     href: '/admin/connexions',
-    icon: '⏻',
+    icon: Activity,
     label: 'Connexions',
+    section: 'Réglages',
     superadminOnly: true,
   },
-  { key: 'parametres', href: '/admin/parametres', icon: '⚙', label: 'Paramètres' },
+  {
+    key: 'parametres',
+    href: '/admin/parametres',
+    icon: Settings,
+    label: 'Paramètres',
+    section: 'Réglages',
+  },
 ];

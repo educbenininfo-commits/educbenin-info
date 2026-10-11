@@ -1,13 +1,21 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { ChevronsLeft, ChevronsRight, ExternalLink, Globe, ArrowRight, X } from 'lucide-react';
 import { BACKOFFICE_NAV } from '@/lib/backoffice-nav';
 import { useDossiersUnreadCount } from '@/lib/useDossiersUnreadCount';
 import { useBackofficeAdmin } from '@/contexts/BackofficeAdminContext';
+import { EducBeninLogo } from '@/components/theme/EducBeninLogo';
 
-export function BackofficeSidebar() {
+export function BackofficeSidebar({
+  mobileOpen = false,
+  onClose,
+}: {
+  mobileOpen?: boolean;
+  onClose?: () => void;
+}) {
   const pathname = usePathname();
   const dossiersUnread = useDossiersUnreadCount();
   const { role } = useBackofficeAdmin();
@@ -15,8 +23,7 @@ export function BackofficeSidebar() {
 
   const [collapsed, setCollapsed] = useState(false);
   useEffect(() => {
-    const saved = localStorage.getItem('bo-sidebar-collapsed');
-    if (saved === '1') setCollapsed(true);
+    if (localStorage.getItem('bo-sidebar-collapsed') === '1') setCollapsed(true);
   }, []);
 
   function toggle() {
@@ -24,82 +31,100 @@ export function BackofficeSidebar() {
     localStorage.setItem('bo-sidebar-collapsed', !collapsed ? '1' : '0');
   }
 
-  // Prevent hydration mismatch on the first render by relying on CSS for the collapsed state
-  // or by rendering it correctly after mount. But applying a class based on state is fine.
-  // The transition will just happen if it was collapsed.
-
   return (
-    <aside className={`bo-side${collapsed ? ' collapsed' : ''}`}>
-      <div
-        className="bo-brand"
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: collapsed ? 'center' : 'flex-start',
-          gap: 16,
-          paddingBottom: 24,
-        }}
-      >
-        <img
-          src={collapsed ? '/logo/mark.svg' : '/logo/lockup-dark.svg'}
-          alt="Educ Bénin"
-          height={26}
-          style={{ height: 26, width: 'auto' }}
-        />
+    <aside className={`bo-side${collapsed ? ' collapsed' : ''}${mobileOpen ? ' mobile-open' : ''}`}>
+      <div className="bo-side-head">
+        <Link href="/admin/tableau-de-bord" className="bo-logo" aria-label="Tableau de bord">
+          {collapsed ? (
+            <img src="/logo/mark.svg" alt="Educ Bénin" style={{ height: 30, width: 30 }} />
+          ) : (
+            <EducBeninLogo height={28} />
+          )}
+        </Link>
+        {onClose && (
+          <button
+            type="button"
+            className="btn-icon bo-drawer-close"
+            aria-label="Fermer le menu"
+            onClick={onClose}
+          >
+            <X />
+          </button>
+        )}
+        {!collapsed && (
+          <a className="bo-site-pill" href="/" target="_blank" rel="noopener noreferrer">
+            <Globe size={14} />
+            Le site
+          </a>
+        )}
+      </div>
+
+      <div className="bo-side-scroll">
         <button
           onClick={toggle}
           type="button"
           className="bo-collapse-btn"
-          style={{ alignSelf: collapsed ? 'center' : 'flex-end' }}
-          title={collapsed ? 'Déplier' : 'Réduire'}
+          title={collapsed ? 'Déplier le menu' : 'Réduire le menu'}
         >
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            {collapsed ? (
-              <>
-                <path d="M4 6h16" />
-                <path d="M4 12h16" />
-                <path d="M4 18h16" />
-                <path d="M8 12l4-4" />
-                <path d="M8 12l4 4" />
-              </>
-            ) : (
-              <>
-                <path d="M4 6h16" />
-                <path d="M4 12h16" />
-                <path d="M4 18h16" />
-                <path d="M16 12l-4-4" />
-                <path d="M16 12l-4 4" />
-              </>
-            )}
-          </svg>
-          {!collapsed && (
-            <span style={{ marginLeft: 6, fontSize: 12, fontWeight: 500 }}>Réduire</span>
-          )}
+          {collapsed ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} />}
+          {!collapsed && <span>Réduire le menu</span>}
         </button>
+
+        <nav className="bo-nav">
+          {navItems.map((item, i) => {
+            const Icon = item.icon;
+            const startsSection = item.section && item.section !== navItems[i - 1]?.section;
+            const active = pathname === item.href;
+            return (
+              <Fragment key={item.key}>
+                {startsSection &&
+                  (collapsed ? (
+                    <div className="bo-section-sep" />
+                  ) : (
+                    <div className="bo-section">{item.section}</div>
+                  ))}
+                <Link
+                  href={item.href}
+                  className={`bo-item${active ? ' on' : ''}`}
+                  title={collapsed ? item.label : undefined}
+                >
+                  <span className="ic">
+                    <Icon size={18} strokeWidth={1.9} />
+                  </span>
+                  {!collapsed && <span className="lbl">{item.label}</span>}
+                  {item.key === 'dossiers' && dossiersUnread > 0 && (
+                    <span className="nav-badge">
+                      {dossiersUnread > 99 ? '99+' : dossiersUnread}
+                    </span>
+                  )}
+                </Link>
+              </Fragment>
+            );
+          })}
+        </nav>
       </div>
-      {navItems.map((item) => (
-        <Link
-          key={item.key}
-          href={item.href}
-          className={`bo-item${pathname === item.href ? ' on' : ''}`}
-          title={collapsed ? item.label : undefined}
+
+      <div className="bo-side-foot">
+        <a
+          className="bo-foot-card"
+          href="/"
+          target="_blank"
+          rel="noopener noreferrer"
+          title={collapsed ? 'Voir le site public' : undefined}
         >
-          <span className="ic">{item.icon}</span>
-          {!collapsed && <span className="lbl">{item.label}</span>}
-          {item.key === 'dossiers' && dossiersUnread > 0 && (
-            <span className="nav-badge">{dossiersUnread > 99 ? '99+' : dossiersUnread}</span>
+          <span className="ic">
+            <ExternalLink size={17} />
+          </span>
+          {!collapsed && (
+            <span className="txt">
+              <strong>
+                Voir le site <ArrowRight size={13} />
+              </strong>
+              <small>Accueil, écoles et accompagnement</small>
+            </span>
           )}
-        </Link>
-      ))}
+        </a>
+      </div>
     </aside>
   );
 }
