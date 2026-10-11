@@ -100,7 +100,9 @@ export default function RootLayout({
       className={`${lexend.variable} ${outfit.variable} ${ibmPlexMono.variable}`}
       suppressHydrationWarning
     >
-      <body className={lexend.className}>
+      {/* suppressHydrationWarning: browser extensions (e.g. ColorZilla's
+          cz-shortcut-listen) inject attributes on <body> before hydration. */}
+      <body className={lexend.className} suppressHydrationWarning>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: PUBLIC_NAV_INIT_SCRIPT }} />
         <ToastProvider>
