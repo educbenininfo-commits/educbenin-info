@@ -45,6 +45,10 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     const state = generateState();
     const codeVerifier = generateCodeVerifier();
     const url = provider.client.createAuthorizationURL(state, codeVerifier, [...provider.scopes]);
+    // Always show Google's account chooser: without it, a browser already
+    // signed in to another Gmail is logged in silently with that account
+    // (not the back-office one) and bounced back to /connexion.
+    url.searchParams.set('prompt', 'select_account');
 
     const store = await cookies();
     const cookieOpts = {
