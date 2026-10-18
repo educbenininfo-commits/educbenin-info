@@ -3,8 +3,11 @@
 // docs/design-reference/educbenin-prototype.html. Les champs "[À COMPLÉTER]"
 // sont des informations juridiques réelles non finalisées — à ne pas
 // inventer, ils restent tels quels jusqu'à ce que le client les fournisse.
+// Seul le contact est branché : l'e-mail des Coordonnées du site (back-office).
+export const dynamic = 'force-dynamic';
 
 import type { Metadata } from 'next';
+import { cachedGetContactSettings } from '@/lib/server/public-cache';
 import { PublicNav } from '@/components/public/PublicNav';
 import { PublicBottomNav } from '@/components/public/PublicBottomNav';
 
@@ -13,7 +16,8 @@ export const metadata: Metadata = {
   alternates: { canonical: '/mentions-legales' },
 };
 
-export default function MentionsLegalesPage() {
+export default async function MentionsLegalesPage() {
+  const contact = await cachedGetContactSettings();
   return (
     <div className="prod">
       <PublicNav active="mentions" />
@@ -31,7 +35,7 @@ export default function MentionsLegalesPage() {
           <span className="fill">[À COMPLÉTER]</span> · IFU :{' '}
           <span className="fill">[À COMPLÉTER]</span> · Siège :{' '}
           <span className="fill">[À COMPLÉTER]</span> · Contact :{' '}
-          <span className="fill">[À COMPLÉTER]</span>
+          <a href={`mailto:${contact.email}`}>{contact.email}</a>
         </p>
 
         <h2>Hébergeur</h2>

@@ -150,6 +150,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     const created = await prisma.$transaction(async (tx) => {
       const reference = await generateReference(tx);
+      // Billed amount = the category's price in force, which the back-office
+      // Tarifs screen keeps in Categorie.tarifDepart (single source of truth).
+      // Multi-spécialités extras stay in montantSupplement, set by staff.
+      const tarif = await tx.categorie.findUnique({
+        where: { id: targetCategorieId },
+        select: { tarifDepart: true },
+      });
       return tx.dossier.create({
         data: {
           reference,
@@ -161,6 +168,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           ecoleId: targetEcoleId,
           categorieId: targetCategorieId,
           ...(targetFiliereId ? { filiereId: targetFiliereId } : {}),
+          ...(tarif?.tarifDepart != null ? { montant: tarif.tarifDepart } : {}),
         },
       });
     });

@@ -103,6 +103,22 @@ describe('POST /api/dossiers', () => {
     });
   });
 
+  it("bills the category's price in force (Tarifs screen → Categorie.tarifDepart)", async () => {
+    prismaMock.categorie.findUnique.mockResolvedValueOnce({ tarifDepart: 45000 } as never);
+    prismaMock.dossier.create.mockResolvedValueOnce({
+      id: 'dos_2',
+      reference: 'EB-202609-001',
+    } as never);
+    prismaMock.dossier.update.mockResolvedValueOnce({} as never);
+
+    const res = await POST(makeReq(makeForm()));
+
+    expect(res.status).toBe(201);
+    expect(prismaMock.dossier.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ categorieId: CATEGORIE_FSS_DES_ID, montant: 45000 }),
+    });
+  });
+
   it('rejects an invalid WhatsApp format with 400 VALIDATION_FAILED', async () => {
     const res = await POST(makeReq(makeForm({ whatsapp: '0197000000' })));
     expect(res.status).toBe(400);

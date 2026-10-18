@@ -3,8 +3,12 @@
 // lettre depuis docs/design-reference/educbenin-prototype.html. Les champs
 // "[À COMPLÉTER]" et la mention "(proposition à valider)" sont des points
 // réels non tranchés côté client — à ne pas combler par extrapolation.
+// Seuls les points de contact sont branchés : l'e-mail des Coordonnées du
+// site (back-office).
+export const dynamic = 'force-dynamic';
 
 import type { Metadata } from 'next';
+import { cachedGetContactSettings } from '@/lib/server/public-cache';
 import { PublicNav } from '@/components/public/PublicNav';
 import { PublicBottomNav } from '@/components/public/PublicBottomNav';
 
@@ -13,7 +17,9 @@ export const metadata: Metadata = {
   alternates: { canonical: '/confidentialite' },
 };
 
-export default function ConfidentialitePage() {
+export default async function ConfidentialitePage() {
+  const contact = await cachedGetContactSettings();
+  const mail = <a href={`mailto:${contact.email}`}>{contact.email}</a>;
   return (
     <div className="prod">
       <PublicNav active="confidentialite" />
@@ -28,8 +34,7 @@ export default function ConfidentialitePage() {
 
         <h2>Responsable de traitement</h2>
         <p>
-          <span className="fill">[À COMPLÉTER]</span>, joignable à{' '}
-          <span className="fill">[À COMPLÉTER]</span>.
+          <span className="fill">[À COMPLÉTER]</span>, joignable à {mail}.
         </p>
 
         <h2>Données collectées</h2>
@@ -59,8 +64,8 @@ export default function ConfidentialitePage() {
         <h2>Vos droits</h2>
         <p>
           Accès, rectification, opposition, effacement, portabilité et réparation, exercés auprès de{' '}
-          <span className="fill">[À COMPLÉTER]</span>. Réclamation possible auprès de
-          l&rsquo;Autorité de Protection des Données Personnelles (APDP) du Bénin.
+          {mail}. Réclamation possible auprès de l&rsquo;Autorité de Protection des Données
+          Personnelles (APDP) du Bénin.
         </p>
       </div>
     </div>

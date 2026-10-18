@@ -26,9 +26,33 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockRequireAdmin.mockResolvedValue(adminCtx);
   mockRateLimit.mockResolvedValue(null);
+  // Finance queries (6-month window + open dossiers) default to no rows.
+  prismaMock.dossier.findMany.mockResolvedValue([] as never);
 });
 
 describe('GET /api/admin/dossiers/summary', () => {
+  it('returns real finance figures computed from dossier payment fields', async () => {
+    vi.mocked(prismaMock.dossier.groupBy).mockResolvedValueOnce([] as never);
+    prismaMock.dossier.findMany.mockResolvedValueOnce([] as never); // enAttente
+    prismaMock.dossier.findMany.mockResolvedValueOnce([] as never); // recent window
+    const row = {
+      stage: 2,
+      montant: 50000,
+      montantSupplement: null,
+      paye: 20000,
+      moyen: 'Mobile Money',
+      createdAt: new Date(),
+    };
+    prismaMock.dossier.findMany.mockResolvedValueOnce([row] as never); // finance window
+    prismaMock.dossier.findMany.mockResolvedValueOnce([row] as never); // open dossiers
+
+    const res = await GET(makeReq());
+    const body = (await res.json()) as {
+      finance: { totalFacture: number; totalEncaisse: number; reste: number };
+    };
+    expect(body.finance).toMatchObject({ totalFacture: 50000, totalEncaisse: 20000, reste: 30000 });
+  });
+
   it('returns KPI counts for all 6 stages, defaulting missing stages to 0', async () => {
     vi.mocked(prismaMock.dossier.groupBy).mockResolvedValueOnce([
       { stage: 1, _count: { _all: 24 } },

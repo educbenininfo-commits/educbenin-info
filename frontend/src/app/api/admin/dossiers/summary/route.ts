@@ -5,6 +5,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { requireAdmin } from '@/lib/server/middleware';
 import { enforceAdminRateLimit } from '@/lib/server/middleware/rate-limit-by-userid';
 import { prisma } from '@/lib/server/prisma';
+import { computeFinance, financeWindowStart } from '@/lib/server/dossiers/finance';
 
 const ACTIVITY_WINDOW = 50;
 const ACTIVITY_LIMIT = 10;
@@ -24,9 +25,18 @@ export async function GET(_req: NextRequest): Promise<NextResponse> {
   const limited = await enforceAdminRateLimit(auth.admin.id);
   if (limited) return limited;
 
-  const fiveDaysAgo = new Date(Date.now() - STALE_THRESHOLD_MS);
+  const now = new Date();
+  const fiveDaysAgo = new Date(now.getTime() - STALE_THRESHOLD_MS);
+  const financeSelect = {
+    stage: true,
+    montant: true,
+    montantSupplement: true,
+    paye: true,
+    moyen: true,
+    createdAt: true,
+  } as const;
 
-  const [grouped, enAttente, recentWindow] = await Promise.all([
+  const [grouped, enAttente, recentWindow, financeWindow, financeOpen] = await Promise.all([
     prisma.dossier.groupBy({ by: ['stage'], _count: { _all: true } }),
     prisma.dossier.findMany({
       where: { stage: { gte: 1, lte: 4 }, stageChangedAt: { lt: fiveDaysAgo } },
@@ -50,6 +60,14 @@ export async function GET(_req: NextRequest): Promise<NextResponse> {
         authSubmittedAt: true,
         stageChangedAt: true,
       },
+    }),
+    prisma.dossier.findMany({
+      where: { createdAt: { gte: financeWindowStart(now) } },
+      select: financeSelect,
+    }),
+    prisma.dossier.findMany({
+      where: { stage: { gte: 1, lte: 4 } },
+      select: financeSelect,
     }),
   ]);
 
@@ -89,5 +107,6 @@ export async function GET(_req: NextRequest): Promise<NextResponse> {
     kpis,
     enAttente,
     activiteRecente: events.slice(0, ACTIVITY_LIMIT),
+    finance: computeFinance(financeWindow, financeOpen, now),
   });
 }

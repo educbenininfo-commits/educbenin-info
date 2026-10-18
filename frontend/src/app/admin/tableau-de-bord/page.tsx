@@ -6,8 +6,9 @@
 // récente" are now real (see Task 24 of
 // docs/superpowers/plans/2026-09-03-dossiers-backend.md for why this page
 // is a client component rather than the spec's original server-component
-// suggestion). #kpiBlockFinance and the chart/payment-breakdown panels stay
-// example data per spec §2/§10 — no financial ledger exists yet.
+// suggestion). #kpiBlockFinance and the chart/payment-breakdown panels are
+// computed from each dossier's payment fields (lib/server/dossiers/finance.ts);
+// the spec's figures (§2/§10) were example values only.
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
@@ -64,6 +65,7 @@ interface SummaryResponse {
   kpis: Record<string, number>;
   enAttente: EnAttenteRow[];
   activiteRecente: ActivityEvent[];
+  finance?: FinanceSummary;
 }
 
 const KPI_DEFS: { key: string; l: string; icon: LucideIcon; chip: string }[] = [
@@ -75,17 +77,22 @@ const KPI_DEFS: { key: string; l: string; icon: LucideIcon; chip: string }[] = [
   { key: '0', l: 'Rejetés', icon: FileX2, chip: 'danger' },
 ];
 
-const FIN_FACTURE = [1250000, 1400000, 1600000, 1800000, 2100000, 2450000];
-const FIN_ENCAISSE = [1100000, 1300000, 1450000, 1600000, 1850000, 2000000];
-const totalFacture = FIN_FACTURE.reduce((a, b) => a + b, 0);
-const totalEncaisse = FIN_ENCAISSE.reduce((a, b) => a + b, 0);
-const reste = totalFacture - totalEncaisse;
+// Suivi financier — computed server-side from each dossier's payment fields
+// (lib/server/dossiers/finance.ts), returned by /api/admin/dossiers/summary.
+interface FinanceSummary {
+  totalFacture: number;
+  totalEncaisse: number;
+  reste: number;
+  months: { label: string; facture: number; encaisse: number }[];
+  moyens: { label: string; montant: number; pct: number }[];
+}
 
-const FIN_MOYENS: { label: string; pct: number; color: string }[] = [
-  { label: 'Mobile Money', pct: 62, color: '#1d4ed8' },
-  { label: 'Espèces', pct: 23, color: '#d97706' },
-  { label: 'Virement', pct: 15, color: '#94a3b8' },
-];
+const MOYEN_COLORS: Record<string, string> = {
+  'Mobile Money': '#1d4ed8',
+  Espèces: '#d97706',
+  Virement: '#94a3b8',
+  'Non renseigné': '#cbd5e1',
+};
 
 interface DossiersResponse {
   items: DossierListItem[];
@@ -145,6 +152,8 @@ export default function TableauDeBordPage() {
   // cache entries DossiersList/RejectedDossiersList use, so searching from
   // here after having just visited Dossiers (or vice versa) is instant.
   const { data: summary, loading } = useApi<SummaryResponse>('/api/admin/dossiers/summary');
+  const finance = summary?.finance;
+  const money = (n: number | undefined) => (n === undefined ? '—' : fmtF2(n));
 
   // Global search — the Tableau de bord's search box is the one entry point
   // that searches EVERY back-office section at once (à la recherche
@@ -404,7 +413,7 @@ export default function TableauDeBordPage() {
                   <Banknote />
                 </span>
               </div>
-              <div className="val">{fmtF2(totalFacture)}</div>
+              <div className="val">{money(finance?.totalFacture)}</div>
             </div>
             <div className="stat-card">
               <div className="top">
@@ -413,7 +422,7 @@ export default function TableauDeBordPage() {
                   <TrendingUp />
                 </span>
               </div>
-              <div className="val">{fmtF2(totalEncaisse)}</div>
+              <div className="val">{money(finance?.totalEncaisse)}</div>
             </div>
             <div className="stat-card">
               <div className="top">
@@ -422,7 +431,7 @@ export default function TableauDeBordPage() {
                   <Wallet />
                 </span>
               </div>
-              <div className="val">{fmtF2(reste)}</div>
+              <div className="val">{money(finance?.reste)}</div>
             </div>
           </div>
         </div>
@@ -437,7 +446,7 @@ export default function TableauDeBordPage() {
             Évolution des encaissements
           </h3>
           <div className="sub">Facturé vs. encaissé, 6 derniers mois — survolez pour le détail</div>
-          <FinanceChart />
+          {finance ? <FinanceChart months={finance.months} /> : <p className="hint">Chargement…</p>}
         </div>
         <div className="panel">
           <h3>
@@ -448,11 +457,11 @@ export default function TableauDeBordPage() {
           </h3>
           <div className="sub">Part de l&rsquo;encaissé, 6 derniers mois</div>
           <div>
-            {FIN_MOYENS.map((m) => (
+            {(finance?.moyens ?? []).map((m) => (
               <div key={m.label} className="paybar-row">
                 <div className="paybar-top">
                   <span className="lbl">
-                    <span className="sw" style={{ background: m.color }} />
+                    <span className="sw" style={{ background: MOYEN_COLORS[m.label] }} />
                     {m.label}
                   </span>
                   <span className="val">{m.pct}%</span>
@@ -460,7 +469,7 @@ export default function TableauDeBordPage() {
                 <div className="paybar-track">
                   <div
                     className="paybar-fill"
-                    style={{ width: `${m.pct}%`, background: m.color }}
+                    style={{ width: `${m.pct}%`, background: MOYEN_COLORS[m.label] }}
                   />
                 </div>
               </div>

@@ -4,7 +4,13 @@
 // des articles (1,2,3,5,6,8,10 — pas de 4,7,9) est volontaire, pas une
 // erreur de transcription — voir DESIGN-SPEC.md.
 
+// Article 6's price is the D.E.S. tarif in force (back-office Tarifs screen,
+// single source of truth) — never a hardcoded amount.
+export const dynamic = 'force-dynamic';
+
 import type { Metadata } from 'next';
+import { cachedGetCategorieById } from '@/lib/server/public-cache';
+import { CATEGORIE_FSS_DES_ID } from '@/lib/server/schools/reference-ids';
 import { PublicNav } from '@/components/public/PublicNav';
 import { PublicBottomNav } from '@/components/public/PublicBottomNav';
 
@@ -13,7 +19,10 @@ export const metadata: Metadata = {
   alternates: { canonical: '/cgu-cgv' },
 };
 
-export default function CguCgvPage() {
+export default async function CguCgvPage() {
+  const des = await cachedGetCategorieById(CATEGORIE_FSS_DES_ID);
+  const prixDes = des?.tarifDepart;
+
   return (
     <div className="prod">
       <PublicNav active="cgv" />
@@ -55,9 +64,9 @@ export default function CguCgvPage() {
 
         <h2>Article 6 — Tarifs et paiement</h2>
         <p>
-          50 000 FCFA pour un dossier portant sur une seule spécialité (voir grille tarifaire en
-          vigueur). Aucun paiement en ligne : règlement hors plateforme, modalités communiquées par
-          WhatsApp.
+          {prixDes != null ? `${prixDes.toLocaleString('fr-FR')} FCFA` : 'Le tarif en vigueur'} pour
+          un dossier portant sur une seule spécialité (voir grille tarifaire en vigueur). Aucun
+          paiement en ligne : règlement hors plateforme, modalités communiquées par WhatsApp.
         </p>
 
         <h2>Article 8 — Responsabilité</h2>
