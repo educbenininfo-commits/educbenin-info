@@ -250,20 +250,27 @@ export function findCountry(iso2: string | undefined | null): Country | undefine
   return COUNTRIES.find((c) => c.iso2 === iso2.toUpperCase());
 }
 
+/** Case- and accent-insensitive match on country name, ISO code or dial code. */
+export function countryMatches(c: Country, query: string): boolean {
+  const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const q = norm(query.trim()).replace(/^\+/, '');
+  if (!q) return true;
+  return norm(c.nameFr).includes(q) || c.iso2.toLowerCase() === q || c.dialCode.startsWith(q);
+}
+
 /**
- * Best-effort default country from the browser's locale (e.g. "fr-BJ" →
- * "BJ"). Most browsers report a bare language tag with no region
- * ("fr"), so this falls back to Bénin — a reasonable default for a
- * Bénin-based service, not a security-relevant guess; the field always
- * stays editable.
+ * Best-effort default country for phone fields: the visitor's IP country,
+ * falling back to Bénin (local dev, unknown country). Not a security-
+ * relevant guess; the field always stays editable.
  */
 export function detectDefaultCountry(): string {
-  if (typeof navigator === 'undefined') return 'BJ';
-  const locales =
-    navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language];
-  for (const locale of locales) {
-    const region = locale?.split('-')[1]?.toUpperCase();
-    if (region && findCountry(region)) return region;
+  // Country the visitor is actually in, resolved from their IP by Vercel
+  // and handed over as the `eb-country` cookie (see middleware.ts). The
+  // browser language is NOT used: a French-language browser in Cotonou
+  // reports "fr-FR" and would wrongly preselect France.
+  if (typeof document !== 'undefined') {
+    const match = /(?:^|;\s*)eb-country=([A-Z]{2})/.exec(document.cookie);
+    if (match?.[1] && findCountry(match[1])) return match[1];
   }
   return 'BJ';
 }

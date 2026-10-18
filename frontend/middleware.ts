@@ -49,7 +49,28 @@ function isAuthedPath(pathname: string): boolean {
   return AUTHED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
+// 3) Visitor country for phone fields: Vercel resolves the visitor's
+//    country from their IP (x-vercel-ip-country). It's handed to the client
+//    as a readable cookie so CountryPhoneInput can preselect the country the
+//    person is actually in (browser language is a poor proxy: a French-
+//    language browser in Cotonou reports "France"). Not security-relevant.
+const COUNTRY_COOKIE = 'eb-country';
+
 export async function middleware(req: NextRequest): Promise<NextResponse> {
+  const res = await route(req);
+  const country = req.headers.get('x-vercel-ip-country');
+  if (country && /^[A-Z]{2}$/.test(country) && req.cookies.get(COUNTRY_COOKIE)?.value !== country) {
+    res.cookies.set(COUNTRY_COOKIE, country, {
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+    });
+  }
+  return res;
+}
+
+async function route(req: NextRequest): Promise<NextResponse> {
   const { pathname, search } = req.nextUrl;
 
   if (process.env.NODE_ENV === 'production' && !isMaintenanceExempt(pathname)) {

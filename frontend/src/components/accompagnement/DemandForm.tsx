@@ -49,9 +49,10 @@ export function DemandForm() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // Step 1 — la toute première spécialité est pré-sélectionnée au chargement
-  // (comportement fonctionnel explicite du prototype, pas une donnée d'exemple).
-  const [selectedCodes, setSelectedCodes] = useState<string[]>([SPECIALTIES[0]!.code]);
+  // Step 1 — aucune spécialité pré-cochée : le candidat choisit lui-même
+  // (une case cochée d'office risquait de lui faire déposer 2 spécialités
+  // au lieu d'une). Au moins une reste obligatoire (goToStep2).
+  const [selectedCodes, setSelectedCodes] = useState<string[]>([]);
   const [step1Error, setStep1Error] = useState<string | null>(null);
 
   // Step 2
@@ -63,7 +64,7 @@ export function DemandForm() {
 
   // Step 3
   const [file, setFile] = useState<File | null>(null);
-  const [checks, setChecks] = useState([false, false, false, false]);
+  const [checks, setChecks] = useState([false, false]);
   const [step3Errors, setStep3Errors] = useState<{
     file: string | undefined;
     checks: string | undefined;
@@ -113,7 +114,7 @@ export function DemandForm() {
       file: file ? undefined : 'Déposez votre dossier au format PDF.',
       checks: checks.every(Boolean)
         ? undefined
-        : 'Les 4 cases doivent être cochées pour continuer.',
+        : 'Les 2 cases doivent être cochées pour continuer.',
     };
     setStep3Errors(errors);
     if (errors.file || errors.checks) return;
@@ -127,10 +128,12 @@ export function DemandForm() {
       form.append('prenom', prenom.trim());
       form.append('whatsapp', whatsapp.trim());
       form.append('nationalite', nationalite);
+      // 2 boxes shown, the 4 server-side consents kept: box 1 = CGU/CGV +
+      // données personnelles, box 2 = exactitude des pièces + indépendance.
       form.append('consent1', String(checks[0]));
-      form.append('consent2', String(checks[1]));
-      form.append('consent3', String(checks[2]));
-      form.append('consent4', String(checks[3]));
+      form.append('consent2', String(checks[0]));
+      form.append('consent3', String(checks[1]));
+      form.append('consent4', String(checks[1]));
       form.append('pdf', file!);
 
       const res = await createDossier(form);
@@ -309,10 +312,8 @@ export function DemandForm() {
           </div>
           <div style={{ marginTop: 18 }}>
             {[
-              "J'ai pris connaissance des Conditions Générales d'Utilisation et de Vente et je les accepte.",
-              'Je consens au traitement de mes données personnelles selon la Politique de confidentialité.',
-              "Je certifie l'exactitude des informations fournies et l'authenticité des pièces jointes.",
-              "J'ai compris qu'Educ Bénin est indépendant de la FSS et de l'UAC.",
+              "J'accepte les Conditions Générales d'Utilisation et de Vente ainsi que le traitement de mes données personnelles selon la Politique de confidentialité.",
+              `Je certifie l'exactitude des informations fournies et l'authenticité des pièces jointes, et j'ai compris qu'Educ Bénin est indépendant de la FSS et de l'UAC.`,
             ].map((label, i) => (
               <label key={label} className="check-row">
                 <input type="checkbox" checked={checks[i]} onChange={() => toggleCheck(i)} />

@@ -20,21 +20,24 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AsYouType, getExampleNumber, parsePhoneNumberFromString } from 'libphonenumber-js';
 import examples from 'libphonenumber-js/examples.mobile.json';
 import * as FlagIcons from 'country-flag-icons/react/3x2';
-import { COUNTRIES, detectDefaultCountry, findCountry } from '@/lib/countries';
+import { COUNTRIES, countryMatches, detectDefaultCountry, findCountry } from '@/lib/countries';
 
 function Flag({ iso2 }: { iso2: string }) {
   const Icon = FlagIcons[iso2.toUpperCase() as keyof typeof FlagIcons];
   return Icon ? <Icon className="flag-icon" /> : <span className="flag-icon" />;
 }
 
-function splitE164(value: string): { iso2: string; national: string } {
+function splitE164(
+  value: string,
+  fallbackIso2 = detectDefaultCountry(),
+): { iso2: string; national: string } {
   if (value) {
     const parsed = parsePhoneNumberFromString(value);
     if (parsed?.country) {
       return { iso2: parsed.country, national: parsed.formatNational() };
     }
   }
-  return { iso2: detectDefaultCountry(), national: '' };
+  return { iso2: fallbackIso2, national: '' };
 }
 
 function exampleFor(iso2: string): string {
@@ -55,9 +58,14 @@ export function CountryPhoneInput({
   id?: string;
   required?: boolean;
 }) {
-  const [iso2, setIso2] = useState(() => splitE164(value).iso2);
-  const [national, setNational] = useState(() => splitE164(value).national);
+  // Server render and first client render both start on Bénin (the visitor's
+  // country cookie isn't readable during SSR); the mount effect below then
+  // switches an empty field to the visitor's actual country.
+  const [iso2, setIso2] = useState(() => splitE164(value, 'BJ').iso2);
+  const [national, setNational] = useState(() => splitE164(value, 'BJ').national);
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const searchRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   // The E.164 string we ourselves last emitted via onChange. A controlled
   // parent echoes it straight back down as `value` on the next render —
@@ -81,7 +89,16 @@ export function CountryPhoneInput({
   }, [value]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!value) setIso2(detectDefaultCountry());
+    // Mount only: never override a country the person already picked.
+  }, []);
+
+  useEffect(() => {
+    if (!open) {
+      setQuery('');
+      return;
+    }
+    searchRef.current?.focus();
     function onPointerDown(e: MouseEvent) {
       if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
     }
@@ -111,6 +128,7 @@ export function CountryPhoneInput({
   }
 
   const selected = findCountry(iso2);
+  const filtered = useMemo(() => COUNTRIES.filter((c) => countryMatches(c, query)), [query]);
   const placeholder = useMemo(() => {
     const number = exampleFor(iso2);
     return number ? `Ex. ${number}` : 'Numéro';
@@ -132,23 +150,43 @@ export function CountryPhoneInput({
       </button>
 
       {open && (
-        <ul className="phone-input-list" role="listbox">
-          {COUNTRIES.map((c) => (
-            <li key={c.iso2}>
-              <button
-                type="button"
-                role="option"
-                aria-selected={c.iso2 === iso2}
-                className={c.iso2 === iso2 ? 'on' : undefined}
-                onClick={() => selectCountry(c.iso2)}
-              >
-                <Flag iso2={c.iso2} />
-                <span className="name">{c.nameFr}</span>
-                <span className="code">+{c.dialCode}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
+        <div className="phone-input-list">
+          <input
+            ref={searchRef}
+            type="search"
+            className="phone-input-search"
+            placeholder="Rechercher un pays…"
+            aria-label="Rechercher un pays"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') setOpen(false);
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                const first = filtered[0];
+                if (first) selectCountry(first.iso2);
+              }
+            }}
+          />
+          <ul role="listbox">
+            {filtered.map((c) => (
+              <li key={c.iso2}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={c.iso2 === iso2}
+                  className={c.iso2 === iso2 ? 'on' : undefined}
+                  onClick={() => selectCountry(c.iso2)}
+                >
+                  <Flag iso2={c.iso2} />
+                  <span className="name">{c.nameFr}</span>
+                  <span className="code">+{c.dialCode}</span>
+                </button>
+              </li>
+            ))}
+            {filtered.length === 0 && <li className="phone-input-empty">Aucun pays trouvé</li>}
+          </ul>
+        </div>
       )}
 
       <input

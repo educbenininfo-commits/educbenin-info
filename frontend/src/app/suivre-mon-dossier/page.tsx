@@ -34,7 +34,6 @@ export default function SuiviPage() {
           <p>Sans compte : saisissez votre référence de dossier et votre numéro WhatsApp.</p>
         </div>
         <HeroPanel
-          hideOnMobile
           icon={ClipboardCheck}
           title="Exemple de suivi"
           subtitle="Référence EB-XXXXXX-XXX"

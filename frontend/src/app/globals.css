@@ -3913,18 +3913,42 @@ table.dtable tr:last-child td {
   left: 0;
   width: 290px;
   max-width: 90vw;
-  max-height: 260px;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  max-height: 300px;
   margin: 0;
   padding: 6px;
-  list-style: none;
   background: var(--prod-surface);
   border: 1px solid var(--prod-border);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-dropdown);
 }
+.phone-input-list ul {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
 .phone-input-list li {
   margin: 0;
+}
+.phone-input .phone-input-search {
+  flex: 0 0 auto;
+  border: 1px solid var(--prod-border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
+  background: var(--prod-surface);
+}
+.phone-input .phone-input-search:focus {
+  border-color: var(--prod-primary);
+}
+.phone-input-empty {
+  padding: 10px;
+  font-size: 13px;
+  color: var(--prod-ink-faint);
 }
 .phone-input-list button {
   display: flex;

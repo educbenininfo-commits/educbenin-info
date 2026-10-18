@@ -10,7 +10,7 @@ import { UploadHint } from '@/components/forms/UploadHint';
 // multi-school extension (Licence/Master/Cycle I/Cycle II, …) — the
 // mechanically identical part of screens 06-09: single-filière selection
 // (skipped when there's only one option, e.g. INMeS Cycle I) → Nom/Prénom
-// /WhatsApp → PDF + 4 consent checkboxes → submit → confirmation panel.
+// /WhatsApp → PDF + 2 consent checkboxes (covering the 4 consents) → submit → confirmation panel.
 // Posts to the same POST /api/dossiers route as the legacy D.E.S. form
 // (components/accompagnement/DemandForm.tsx, untouched — its own
 // multi-specialty chip step and Nationalité field are specific to that
@@ -83,7 +83,7 @@ export function CategoryDemandForm({
   const [infoErrors, setInfoErrors] = useState<InfoErrors>({});
 
   const [file, setFile] = useState<File | null>(null);
-  const [checks, setChecks] = useState([false, false, false, false]);
+  const [checks, setChecks] = useState([false, false]);
   const [filesErrors, setFilesErrors] = useState<{
     file: string | undefined;
     checks: string | undefined;
@@ -129,7 +129,7 @@ export function CategoryDemandForm({
       file: file ? undefined : 'Déposez votre dossier au format PDF.',
       checks: checks.every(Boolean)
         ? undefined
-        : 'Les 4 cases doivent être cochées pour continuer.',
+        : 'Les 2 cases doivent être cochées pour continuer.',
     };
     setFilesErrors(errors);
     if (errors.file || errors.checks || !selectedFiliereId) return;
@@ -143,10 +143,12 @@ export function CategoryDemandForm({
       form.append('whatsapp', whatsapp.trim());
       form.append('categorieId', categorieId);
       form.append('filiereId', selectedFiliereId);
+      // 2 boxes shown, the 4 server-side consents kept: box 1 = CGU/CGV +
+      // données personnelles, box 2 = exactitude des pièces + indépendance.
       form.append('consent1', String(checks[0]));
-      form.append('consent2', String(checks[1]));
-      form.append('consent3', String(checks[2]));
-      form.append('consent4', String(checks[3]));
+      form.append('consent2', String(checks[0]));
+      form.append('consent3', String(checks[1]));
+      form.append('consent4', String(checks[1]));
       form.append('pdf', file!);
 
       const res = await createDossier(form);
@@ -323,10 +325,8 @@ export function CategoryDemandForm({
           </div>
           <div style={{ marginTop: 18 }}>
             {[
-              "J'ai pris connaissance des Conditions Générales d'Utilisation et de Vente et je les accepte.",
-              'Je consens au traitement de mes données personnelles selon la Politique de confidentialité.',
-              "Je certifie l'exactitude des informations fournies et l'authenticité des pièces jointes.",
-              `J'ai compris qu'Educ Bénin est indépendant de ${independenceSuffix} et de l'UAC.`,
+              "J'accepte les Conditions Générales d'Utilisation et de Vente ainsi que le traitement de mes données personnelles selon la Politique de confidentialité.",
+              `Je certifie l'exactitude des informations fournies et l'authenticité des pièces jointes, et j'ai compris qu'Educ Bénin est indépendant de ${independenceSuffix} et de l'UAC.`,
             ].map((label, i) => (
               <label key={label} className="check-row">
                 <input type="checkbox" checked={checks[i]} onChange={() => toggleCheck(i)} />

@@ -31,7 +31,7 @@ export function HeroPanel({
   rows,
   variant = 'list',
   floats = [],
-  hideOnMobile = false,
+  hideOnMobile = true,
 }: {
   icon: LucideIcon;
   title: string;
@@ -39,7 +39,11 @@ export function HeroPanel({
   rows: HeroPanelRow[];
   variant?: 'list' | 'steps' | 'chat';
   floats?: HeroPanelFloat[];
-  /** Desktop/tablet only — hidden under 760px. */
+  /**
+   * Hidden under 760px by default: on a phone the illustration stacks under
+   * the hero text and reads as real content (confusing). The homepage has
+   * its own hero visual and doesn't use this component.
+   */
   hideOnMobile?: boolean;
 }) {
   return (
