@@ -8,6 +8,8 @@ import { CountrySelect } from '@/components/forms/CountrySelect';
 import { CountryPhoneInput } from '@/components/forms/CountryPhoneInput';
 import { UploadHint } from '@/components/forms/UploadHint';
 import { detectDefaultCountry } from '@/lib/countries';
+import { dossierPrice } from '@/lib/dossier-pricing';
+import { fmtF2 } from '@/lib/format';
 
 // Multi-step "Faire ma demande" form — DESIGN-SPEC.md section "2. Accompagnement
 // & demande" + educbenin-prototype.html (#stepper / .form-step / #confirmPanel).
@@ -42,7 +44,47 @@ function submitErrorMessage(err: unknown): string {
 
 type Step2Errors = { nom?: string; prenom?: string; whatsapp?: string };
 
-export function DemandForm() {
+// Live cost of the dossier as specialties are (un)checked — same
+// dossierPrice() the server uses to bill it, fed by the Tarifs screen.
+function PriceSummary({
+  count,
+  tarifDepart,
+  supplementSpecialite,
+}: {
+  count: number;
+  tarifDepart: number | null;
+  supplementSpecialite: number | null;
+}) {
+  if (count < 1 || tarifDepart == null) return null;
+  const price = dossierPrice(tarifDepart, supplementSpecialite, count);
+  return (
+    <div
+      className="price-box"
+      style={{ marginTop: 16, flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}
+      aria-live="polite"
+    >
+      <div style={{ fontSize: 12.5, color: 'var(--prod-ink-muted)' }}>
+        Total de votre dossier ({count} spécialité{count > 1 ? 's' : ''})
+      </div>
+      <div className="amt">{fmtF2(price.total)}</div>
+      <div style={{ fontSize: 11.5, color: 'var(--prod-ink-faint)' }}>
+        {price.supplement > 0
+          ? `${fmtF2(price.base)} pour la 1ʳᵉ spécialité + ${count - 1} × ${fmtF2(supplementSpecialite ?? 0)} pour les suivantes.`
+          : supplementSpecialite
+            ? `+ ${fmtF2(supplementSpecialite)} par spécialité supplémentaire.`
+            : 'Montant pour une spécialité.'}
+      </div>
+    </div>
+  );
+}
+
+export function DemandForm({
+  tarifDepart = null,
+  supplementSpecialite = null,
+}: {
+  tarifDepart?: number | null;
+  supplementSpecialite?: number | null;
+} = {}) {
   const [step, setStep] = useState(1);
   const [submitted, setSubmitted] = useState(false);
   const [reference, setReference] = useState('');
@@ -208,6 +250,11 @@ export function DemandForm() {
               </span>
             </div>
           )}
+          <PriceSummary
+            count={selectedCodes.length}
+            tarifDepart={tarifDepart}
+            supplementSpecialite={supplementSpecialite}
+          />
           <div style={{ marginTop: 22, display: 'flex', justifyContent: 'flex-end' }}>
             <button type="button" className="btn btn-primary" onClick={goToStep2}>
               Continuer
@@ -310,6 +357,11 @@ export function DemandForm() {
               </span>
             )}
           </div>
+          <PriceSummary
+            count={selectedCodes.length}
+            tarifDepart={tarifDepart}
+            supplementSpecialite={supplementSpecialite}
+          />
           <div style={{ marginTop: 18 }}>
             {[
               "J'accepte les Conditions Générales d'Utilisation et de Vente ainsi que le traitement de mes données personnelles selon la Politique de confidentialité.",

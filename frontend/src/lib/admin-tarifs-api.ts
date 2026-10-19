@@ -18,6 +18,7 @@ export interface TarifBaremeRow {
   montants: Record<string, number> | null;
   montantUnique: number | null;
   regleSpecialitesAdditionnelles: string | null;
+  supplementSpecialite: number | null;
   effectiveFrom: string;
   createdByLabel: string;
   statut: 'Actif' | 'Archivé';
@@ -27,6 +28,8 @@ export interface TarifsResponse {
   categories: AdminTarifCategorie[];
   active: TarifBaremeRow | null;
   history: TarifBaremeRow[];
+  /** FCFA per additional D.E.S. specialty currently applied on the site. */
+  supplementSpecialite: number | null;
 }
 
 export function fetchTarifs(): Promise<TarifsResponse> {
@@ -38,6 +41,7 @@ export function saveTarifBareme(data: {
   montants?: Record<string, number>;
   montantUnique?: number;
   regleSpecialitesAdditionnelles?: string;
+  supplementSpecialite?: number;
 }): Promise<{ id: string }> {
   return api('/api/admin/tarifs', { method: 'POST', body: data });
 }

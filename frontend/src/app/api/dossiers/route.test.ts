@@ -119,6 +119,25 @@ describe('POST /api/dossiers', () => {
     });
   });
 
+  it('adds the per-specialty supplement for each D.E.S. specialty after the first', async () => {
+    prismaMock.categorie.findUnique.mockResolvedValueOnce({
+      tarifDepart: 50000,
+      supplementSpecialite: 25000,
+    } as never);
+    prismaMock.dossier.create.mockResolvedValueOnce({
+      id: 'dos_3',
+      reference: 'EB-202609-001',
+    } as never);
+    prismaMock.dossier.update.mockResolvedValueOnce({} as never);
+
+    const res = await POST(makeReq(makeForm({ specialtyCodes: ['PED', 'CAR', 'BIO'] })));
+
+    expect(res.status).toBe(201);
+    expect(prismaMock.dossier.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ montant: 50000, montantSupplement: 50000 }),
+    });
+  });
+
   it('rejects an invalid WhatsApp format with 400 VALIDATION_FAILED', async () => {
     const res = await POST(makeReq(makeForm({ whatsapp: '0197000000' })));
     expect(res.status).toBe(400);

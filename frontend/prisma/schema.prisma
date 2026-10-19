@@ -602,7 +602,10 @@ model Categorie {
   // multi-écoles") — the back-office Tarifs screen (prompt
   // 13-backoffice-tarifs-personnalisables.md) is expected to expose an
   // editing UI for this field; nothing here builds that UI yet.
-  tarifDepart Int?
+  tarifDepart          Int?
+  // FCFA added per specialty beyond the first (D.E.S. multi-spécialités).
+  // Kept in sync by the back-office Tarifs screen, like tarifDepart.
+  supplementSpecialite Int?
 
   // "Pièces à fournir" list shown on this Categorie's demand-form page
   // (fss/des, fss/licence, fss/medecine-pharmacie, fss/master,
@@ -617,7 +620,7 @@ model Categorie {
   // Small italic legend under the "Pièces à fournir" heading, e.g.
   // "d'après le communiqué N°725/UAC/FSS du 8 avril 2026". Null when a
   // category has none (e.g. D.E.S.).
-  piecesLegend String?
+  piecesLegend   String?
 
   filieres Filiere[]
   dossiers Dossier[]
@@ -750,6 +753,9 @@ model TarifBareme {
 
   // Free text, e.g. "+ 25 000 FCFA / spécialité supplémentaire" — D.E.S. only.
   regleSpecialitesAdditionnelles String?
+  // FCFA per additional D.E.S. specialty (2nd, 3rd, …) — copied onto
+  // Categorie.supplementSpecialite of the D.E.S. category on save.
+  supplementSpecialite           Int?
 
   effectiveFrom   DateTime @default(now())
   createdByUserId String

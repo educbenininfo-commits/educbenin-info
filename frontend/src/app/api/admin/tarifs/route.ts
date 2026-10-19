@@ -15,6 +15,7 @@ import { enforceAdminRateLimit } from '@/lib/server/middleware/rate-limit-by-use
 import { prisma } from '@/lib/server/prisma';
 import { logAdminAction } from '@/lib/server/admin/audit';
 import { revalidatePublicContent } from '@/lib/server/public-cache';
+import { CATEGORIE_FSS_DES_ID } from '@/lib/server/schools/reference-ids';
 
 export async function GET(): Promise<NextResponse> {
   const auth = await requireModulePermission(null, 'tarifs', 'read');
@@ -31,6 +32,7 @@ export async function GET(): Promise<NextResponse> {
         libelle: true,
         libelleCourt: true,
         tarifDepart: true,
+        supplementSpecialite: true,
         ecole: { select: { nom: true } },
       },
     }),
@@ -42,6 +44,7 @@ export async function GET(): Promise<NextResponse> {
         montants: true,
         montantUnique: true,
         regleSpecialitesAdditionnelles: true,
+        supplementSpecialite: true,
         effectiveFrom: true,
         createdBy: { select: { name: true, email: true } },
       },
@@ -54,6 +57,7 @@ export async function GET(): Promise<NextResponse> {
     montants: b.montants,
     montantUnique: b.montantUnique,
     regleSpecialitesAdditionnelles: b.regleSpecialitesAdditionnelles,
+    supplementSpecialite: b.supplementSpecialite,
     effectiveFrom: b.effectiveFrom.toISOString(),
     createdByLabel: b.createdBy.name ?? b.createdBy.email,
     statut: i === 0 ? 'Actif' : 'Archivé',
@@ -67,6 +71,9 @@ export async function GET(): Promise<NextResponse> {
       libelleCourt: c.libelleCourt,
       tarifDepart: c.tarifDepart,
     })),
+    // Supplement per additional D.E.S. specialty currently applied on the site.
+    supplementSpecialite:
+      categories.find((c) => c.id === CATEGORIE_FSS_DES_ID)?.supplementSpecialite ?? null,
     active: history[0] ?? null,
     history,
   });
@@ -78,6 +85,8 @@ const CreateBody = z
     montants: z.record(z.string(), z.number().int().positive()).optional(),
     montantUnique: z.number().int().positive().optional(),
     regleSpecialitesAdditionnelles: z.string().trim().max(300).optional(),
+    // FCFA per D.E.S. specialty beyond the first; 0 = no supplement.
+    supplementSpecialite: z.number().int().min(0).optional(),
   })
   .refine(
     (v) =>
@@ -101,7 +110,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (!parsed.success) {
     return NextResponse.json({ error: 'VALIDATION_FAILED' }, { status: 400 });
   }
-  const { mode, montants, montantUnique, regleSpecialitesAdditionnelles } = parsed.data;
+  const { mode, montants, montantUnique, regleSpecialitesAdditionnelles, supplementSpecialite } =
+    parsed.data;
 
   const categories = await prisma.categorie.findMany({ select: { id: true } });
 
@@ -123,6 +133,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       createdBy: { connect: { id: auth.admin.id } },
       montantUnique,
       ...(regleSpecialitesAdditionnelles ? { regleSpecialitesAdditionnelles } : {}),
+      ...(supplementSpecialite !== undefined ? { supplementSpecialite } : {}),
     };
   } else {
     const missingOrEntries = categories.map((c) => ({ id: c.id, montant: montants?.[c.id] }));
@@ -138,6 +149,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       createdBy: { connect: { id: auth.admin.id } },
       montants: montants as Prisma.InputJsonValue,
       ...(regleSpecialitesAdditionnelles ? { regleSpecialitesAdditionnelles } : {}),
+      ...(supplementSpecialite !== undefined ? { supplementSpecialite } : {}),
     };
   }
 
@@ -153,6 +165,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         });
       }
     }
+    if (supplementSpecialite !== undefined) {
+      await tx.categorie.update({
+        where: { id: CATEGORIE_FSS_DES_ID },
+        data: { supplementSpecialite },
+      });
+    }
     return created;
   });
 
@@ -161,7 +179,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     action: 'tarif.update',
     targetType: 'TarifBareme',
     targetId: bareme.id,
-    metadata: { mode, montants, montantUnique, regleSpecialitesAdditionnelles },
+    metadata: {
+      mode,
+      montants,
+      montantUnique,
+      regleSpecialitesAdditionnelles,
+      supplementSpecialite,
+    },
   });
   revalidatePublicContent();
 

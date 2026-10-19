@@ -12,6 +12,7 @@ import { notFound } from 'next/navigation';
 import { PublicNav } from '@/components/public/PublicNav';
 import { PublicBottomNav } from '@/components/public/PublicBottomNav';
 import { DemandForm } from '@/components/accompagnement/DemandForm';
+import { fmtF2 } from '@/lib/format';
 import { CATEGORIE_FSS_DES_ID } from '@/lib/server/schools/reference-ids';
 
 export const metadata: Metadata = {
@@ -69,14 +70,19 @@ export default async function DemandeDesPage() {
               className="price-box"
               style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}
             >
-              <div style={{ fontSize: 12.5, color: 'var(--prod-ink-muted)' }}>À partir de</div>
+              <div style={{ fontSize: 12.5, color: 'var(--prod-ink-muted)' }}>
+                Pour une spécialité
+              </div>
               <div className="amt">
                 {(categorie.tarifDepart ?? 0).toLocaleString('fr-FR')}{' '}
-                <span className="cur">FCFA / spécialité</span>
+                <span className="cur">FCFA</span>
               </div>
-              <div style={{ fontSize: 11.5, color: 'var(--prod-ink-faint)' }}>
-                Tarif multi-spécialités communiqué avant confirmation.
-              </div>
+              {categorie.supplementSpecialite ? (
+                <div style={{ fontSize: 12.5, color: 'var(--prod-ink-muted)' }}>
+                  <strong>+ {fmtF2(categorie.supplementSpecialite)}</strong> par spécialité
+                  supplémentaire, à partir de la 2ᵉ. Le total s&rsquo;affiche dans le formulaire.
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
@@ -86,7 +92,10 @@ export default async function DemandeDesPage() {
         <div className="section pw">
           <h2>Faire ma demande</h2>
           <p className="sub">3 étapes, environ 5 minutes.</p>
-          <DemandForm />
+          <DemandForm
+            tarifDepart={categorie.tarifDepart}
+            supplementSpecialite={categorie.supplementSpecialite}
+          />
         </div>
       </div>
     </div>

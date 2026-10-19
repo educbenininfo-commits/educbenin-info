@@ -126,6 +126,8 @@ export async function getCategorieById(id: string): Promise<
   | (CategorieDetail & {
       ecoleId: string;
       ecoleNom: string;
+      /** FCFA per specialty beyond the first (D.E.S.), from the Tarifs screen. */
+      supplementSpecialite: number | null;
     })
   | null
 > {
@@ -137,6 +139,7 @@ export async function getCategorieById(id: string): Promise<
       typeAdmission: true,
       description: true,
       tarifDepart: true,
+      supplementSpecialite: true,
       piecesAFournir: true,
       piecesLegend: true,
       ecoleId: true,
@@ -167,5 +170,6 @@ export async function getCategorieById(id: string): Promise<
     filieres: categorie.filieres,
     ecoleId: categorie.ecoleId,
     ecoleNom: categorie.ecole.nom,
+    supplementSpecialite: categorie.supplementSpecialite,
   };
 }

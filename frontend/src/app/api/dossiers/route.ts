@@ -17,6 +17,7 @@ import { notifyAdmins } from '@/lib/server/push/send';
 import { log } from '@/lib/server/observability/log';
 import { DOSSIER_CREATED } from '@/lib/notification-types';
 import { ECOLE_FSS_ID, CATEGORIE_FSS_DES_ID } from '@/lib/server/schools/reference-ids';
+import { dossierPrice } from '@/lib/dossier-pricing';
 
 // General E.164 shape ("+" + 7-15 digits) — was hardcoded to Bénin's
 // "+229 XX XX XX XX" with a mandatory space; the candidate-facing form now
@@ -151,12 +152,20 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const created = await prisma.$transaction(async (tx) => {
       const reference = await generateReference(tx);
       // Billed amount = the category's price in force, which the back-office
-      // Tarifs screen keeps in Categorie.tarifDepart (single source of truth).
-      // Multi-spécialités extras stay in montantSupplement, set by staff.
+      // Tarifs screen keeps in Categorie.tarifDepart / supplementSpecialite
+      // (single source of truth): base price for the 1st specialty, plus the
+      // supplement for each additional D.E.S. specialty — the same
+      // dossierPrice() the form uses to show the candidate their total.
+      // Staff can still adjust montantSupplement from the back-office.
       const tarif = await tx.categorie.findUnique({
         where: { id: targetCategorieId },
-        select: { tarifDepart: true },
+        select: { tarifDepart: true, supplementSpecialite: true },
       });
+      const price = dossierPrice(
+        tarif?.tarifDepart,
+        tarif?.supplementSpecialite,
+        finalSpecialtyCodes.length,
+      );
       return tx.dossier.create({
         data: {
           reference,
@@ -169,6 +178,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           categorieId: targetCategorieId,
           ...(targetFiliereId ? { filiereId: targetFiliereId } : {}),
           ...(tarif?.tarifDepart != null ? { montant: tarif.tarifDepart } : {}),
+          ...(price.supplement > 0 ? { montantSupplement: price.supplement } : {}),
         },
       });
     });

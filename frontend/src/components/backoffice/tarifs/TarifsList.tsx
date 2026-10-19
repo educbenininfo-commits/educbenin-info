@@ -26,7 +26,7 @@ export function TarifsList() {
   const [mode, setMode] = useState<TarifMode>('personnalise');
   const [montants, setMontants] = useState<Record<string, string>>({});
   const [montantUnique, setMontantUnique] = useState('');
-  const [regle, setRegle] = useState('');
+  const [supplement, setSupplement] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,12 +34,12 @@ export function TarifsList() {
     setLoading(true);
     try {
       const res = await fetchTarifs();
+      setSupplement(res.supplementSpecialite != null ? String(res.supplementSpecialite) : '');
       setCategories(res.categories);
       setHistory(res.history);
       if (res.active) {
         setMode(res.active.mode);
         setMontantUnique(res.active.montantUnique != null ? String(res.active.montantUnique) : '');
-        setRegle(res.active.regleSpecialitesAdditionnelles ?? '');
         setMontants(
           res.active.mode === 'personnalise' && res.active.montants
             ? Object.fromEntries(
@@ -85,6 +85,11 @@ export function TarifsList() {
         }
       }
     }
+    const supplementN = Number(supplement);
+    if (supplement.trim() && (!Number.isInteger(supplementN) || supplementN < 0)) {
+      setError('Indiquez un supplément par spécialité valide (0 pour aucun).');
+      return;
+    }
     setSaving(true);
     try {
       await saveTarifBareme({
@@ -94,7 +99,12 @@ export function TarifsList() {
           : {
               montants: Object.fromEntries(categories.map((c) => [c.id, Number(montants[c.id])])),
             }),
-        ...(regle.trim() ? { regleSpecialitesAdditionnelles: regle.trim() } : {}),
+        ...(supplement.trim()
+          ? {
+              supplementSpecialite: supplementN,
+              regleSpecialitesAdditionnelles: `+ ${fmtF2(supplementN)} / spécialité supplémentaire`,
+            }
+          : {}),
       });
       await load();
     } catch {
@@ -176,12 +186,18 @@ export function TarifsList() {
         )}
 
         <div className="field">
-          <label>Règle spécialités additionnelles (D.E.S.)</label>
+          <label>Supplément par spécialité supplémentaire (D.E.S.)</label>
           <input
-            value={regle}
-            onChange={(e) => setRegle(e.target.value)}
-            placeholder="ex. + 25 000 FCFA / spécialité supplémentaire"
+            value={supplement}
+            onChange={(e) => setSupplement(e.target.value)}
+            placeholder="25000"
+            inputMode="numeric"
           />
+          <p className="hint" style={{ marginTop: 6 }}>
+            Ajouté au prix de base pour chaque spécialité à partir de la 2ᵉ (ex. 3 spécialités =
+            prix de base + 2 × ce montant). Affiché sur la page D.E.S. et dans le total du
+            formulaire. 0 = aucun supplément.
+          </p>
         </div>
 
         {error && (
