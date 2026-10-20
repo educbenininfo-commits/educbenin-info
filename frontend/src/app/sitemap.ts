@@ -2,6 +2,15 @@ import type { MetadataRoute } from 'next';
 
 const SITE_URL = 'https://www.educbenin.info';
 
+const DEMAND_PAGES = [
+  '/fss/des',
+  '/fss/medecine-pharmacie',
+  '/fss/licence',
+  '/fss/master',
+  '/inmes/cycle-1',
+  '/inmes/cycle-2',
+];
+
 // Public, indexable pages only — admin, auth, settings, and the
 // token-scoped auth-diplome page are all excluded via metadata.robots on
 // their own routes (see their layout.tsx/page.tsx) and via robots.ts below.
@@ -18,6 +27,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${SITE_URL}/ecoles`, lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${SITE_URL}/fss`, lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${SITE_URL}/inmes`, lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
+    // Demand-form pages — what candidates actually search for ("probatoire
+    // D.E.S.", "Master FSS", "INMeS cycle 1"…).
+    ...DEMAND_PAGES.map((path) => ({
+      url: `${SITE_URL}${path}`,
+      lastModified: now,
+      changeFrequency: 'monthly' as const,
+      priority: 0.8,
+    })),
     {
       url: `${SITE_URL}/suivre-mon-dossier`,
       lastModified: now,
